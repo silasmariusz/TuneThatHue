@@ -41,6 +41,14 @@ Apache-2.0.
 Source: https://github.com/music-assistant/hue-entertainment
 License: Apache-2.0.
 
+## NumPy (QNAP runtime)
+
+The QNAP daemon's feature extractor needs **NumPy**. NumPy ships no wheel for
+QNAP's old glibc + Python 3.14, so the `.qpkg` bundles a NumPy built from source
+in a `manylinux2014` (glibc 2.17) container (see `qnap/README-BUILD.md`).
+
+Source: NumPy (https://numpy.org). License: BSD-3-Clause.
+
 ## Toolchain
 
 Windows front-ends are cross-compiled with **llvm-mingw**
