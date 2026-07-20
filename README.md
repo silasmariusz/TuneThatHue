@@ -32,7 +32,9 @@ roadmap below.
 - **`python/tth_phase2.py`** — the daemon: receives audio (VBAN/UDP), runs Music
   Assistant's own feature extractor + the effects engine, and streams to Hue.
   Serves a **browser control panel** (`--webui-port`, default 8080): live status,
-  in-browser bridge pairing, and effect settings.
+  in-browser bridge pairing (auto-discovers the bridge, or enter the IP), area
+  selection, output on/off, and effect settings — a headless box is set up
+  entirely from the browser, no config-file editing.
 - **`effects/hue_fx/`** — the effects engine, a verbatim copy (see below).
 
 Both capture front-ends and the daemon speak the same **VBAN/UDP** wire format
