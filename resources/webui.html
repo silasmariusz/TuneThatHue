@@ -181,13 +181,23 @@ $('pairBtn').onclick = async () => {
   const host = $('host').value.trim();
   $('pairBtn').disabled=true;
   $('pairMsg').textContent = '>>> PRESS THE ROUND LINK BUTTON on the bridge NOW (waiting up to 30s) <<<';
+  // Kick off pairing in the background, then poll for the result. The POST
+  // returns immediately so no request is held open (proxy-friendly).
   try {
-    const r = await fetch(API + 'api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})});
-    const res = await r.json();
-    if (res.ok){ $('pairMsg').textContent = 'Paired! Areas: '+(res.areas||[]).join(', ')+'. Default: '+res.area; loadConfig(); }
-    else { $('pairMsg').textContent = 'Pairing failed: '+res.error; }
-  } catch(e){ $('pairMsg').textContent='Pairing error: '+e; }
-  $('pairBtn').disabled=false;
+    await fetch(API + 'api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})});
+  } catch(e){ $('pairMsg').textContent='Pairing error: '+e; $('pairBtn').disabled=false; return; }
+  const t0 = Date.now();
+  const timer = setInterval(async () => {
+    try {
+      const st = await (await fetch(API + 'api/pair-status')).json();
+      if (!st.running && st.result){
+        clearInterval(timer); $('pairBtn').disabled=false;
+        const res = st.result;
+        if (res.ok){ $('pairMsg').textContent = 'Paired! Areas: '+(res.areas||[]).join(', ')+'. Default: '+res.area; loadConfig(); }
+        else { $('pairMsg').textContent = 'Pairing failed: '+res.error; }
+      } else if (Date.now()-t0 > 45000){ clearInterval(timer); $('pairBtn').disabled=false; $('pairMsg').textContent='Pairing timed out (no response).'; }
+    } catch(e){ /* keep polling */ }
+  }, 1500);
 };
 
 loadConfig();

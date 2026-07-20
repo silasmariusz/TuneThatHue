@@ -138,11 +138,37 @@ def create_app(
             }
         )
 
+    # Pairing runs in the BACKGROUND: do_pair holds for up to 30s waiting for the
+    # bridge button, and a request held that long is fragile behind the QNAP
+    # app-proxy (it mangles the response). So POST /api/pair returns at once and
+    # the browser polls /api/pair-status for the result.
+    import asyncio
+
+    pair_state: dict = {"running": False, "result": None}
+
     async def pair(req: web.Request) -> web.Response:
+        if pair_state["running"]:
+            return web.json_response({"state": "running"})
         data = await req.json()
         host = (data.get("host") or "").strip() or None
-        result = await do_pair(host, config_path)
-        return web.json_response(result)
+        pair_state["running"] = True
+        pair_state["result"] = None
+
+        async def _run() -> None:
+            try:
+                pair_state["result"] = await do_pair(host, config_path)
+            except Exception as err:  # noqa: BLE001
+                pair_state["result"] = {"ok": False, "error": str(err)}
+            finally:
+                pair_state["running"] = False
+
+        asyncio.ensure_future(_run())
+        return web.json_response({"state": "started"})
+
+    async def pair_status(_req: web.Request) -> web.Response:
+        return web.json_response(
+            {"running": pair_state["running"], "result": pair_state["result"]}
+        )
 
     async def output(req: web.Request) -> web.Response:
         data = await req.json()
@@ -174,6 +200,7 @@ def create_app(
             web.get("/api/status", status),
             web.get("/api/config", config),
             web.post("/api/pair", pair),
+            web.get("/api/pair-status", pair_status),
             web.post("/api/output", output),
             web.post("/api/settings", settings),
         ]
