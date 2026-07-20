@@ -1,0 +1,53 @@
+# hue-box configuration. Copy to hue-box.toml and fill in your values.
+# The [effects]/[pulse]/[strobe] keys mirror the Music Assistant provider
+# settings 1:1 so a tuned MA setup can be transplanted here directly.
+
+[bridge]
+host = "192.168.1.50"          # Hue bridge IP
+username = "PASTE-APP-KEY"     # Hue application key (a.k.a. username)
+clientkey = "PASTE-CLIENTKEY"  # hex PSK from pairing
+area = ""                      # entertainment area name or id ("" = first area)
+
+[sendspin]
+url = "ws://192.168.1.10:8927/sendspin"  # Music Assistant server
+latency_ms = 200               # render this far ahead to cancel Hue+DTLS lag
+
+[effects]
+mode = "club"                  # smooth / ambient / flashing / energetic / club / pulse
+brightness = 100               # 0-100 master for the base effect
+palette = "Disco"              # palette name, or "" for music/album colours
+
+[effects.rotation]
+enabled = false
+list = []                      # palette names to rotate through
+beats = 16                     # rotate every N beats (bar-aligned)
+smooth = true                  # crossfade (true) or hard cut on the bar (false)
+
+[effects.per_light]
+# channel_id = base brightness percent, e.g.:
+# 0 = 100
+# 3 = 80
+
+[pulse]                        # drives the Pulse mode AND the Club groove
+select = "chase"               # chase / scatter / spectrum
+downbeat = true                # whole room blooms on the downbeat
+decay_pct = 90                 # fade length as % of the beat gap
+floor_pct = 0                  # brightness between beats (0 = full black)
+
+[strobe]
+lights = []                    # channel ids that take part, e.g. [0, 3]; empty = off
+enabled = true
+auto = true                    # song-structure detector runs the strobe
+coverage = 50                  # % of selected lights per burst
+sensitivity = 70
+blackout = true
+color = "#FFFFFF"
+brightness = 100
+flash_hz = 11                  # expert knobs (same hidden keys as in MA)
+duty_pct = 30
+min_hold_ms = 300
+release_ms = 250
+beat_sync = false
+
+[log]
+level = "INFO"

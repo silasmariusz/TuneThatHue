@@ -1,0 +1,9 @@
+# hue-box effects manifest - written by tools/sync_effects.py
+# synced: 2026-07-19T08:07:27.113660+00:00
+# source: D:\Code\music-assistant-hue-mod\server @ 876967f30ec49fe83cf5defc5d418edb30d9c5ca
+520ef598777928e7b24e0ac533eec4e6605cd0263980d6f79ed8924db7407679  hue_fx/analyzer.py
+a1f9385af3a9bfd4da95d3ca0c689998b1da94cf282149bed73d34b1011c00d4  hue_fx/structure.py
+42226de23f4eaca2bfae02ab021edb51798c750dbee6965e622bb8dc44f856ad  hue_fx/strobe_overlay.py
+4d7a6e5a5fdeb246768b51343d53d741770cae7f01abb62891d9751976643c34  hue_fx/palettes.py
+0b969ebf1a0a1750f087feec39919ac9f680a47ceb75539e7be4ee280d4a0df6  hue_fx/palettes.json
+484d24bd78d2c82821176c8cfdec82df892a621c44783e1b6fcccb7474598455  hue_fx/constants.py

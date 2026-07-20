@@ -1,0 +1,15 @@
+[Unit]
+Description=hue-box - Sendspin visualizer client driving Hue Entertainment
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# M0/M1: the Python entry. From M1 on this becomes /opt/hue-box/hue-box -c ...
+ExecStart=/opt/hue-box/venv/bin/python /opt/hue-box/python/hue_box_main.py /opt/hue-box/config/hue-box.toml
+Restart=on-failure
+RestartSec=3
+User=hue-box
+
+[Install]
+WantedBy=multi-user.target

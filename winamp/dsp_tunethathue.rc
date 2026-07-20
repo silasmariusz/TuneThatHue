@@ -1,0 +1,61 @@
+#include <windows.h>
+#include "resource.h"
+
+IDD_CONFIG DIALOGEX 0, 0, 250, 208
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "TuneThatHue - PCM sender"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    LTEXT           "Daemon IP:",        -1,        10,  12,  55, 10
+    EDITTEXT        IDC_HOST,            70,  10, 120, 12,  ES_AUTOHSCROLL
+    LTEXT           "Port:",             -1,        10,  30,  55, 10
+    EDITTEXT        IDC_PORT,            70,  28,  55, 12,  ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Stream name:",      -1,        10,  48,  55, 10
+    EDITTEXT        IDC_STREAM,          70,  46, 120, 12,  ES_AUTOHSCROLL
+    PUSHBUTTON      "Test connection",   IDC_TEST,  70,  64, 120, 14
+    LTEXT           "Status:",           -1,        10,  86,  55, 10
+    LTEXT           "idle",              IDC_STATUS,70,  86, 170, 10
+    LTEXT           "Throughput:",       -1,        10, 100,  55, 10
+    LTEXT           "- KB/s  (- pkt/s)", IDC_RATE,  70, 100, 170, 10
+    DEFPUSHBUTTON   "OK",                IDOK,     150, 122,  40, 14
+    PUSHBUTTON      "Cancel",            IDCANCEL, 195, 122,  40, 14
+
+    CONTROL         "", -1, "Static", SS_ETCHEDHORZ, 10, 146, 230, 1
+    LTEXT           "TuneThatHue  (c) 2025-2026  Silas Mariusz Grzybacz",
+                    IDC_CREDITS1, 10, 152, 230, 10
+    LTEXT           "devspark.pl  -  published: forum.qnap.net.pl",
+                    -1, 10, 164, 230, 10
+    LTEXT           "QNAP app repo: myqnap.org",
+                    IDC_CREDITS2, 10, 176, 230, 10
+    LTEXT           "version 0.2.0.0",
+                    -1, 10, 190, 230, 10
+END
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    0,2,0,0
+ PRODUCTVERSION 0,2,0,0
+ FILEFLAGSMASK  0x3fL
+ FILEFLAGS      0x0L
+ FILEOS         0x40004L
+ FILETYPE       0x2L
+ FILESUBTYPE    0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName",      "Silas Mariusz Grzybacz - devspark.pl"
+            VALUE "FileDescription",  "TuneThatHue - Winamp PCM sender"
+            VALUE "FileVersion",      "0.2.0.0"
+            VALUE "InternalName",     "dsp_tunethathue"
+            VALUE "LegalCopyright",   "(c) 2025-2026 Silas Mariusz Grzybacz. forum.qnap.net.pl / myqnap.org"
+            VALUE "OriginalFilename", "dsp_tunethathue.dll"
+            VALUE "ProductName",      "TuneThatHue"
+            VALUE "ProductVersion",   "0.2.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

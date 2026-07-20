@@ -1,0 +1,29 @@
+# --- secrets: NEVER commit paired bridge credentials ---
+config/hue-box.toml
+*.ini
+
+# --- internal dev notes (infra IPs / continuity) ---
+HANDOFF.md
+
+# --- Python ---
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# --- C build artifacts (binaries ship as GitHub Release assets) ---
+*.o
+*.obj
+*.dll
+*.exe
+*.so
+build/
+dist/
+
+# --- editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
