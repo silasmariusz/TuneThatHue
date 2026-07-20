@@ -1,0 +1,16 @@
+######################################################################
+# TuneThatHue QDK package routines (install/remove hooks).
+# See the QDK docs for the full list of SYS_*/CMD_* definitions and hooks.
+######################################################################
+
+######################################################################
+# Warn (non-fatal) if our loopback WebUI port is already in use. The daemon
+# serves itself on 127.0.0.1:QPKG_WEB_PORT behind the QTS panel proxy; a taken
+# port would make the /TuneThatHue route fail once the service starts.
+######################################################################
+pkg_pre_install(){
+    _tth_port="58091"
+    if /bin/netstat -tlnp 2>/dev/null | /bin/grep -q ":${_tth_port} "; then
+        /sbin/write_log "[TuneThatHue] WARNING: TCP ${_tth_port} already in use; the WebUI may fail to bind. Free it or change QPKG_WEB_PORT in qpkg.cfg." 1
+    fi
+}
