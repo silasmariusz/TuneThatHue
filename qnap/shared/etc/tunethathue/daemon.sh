@@ -14,7 +14,11 @@
 # installed by tunethathue.sh (start) and removed on stop.
 
 QPKG_NAME="TuneThatHue"
-QPKG_ROOT="${QPKG_ROOT:-/opt/${QPKG_NAME}}"
+# Resolve the install path ourselves: cron runs `daemon.sh watchdog` with no
+# environment, so QPKG_ROOT is unset there - fall back to the qpkg.conf entry
+# (the real path, e.g. /share/CACHEDEVx_DATA/.qpkg/TuneThatHue), not /opt.
+QPKG_ROOT="${QPKG_ROOT:-$(/sbin/getcfg "$QPKG_NAME" Install_Path -f /etc/config/qpkg.conf 2>/dev/null)}"
+[ -n "$QPKG_ROOT" ] || QPKG_ROOT="/opt/${QPKG_NAME}"
 APP="$QPKG_ROOT/app"
 RUNTIME_DIR="$QPKG_ROOT/runtime"
 CONF="$QPKG_ROOT/config/hue-box.toml"

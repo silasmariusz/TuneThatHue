@@ -99,10 +99,11 @@
 
 <script>
 const $ = id => document.getElementById(id);
-// Resolve API calls relative to where this page is served, so it works both
-// directly (http://host:port/) and behind the QNAP app-proxy (/TuneThatHue/).
-// Absolute API + 'api/...' would hit the NAS panel root and return HTML, not JSON.
-const API = new URL('.', document.baseURI).href;
+// Resolve API calls under the current page's path prefix. Behind the QNAP
+// app-proxy the page is at /TuneThatHue (NO trailing slash), so normalise to
+// exactly one trailing slash: "/" -> "/", "/TuneThatHue" -> "/TuneThatHue/".
+// A leading-slash absolute path would hit the NAS panel root and return HTML.
+const API = location.pathname.replace(/\/+$/, '') + '/';
 let prev = null;
 
 // build the 17-bar spectrum
