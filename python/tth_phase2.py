@@ -169,8 +169,37 @@ class Phase2Daemon:
         self.samples_seen = 0
         self.last_packet_mono = 0.0
 
+        # Runtime-controllable Hue output (togglable from the WebUI, no restart).
+        self.session = None
+        self.area_name = ""
+        self.config_path: Path | None = None
+
     def now_us(self) -> int:
         return int(self.loop.time() * 1_000_000)
+
+    async def apply_output(self, mode: str, area_name: str | None = None) -> dict:
+        """Start/stop the Hue stream at runtime. Returns {ok, output, area, error}."""
+        try:
+            await self._close_session()
+            if mode == "hue":
+                if self.config_path is None:
+                    return {"ok": False, "error": "no config path"}
+                self.session, self.area_name = await open_entertainment(
+                    self.config_path, area_name
+                )
+            self.output = mode
+            return {"ok": True, "output": self.output, "area": self.area_name}
+        except Exception as err:  # noqa: BLE001 - surface bridge/pairing errors to the UI
+            self.output = "none"
+            return {"ok": False, "error": str(err)}
+
+    async def _close_session(self) -> None:
+        if self.session is not None:
+            from contextlib import suppress
+
+            with suppress(Exception):
+                await self.session.aclose()
+            self.session = None
 
     def _ensure_extractor(self, sample_rate: int, channels: int) -> None:
         if self.extractor is not None and sample_rate == self.ex_rate and channels == self.ex_channels:
@@ -223,7 +252,7 @@ class Phase2Daemon:
                 )
                 self.stats.peaks += 1
 
-    async def render_loop(self, session) -> None:
+    async def render_loop(self) -> None:
         period = 1.0 / RENDER_RATE_HZ
         while True:
             await asyncio.sleep(period)
@@ -231,8 +260,8 @@ class Phase2Daemon:
             self.stats.renders += 1
             if any(c.red or c.green or c.blue for c in cmds):
                 self.stats.lit += 1
-            if session is not None:
-                session.send(cmds)
+            if self.session is not None:  # live: set/cleared by apply_output()
+                self.session.send(cmds)
 
     async def stats_loop(self) -> None:
         blocks = " .:-=+*#%@"
@@ -248,32 +277,56 @@ class Phase2Daemon:
             )
 
 
-async def start_hue_session(config_path: Path):
-    """Open the Hue Entertainment DTLS stream from hue-box.toml (output=hue)."""
+def _bridge_cfg(config_path: Path) -> dict:
     import tomllib
 
-    from hue_entertainment import EntertainmentSession, HueEntertainmentAPI  # real lib required
+    return tomllib.loads(config_path.read_text(encoding="utf-8")).get("bridge", {})
 
-    cfg = tomllib.loads(config_path.read_text(encoding="utf-8"))
-    bridge = cfg["bridge"]
+
+async def list_areas(config_path: Path) -> list[str]:
+    """Names of the bridge's entertainment areas (for the WebUI dropdown)."""
+    from hue_entertainment import HueEntertainmentAPI
+
+    bridge = _bridge_cfg(config_path)
+    if not bridge.get("username"):
+        return []
+    api = HueEntertainmentAPI(str(bridge["host"]), app_key=str(bridge["username"]))
+    try:
+        return [a.name for a in await api.get_entertainment_areas()]
+    except Exception:  # noqa: BLE001
+        return []
+    finally:
+        await api.close()
+
+
+async def open_entertainment(config_path: Path, area_name: str | None = None):
+    """
+    Open a Hue Entertainment DTLS stream to the chosen area (or the configured /
+    first one). Returns (session, area_name_used). Raises on missing bridge/area.
+    """
+    from hue_entertainment import EntertainmentSession, HueEntertainmentAPI
+
+    bridge = _bridge_cfg(config_path)
+    if not bridge.get("username"):
+        raise RuntimeError("bridge not paired - pair first (--pair or the WebUI)")
     api = HueEntertainmentAPI(str(bridge["host"]), app_key=str(bridge["username"]))
     try:
         areas = await api.get_entertainment_areas()
     finally:
         await api.close()
-    wanted = str(bridge.get("area", "")).strip().lower()
+    wanted = (area_name or str(bridge.get("area", ""))).strip().lower()
     area = next(
         (a for a in areas if wanted in (a.id.lower(), a.name.lower())),
         areas[0] if areas else None,
     )
     if area is None:
-        raise SystemExit("no entertainment area found")
+        raise RuntimeError("no entertainment area found on the bridge")
     session = EntertainmentSession(
         str(bridge["host"]), str(bridge["username"]), str(bridge["clientkey"]), idle_timeout=0
     )
     await session.start(area.id)
     print(f"[hue] streaming to area '{area.name}'")
-    return session, area
+    return session, area.name
 
 
 def _save_bridge_creds(
@@ -311,36 +364,21 @@ def _save_bridge_creds(
     config_path.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
-async def _discover_hue_host(timeout: float = 5.0) -> str | None:
-    """Find a Hue bridge's IPv4 address via mDNS (_hue._tcp.local.)."""
-    from zeroconf import ServiceStateChange
-    from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
-
-    found: list[str] = []
-    aiozc = AsyncZeroconf()
-
-    async def resolve(name: str) -> None:
-        info = AsyncServiceInfo("_hue._tcp.local.", name)
-        if await info.async_request(aiozc.zeroconf, 3000):
-            found.extend(a for a in info.parsed_addresses() if ":" not in a)
-
-    def on_change(zc, service_type, name, state_change):  # noqa: ANN001
-        if state_change is ServiceStateChange.Added:
-            asyncio.ensure_future(resolve(name))
-
-    browser = AsyncServiceBrowser(aiozc.zeroconf, "_hue._tcp.local.", handlers=[on_change])
-    await asyncio.sleep(timeout)
-    # Guard teardown: zeroconf's async_close can block if resolutions are still
-    # in flight; we already have what we need, so cap it and move on.
+async def _discover_hue_host(timeout: float = 6.0) -> str | None:
+    """
+    Find a Hue bridge's IP via mDNS. Uses hue_entertainment's proven discovery
+    when the lib is present (it is, for Phase 2a); returns None otherwise so the
+    caller falls back to asking for the IP.
+    """
     try:
-        await asyncio.wait_for(browser.async_cancel(), timeout=2.0)
-    except (TimeoutError, Exception):  # noqa: BLE001
-        pass
+        from hue_entertainment import discover_bridges
+    except ModuleNotFoundError:
+        return None
     try:
-        await asyncio.wait_for(aiozc.async_close(), timeout=2.0)
-    except (TimeoutError, Exception):  # noqa: BLE001
-        pass
-    return found[0] if found else None
+        bridges = await discover_bridges(timeout=timeout)
+    except Exception:  # noqa: BLE001 - discovery is best-effort; --host always works
+        return None
+    return bridges[0].host if bridges else None
 
 
 async def do_pair(host: str | None, config_path: Path, wait_s: float = 30.0) -> dict:
@@ -434,11 +472,12 @@ async def main() -> None:
         return
 
     daemon = Phase2Daemon(args.output)
+    daemon.config_path = args.config
 
-    session = None
     if args.output == "hue":
-        session, area = await start_hue_session(args.config)
-        daemon.analyzer.update_settings()  # placeholder: real per-area channels wiring in 2b
+        result = await daemon.apply_output("hue")
+        if not result["ok"]:
+            print(f"[hue] could not start output: {result['error']} (continuing; toggle it in the WebUI)")
 
     webui_runner = None
     if args.webui_port:
@@ -453,13 +492,12 @@ async def main() -> None:
     print(f"[vban] listening on UDP {args.port} - start Winamp with the TuneThatHue DSP plugin")
 
     try:
-        await asyncio.gather(daemon.render_loop(session), daemon.stats_loop())
+        await asyncio.gather(daemon.render_loop(), daemon.stats_loop())
     finally:
         transport.close()
         if webui_runner is not None:
             await webui_runner.cleanup()
-        if session is not None:
-            await session.aclose()
+        await daemon._close_session()
 
 
 if __name__ == "__main__":

@@ -105,22 +105,30 @@ def create_app(
                 "format": s.format,
                 "spectrum": s.last_spectrum,
                 "output": daemon.output,
+                "streaming": daemon.session is not None,
+                "area": daemon.area_name,
                 "receiving": receiving,
             }
         )
 
     async def config(_req: web.Request) -> web.Response:
-        paired, host, area = _bridge_paired(config_path)
+        paired, host, cfg_area = _bridge_paired(config_path)
         try:
             d = tomllib.load(config_path.open("rb"))
         except Exception:  # noqa: BLE001
             d = {}
         eff = d.get("effects", {})
+        areas = []
+        if paired:
+            import tth_phase2  # noqa: PLC0415 - already loaded (webui is imported by it)
+
+            areas = await tth_phase2.list_areas(config_path)
         return web.json_response(
             {
                 "paired": paired,
                 "host": host,
-                "area": area,
+                "area": daemon.area_name or cfg_area,
+                "areas": areas,
                 "output": daemon.output,
                 "mode": eff.get("mode", "pulse"),
                 "brightness": eff.get("brightness", 100),
@@ -134,6 +142,13 @@ def create_app(
         data = await req.json()
         host = (data.get("host") or "").strip() or None
         result = await do_pair(host, config_path)
+        return web.json_response(result)
+
+    async def output(req: web.Request) -> web.Response:
+        data = await req.json()
+        mode = "hue" if data.get("mode") == "hue" else "none"
+        area = (data.get("area") or "").strip() or None
+        result = await daemon.apply_output(mode, area)
         return web.json_response(result)
 
     async def settings(req: web.Request) -> web.Response:
@@ -159,6 +174,7 @@ def create_app(
             web.get("/api/status", status),
             web.get("/api/config", config),
             web.post("/api/pair", pair),
+            web.post("/api/output", output),
             web.post("/api/settings", settings),
         ]
     )

@@ -74,8 +74,14 @@
       <input type="text" id="host" placeholder="10.0.0.x">
       <button id="pairBtn">Pair</button>
     </div>
-    <p class="hint" id="pairMsg">Enter the bridge IP, click Pair, then press the round link button on the bridge within 30&nbsp;seconds.</p>
-    <div class="row"><label>Area</label><span id="area" style="color:var(--ink)">–</span></div>
+    <p class="hint" id="pairMsg">Enter the bridge IP (or leave blank to auto-discover), click Pair, then press the round link button on the bridge within 30&nbsp;seconds.</p>
+    <div class="row">
+      <label>Area</label><select id="area"></select>
+      <label style="min-width:auto; margin-left:12px">Output</label>
+      <button id="outBtn">Turn on</button>
+      <span id="outState" class="pill off">off</span>
+    </div>
+    <p class="hint" id="outMsg"></p>
   </section>
 
   <section class="panel">
@@ -119,13 +125,19 @@ async function poll(){
   } catch(e){ $('conn').className='pill off'; $('conn').textContent='offline'; }
 }
 
+let curOutput = 'none';
 async function loadConfig(){
   const c = await (await fetch('/api/config')).json();
   $('paired').className = 'pill ' + (c.paired?'on':'off');
   $('paired').textContent = c.paired?'paired':'not paired';
   $('bhost').textContent = c.host ? '· '+c.host : '';
-  $('area').textContent = c.area || '–';
   if (c.host && !$('host').value) $('host').value = c.host;
+  // area dropdown
+  const areaSel=$('area'); areaSel.innerHTML='';
+  (c.areas||[]).forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===c.area)o.selected=true;areaSel.appendChild(o);});
+  if(!(c.areas||[]).length){const o=document.createElement('option');o.textContent=c.area||'(pair first)';areaSel.appendChild(o);}
+  curOutput = c.output;
+  reflectOutput(c.output==='hue');
   const modeSel=$('mode'); modeSel.innerHTML='';
   c.modes.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m[0].toUpperCase()+m.slice(1);if(m===c.mode)o.selected=true;modeSel.appendChild(o);});
   const palSel=$('palette'); palSel.innerHTML='';
@@ -140,6 +152,25 @@ $('mode').onchange = e => apply({mode:e.target.value});
 $('palette').onchange = e => apply({palette:e.target.value});
 $('brightness').oninput = e => { $('brightVal').textContent=e.target.value; };
 $('brightness').onchange = e => apply({brightness:parseInt(e.target.value)});
+
+function reflectOutput(on){
+  curOutput = on ? 'hue' : 'none';
+  $('outState').className = 'pill ' + (on?'on':'off');
+  $('outState').textContent = on?'streaming':'off';
+  $('outBtn').textContent = on?'Turn off':'Turn on';
+}
+$('outBtn').onclick = async () => {
+  const turningOn = curOutput !== 'hue';
+  $('outBtn').disabled=true; $('outMsg').textContent = turningOn?'starting DTLS stream…':'stopping…';
+  try {
+    const r = await fetch('/api/output',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode: turningOn?'hue':'none', area: $('area').value})});
+    const res = await r.json();
+    if (res.ok){ reflectOutput(res.output==='hue'); $('outMsg').textContent = res.output==='hue' ? ('streaming to '+res.area) : 'output off'; }
+    else { $('outMsg').textContent = 'error: '+res.error; }
+  } catch(e){ $('outMsg').textContent='error: '+e; }
+  $('outBtn').disabled=false;
+};
 
 $('pairBtn').onclick = async () => {
   const host = $('host').value.trim();
