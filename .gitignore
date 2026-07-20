@@ -27,3 +27,13 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# --- QNAP qpkg build artifacts (assembled at build time, never commit) ---
+qnap/shared/app/
+qnap/shared/runtime/
+qnap/build/
+qnap/_pyruntime/
+# signing keys - NEVER commit
+qnap/ca_certs
+qnap/certificate
+qnap/private_key

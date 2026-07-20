@@ -69,7 +69,27 @@ def _load_feature_extractor():
     return mod.VisualizerFeatureExtractor
 
 
-VisualizerFeatureExtractor = _load_feature_extractor()
+# The feature extractor (aiosendspin features.py) needs numpy, which has no
+# wheel for some old-glibc targets (e.g. QNAP glibc 2.21). Load it lazily so the
+# daemon still starts - WebUI, pairing and Hue output all work without it; only
+# raw-PCM analysis is unavailable until numpy is present.
+VisualizerFeatureExtractor: type | None = None
+_extractor_load_failed = False
+
+
+def _get_feature_extractor():
+    global VisualizerFeatureExtractor, _extractor_load_failed
+    if VisualizerFeatureExtractor is None and not _extractor_load_failed:
+        try:
+            VisualizerFeatureExtractor = _load_feature_extractor()
+        except Exception as err:  # noqa: BLE001 - most likely a missing numpy wheel
+            _extractor_load_failed = True
+            print(
+                f"[extractor] UNAVAILABLE ({err}) - raw-PCM analysis is off; "
+                "WebUI/pairing/Hue output still work. Add a numpy wheel to enable it."
+            )
+    return VisualizerFeatureExtractor
+
 
 from hue_fx.analyzer import HueAudioAnalyzer, PulseSettings
 from hue_fx.constants import SPECTRUM_BINS, SPECTRUM_F_MAX, SPECTRUM_F_MIN, SPECTRUM_SCALE
@@ -204,6 +224,9 @@ class Phase2Daemon:
     def _ensure_extractor(self, sample_rate: int, channels: int) -> None:
         if self.extractor is not None and sample_rate == self.ex_rate and channels == self.ex_channels:
             return
+        cls = _get_feature_extractor()
+        if cls is None:
+            return  # numpy/extractor unavailable - raw-PCM analysis stays off
         config = StreamStartVisualizer(
             types=("peak", "spectrum"),
             rate_max=FEATURE_RATE_HZ,
@@ -214,9 +237,7 @@ class Phase2Daemon:
                 f_max=SPECTRUM_F_MAX,
             ),
         )
-        self.extractor = VisualizerFeatureExtractor(
-            sample_rate=sample_rate, channels=channels, config=config
-        )
+        self.extractor = cls(sample_rate=sample_rate, channels=channels, config=config)
         self.ex_rate, self.ex_channels = sample_rate, channels
         self.anchor_us = None
         self.samples_seen = 0
@@ -225,7 +246,8 @@ class Phase2Daemon:
     def on_chunk(self, pcm: bytes, sample_rate: int, channels: int) -> None:
         mono_now = time.monotonic()
         self._ensure_extractor(sample_rate, channels)
-        assert self.extractor is not None
+        if self.extractor is None:
+            return  # no feature extractor (numpy missing) - drop the audio quietly
 
         # Re-anchor after silence (player stopped) so timestamps stay near "now".
         if self.anchor_us is None or (mono_now - self.last_packet_mono) > RESYNC_GAP_S:
