@@ -99,6 +99,10 @@
 
 <script>
 const $ = id => document.getElementById(id);
+// Resolve API calls relative to where this page is served, so it works both
+// directly (http://host:port/) and behind the QNAP app-proxy (/TuneThatHue/).
+// Absolute API + 'api/...' would hit the NAS panel root and return HTML, not JSON.
+const API = new URL('.', document.baseURI).href;
 let prev = null;
 
 // build the 17-bar spectrum
@@ -108,7 +112,7 @@ const bars = [...spec.children];
 
 async function poll(){
   try {
-    const r = await fetch('/api/status'); const s = await r.json();
+    const r = await fetch(API + 'api/status'); const s = await r.json();
     $('conn').className='pill on'; $('conn').textContent='connected';
     $('rx').className = 'pill ' + (s.receiving?'on':'off'); $('rx').textContent = s.receiving?'receiving':'idle';
     $('out').className = 'pill ' + (s.output==='hue'?'on':'warn'); $('out').textContent = s.output;
@@ -127,7 +131,7 @@ async function poll(){
 
 let curOutput = 'none';
 async function loadConfig(){
-  const c = await (await fetch('/api/config')).json();
+  const c = await (await fetch(API + 'api/config')).json();
   $('paired').className = 'pill ' + (c.paired?'on':'off');
   $('paired').textContent = c.paired?'paired':'not paired';
   $('bhost').textContent = c.host ? '· '+c.host : '';
@@ -146,7 +150,7 @@ async function loadConfig(){
   $('brightness').value=c.brightness; $('brightVal').textContent=c.brightness;
 }
 
-async function apply(patch){ await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}); }
+async function apply(patch){ await fetch(API + 'api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}); }
 
 $('mode').onchange = e => apply({mode:e.target.value});
 $('palette').onchange = e => apply({palette:e.target.value});
@@ -163,7 +167,7 @@ $('outBtn').onclick = async () => {
   const turningOn = curOutput !== 'hue';
   $('outBtn').disabled=true; $('outMsg').textContent = turningOn?'starting DTLS stream…':'stopping…';
   try {
-    const r = await fetch('/api/output',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r = await fetch(API + 'api/output',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({mode: turningOn?'hue':'none', area: $('area').value})});
     const res = await r.json();
     if (res.ok){ reflectOutput(res.output==='hue'); $('outMsg').textContent = res.output==='hue' ? ('streaming to '+res.area) : 'output off'; }
@@ -177,7 +181,7 @@ $('pairBtn').onclick = async () => {
   $('pairBtn').disabled=true;
   $('pairMsg').textContent = '>>> PRESS THE ROUND LINK BUTTON on the bridge NOW (waiting up to 30s) <<<';
   try {
-    const r = await fetch('/api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})});
+    const r = await fetch(API + 'api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})});
     const res = await r.json();
     if (res.ok){ $('pairMsg').textContent = 'Paired! Areas: '+(res.areas||[]).join(', ')+'. Default: '+res.area; loadConfig(); }
     else { $('pairMsg').textContent = 'Pairing failed: '+res.error; }
