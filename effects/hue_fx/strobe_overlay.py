@@ -75,6 +75,9 @@ _GATE_MIN_ENERGY = 0.02  # never engage on near-silence
 
 # --- auto strobe (structure-driven; ignores the energy gate) ---
 _AUTO_RISE_MIN = 0.25  # start the build-strobe a bit earlier into the rise
+# Coverage at the very start of a build. Low enough that a single light ticks first
+# and more are recruited as the build grows (a club build lights up gradually).
+_AUTO_RISE_COVERAGE_MIN = 20
 _AUTO_SUSTAIN_ACCENT_BEATS = 6  # strobe only the drop LANDING (first ~1.5 bars of a
 # sustain), then let the groove breathe - a club strobe punctuates, not runs forever.
 _AUTO_DROP_SUB = 4.0  # 1/16-note flashes on the drop
@@ -278,11 +281,13 @@ class StrobeOverlay:
         """
         if not self.configured:
             return None
+        if not self._update_envelopes(energy):
+            return None  # warm-start frame: nothing to decide from yet
         if self._auto and section is not None:
             if not self._auto_gate(now_us, section):
                 return None
         else:
-            self._update_gate(now_us, energy)
+            self._update_gate(now_us)
             if not self._engaged:
                 return None
 
@@ -323,17 +328,24 @@ class StrobeOverlay:
 
     # -- internals --
 
-    def _update_gate(self, now_us: int, energy: float) -> None:
+    def _update_envelopes(self, energy: float) -> bool:
+        """
+        Advance the fast/slow energy envelopes; both gates read them.
+
+        :return: False on the warm-start frame, when there is no history to judge yet.
+        """
         # Warm start: seed both envelopes from the first sample so a cold
         # baseline (0.0) doesn't make the opening of a track look like a jump.
         if not self._initialized:
             self._initialized = True
             self._fast = energy
             self._slow = energy
-            return
+            return False
         self._fast += _GATE_FAST_A * (energy - self._fast)
         self._slow += _GATE_SLOW_A * (energy - self._slow)
+        return True
 
+    def _update_gate(self, now_us: int) -> None:
         if self._sensitivity >= 100:
             want = True
         else:
@@ -371,12 +383,25 @@ class StrobeOverlay:
         ``_restore_user_coverage`` when control hands back to the manual gate, and
         ``_below_since_us`` is owned by the manual gate and not touched here.
         """
+        # Never strobe into silence. The section state lags the audio, so at the end of a
+        # track it can still read DROP/SUSTAIN while the music has already stopped - and
+        # flashing into the gap between tracks just looks broken. The manual gate has the
+        # same floor; auto was missing it.
+        if self._fast < _GATE_MIN_ENERGY:
+            self._engaged = False
+            self._cycle_index = -1
+            self._restore_user_coverage()
+            return False
         st = section.state
         if st == SECTION_DROP:
             sub, coverage, fallback_hz = _AUTO_DROP_SUB, 100, _AUTO_DROP_HZ
         elif st == SECTION_RISE and section.rise_progress >= _AUTO_RISE_MIN:
             sub = 1.0 + (_AUTO_DROP_SUB - 1.0) * section.rise_progress
-            coverage = int(40 + 60 * section.rise_progress)
+            # Recruit lights one at a time as the build grows: at the start of the rise
+            # a single light ticks, then 2, 3, ... and the whole room lands on the drop.
+            # Normalised over the active part of the rise so the ramp always spans it.
+            grown = (section.rise_progress - _AUTO_RISE_MIN) / max(1e-6, 1.0 - _AUTO_RISE_MIN)
+            coverage = int(_AUTO_RISE_COVERAGE_MIN + (100 - _AUTO_RISE_COVERAGE_MIN) * grown)
             fallback_hz = 4.0 + 8.0 * section.rise_progress
         elif st == SECTION_SUSTAIN and section.beats_since_change < _AUTO_SUSTAIN_ACCENT_BEATS:
             # Accent the drop LANDING only (first ~1.5 bars of the sustain), then go

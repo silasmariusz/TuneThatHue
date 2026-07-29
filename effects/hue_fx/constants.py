@@ -87,9 +87,17 @@ DEFAULT_COLOR_MODE: Final[str] = COLOR_MODES[0]
 # effect). rgb = widest range + dynamic fades; xy = consistent across mixed Hue models;
 # vivid = xy stretched to the gamut edge (consistent + punchy). Values match the
 # hue-entertainment ColorMode enum.
+# Colour output. RGB is legacy: it is what you get automatically when the streaming
+# library is too old to have ColorMode (the bridge then never sets a mode). When the
+# library does support it, the UI exposes a single "Boost colours" toggle instead of
+# the old three-way select - off streams accurate Hue xy, on pushes saturated colours
+# to the gamut edge. RGB is no longer offered in the UI (it flickers: no separate
+# brightness channel), but the constants stay for the legacy path + API.
 CONF_COLOR_OUTPUT: Final[str] = "color_output"
 DEFAULT_COLOR_OUTPUT: Final[str] = "rgb"
 COLOR_OUTPUT_OPTIONS: Final[tuple[str, ...]] = ("rgb", "xy", "vivid")
+CONF_COLOR_BOOST: Final[str] = "color_boost"
+DEFAULT_COLOR_BOOST: Final[bool] = True
 
 # Pulse / Club-groove fire engine knobs (apply to the "pulse" mode and the club
 # groove). floor/decay are stored as whole percents; select picks which light fires.

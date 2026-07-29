@@ -1,0 +1,27 @@
+# The engine under effects/hue_fx/ must stay byte-identical to the Music Assistant
+# provider, in both directions: files developed here get copied straight back into
+# the provider. Git's autocrlf would rewrite line endings on checkout, which alone
+# would make every file differ from its counterpart and break the whole point.
+# Pin them to LF, whatever the machine is configured to do.
+effects/hue_fx/** text eol=lf
+effects/MANIFEST.sha256 text eol=lf
+
+# The daemon and its resources also run on Linux (QNAP, Pi) - keep them LF too.
+python/** text eol=lf
+resources/*.html text eol=lf
+qnap/** text eol=lf
+tools/** text eol=lf
+*.sh text eol=lf
+
+# Windows sources are edited with MSVC/Windows tooling.
+*.rc text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Never touch binaries.
+*.ico binary
+*.gif binary
+*.png binary
+*.exe binary
+*.dll binary
+*.qpkg binary
