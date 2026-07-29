@@ -26,9 +26,29 @@ roadmap below.
 
 ## Components
 
-- **`systray/tth_capture.c`** — Windows system-tray app; captures ALL system audio
-  (WASAPI loopback) and streams it to the daemon. Works with any player.
-- **`winamp/dsp_tunethathue.c`** — a Winamp DSP plugin that does the same for Winamp.
+### Windows capture apps (pick one; installers in the releases)
+
+- **`soundrecorder/` — TuneThatHue SoundRecorder** *(recommended)*: system-tray app
+  that captures audio and sends it to the daemon. Four sources, chosen in its settings:
+  1. **Default output** — everything you hear (any player, browser, game; DirectSound /
+     XAudio2 / DirectX included, since Windows mixes them before the speakers),
+  2. **A specific output device** — second sound card, HDMI, virtual cable,
+  3. **An input device** — Stereo Mix / "What U Hear", line-in, microphone,
+  4. **A single application** — WASAPI process loopback (Windows 10 2004+).
+
+  *Known limit:* audio played in WASAPI **exclusive mode** bypasses the Windows mixer,
+  so loopback records silence there — capture that app directly (source 4) or use
+  another output device.
+- **`winamp/`** — Winamp DSP plugin (`dsp_tunethathue.dll`), for Winamp only.
+- **`foobar/`** — native foobar2000 component (`foo_tunethathue.dll`, packaged as
+  `.fb2k-component`), for foobar2000 2.x (64-bit). Add it in
+  *Preferences → Playback → DSP Manager*.
+
+The old `systray/tth_capture.c` is the SoundRecorder's predecessor (default-output
+loopback only) and is kept for reference.
+
+### The daemon
+
 - **`python/tth_phase2.py`** — the daemon: receives audio (VBAN/UDP), runs Music
   Assistant's own feature extractor + the effects engine, and streams to Hue.
   Serves a **browser control panel** (`--webui-port`, default 8080): live status,
@@ -37,7 +57,7 @@ roadmap below.
   entirely from the browser, no config-file editing.
 - **`effects/hue_fx/`** — the effects engine, a verbatim copy (see below).
 
-Both capture front-ends and the daemon speak the same **VBAN/UDP** wire format
+Every capture front-end and the daemon speak the same **VBAN/UDP** wire format
 (int16 PCM) plus a tiny `TTHP`/`TTHO` ping for the "Test connection" button, so
 one daemon serves them all.
 
@@ -56,9 +76,26 @@ venv/Scripts/python python/tth_phase2.py --pair --host <BRIDGE_IP>
 venv/Scripts/python python/tth_phase2.py --output hue
 ```
 
-Then run `systray/tth_capture.exe` (or enable the Winamp plugin) and play music —
-your Hue Entertainment area reacts. Pairing and all settings are also available in
-the WebUI, so a headless box needs no config file editing.
+Then install **TuneThatHue SoundRecorder** (or the Winamp / foobar2000 plugin), point
+it at the daemon's IP and port, and play music — your Hue Entertainment area reacts.
+Pairing and all daemon settings are also available in the WebUI, so a headless box
+needs no config file editing.
+
+### Building the Windows apps yourself
+
+```powershell
+powershell -File tools\fetch_foobar_sdk.ps1   # once: fetch the foobar2000 SDK
+powershell -File build-windows.ps1            # builds apps + installers
+```
+
+Needs Visual Studio Build Tools with the **Desktop development with C++** workload,
+plus [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup`)
+for the installers — missing tools only skip their own step. Output lands in
+`installers\Output\`.
+
+> **Unsigned builds:** these binaries are not code-signed, so SmartScreen warns and
+> some antivirus products quarantine them (Symantec Endpoint Protection does).
+> Set `TTH_SIGN_CERT` / `TTH_SIGN_PASS` before building to sign everything.
 
 > The Hue bridge allows **one** Entertainment stream at a time. If another app
 > (e.g. a Music Assistant add-on) is streaming to the same area, stop it first.

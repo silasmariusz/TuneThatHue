@@ -37,3 +37,20 @@ qnap/_pyruntime/
 qnap/ca_certs
 qnap/certificate
 qnap/private_key
+
+# --- Windows build artifacts ---
+# The foobar2000 SDK is fetched by tools/fetch_foobar_sdk.ps1; its licence lets us
+# ship components built with it, but the SDK itself is not ours to redistribute.
+foobar/sdk/
+foobar/build_obj/
+*.res
+# link byproducts of building a DLL
+*.exp
+*.lib
+# Installers + the packaged component ship as GitHub Release assets, not in git.
+installers/Output/
+*.fb2k-component
+# Code-signing material must never be committed.
+*.pfx
+*.p12
+# The app icon IS committed (installers and the .rc need it) - do not ignore *.ico.

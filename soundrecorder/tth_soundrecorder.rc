@@ -1,0 +1,73 @@
+#include <windows.h>
+#include "resource.h"
+
+IDI_APPICON ICON "..\\resources\\tth.ico"
+
+IDD_CONFIG DIALOGEX 0, 0, 280, 262
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "TuneThatHue SoundRecorder"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "Capture", -1, 7, 4, 266, 62
+    LTEXT           "Source:",           -1,        14,  18,  55, 10
+    COMBOBOX        IDC_SOURCE,          72,  16, 192, 90,  CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Device / app:",     -1,        14,  38,  55, 10
+    COMBOBOX        IDC_TARGET,          72,  36, 140, 140, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    PUSHBUTTON      "Refresh",           IDC_REFRESH, 216, 36, 48, 13
+
+    GROUPBOX        "Daemon", -1, 7, 70, 266, 66
+    LTEXT           "Daemon IP:",        -1,        14,  84,  55, 10
+    EDITTEXT        IDC_HOST,            72,  82, 120, 12,  ES_AUTOHSCROLL
+    LTEXT           "Port:",             -1,        14, 102,  55, 10
+    EDITTEXT        IDC_PORT,            72, 100,  55, 12,  ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Stream name:",      -1,       138, 102,  50, 10
+    EDITTEXT        IDC_STREAM,         192, 100,  72, 12,  ES_AUTOHSCROLL
+    PUSHBUTTON      "Test connection",   IDC_TEST,  72, 118, 120, 13
+
+    LTEXT           "Status:",           -1,        14, 144,  55, 10
+    LTEXT           "starting...",       IDC_STATUS,72, 144, 196, 18
+    LTEXT           "Throughput:",       -1,        14, 166,  55, 10
+    LTEXT           "- KB/s  (- pkt/s)", IDC_RATE,  72, 166, 196, 10
+
+    DEFPUSHBUTTON   "OK",                IDOK,     176, 182,  44, 14
+    PUSHBUTTON      "Cancel",            IDCANCEL, 224, 182,  44, 14
+
+    CONTROL         "", -1, "Static", SS_ETCHEDHORZ, 10, 204, 260, 1
+    LTEXT           "TuneThatHue  (c) 2025-2026  Silas Mariusz Grzybacz",
+                    IDC_CREDITS1, 10, 210, 260, 10
+    LTEXT           "devspark.pl  -  published: forum.qnap.net.pl",
+                    -1, 10, 222, 260, 10
+    LTEXT           "QNAP app repo: myqnap.org",
+                    IDC_CREDITS2, 10, 234, 260, 10
+    LTEXT           "version 1.0.0.0  -  WASAPI loopback / input / per-application",
+                    -1, 10, 246, 260, 10
+END
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK  0x3fL
+ FILEFLAGS      0x0L
+ FILEOS         0x40004L
+ FILETYPE       0x1L
+ FILESUBTYPE    0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName",      "Silas Mariusz Grzybacz - devspark.pl"
+            VALUE "FileDescription",  "TuneThatHue SoundRecorder - audio capture for TuneThatHue"
+            VALUE "FileVersion",      "1.0.0.0"
+            VALUE "InternalName",     "TuneThatHue-SoundRecorder"
+            VALUE "LegalCopyright",   "(c) 2025-2026 Silas Mariusz Grzybacz. forum.qnap.net.pl / myqnap.org"
+            VALUE "OriginalFilename", "TuneThatHue-SoundRecorder.exe"
+            VALUE "ProductName",      "TuneThatHue"
+            VALUE "ProductVersion",   "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

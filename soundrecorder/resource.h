@@ -1,0 +1,13 @@
+#define IDD_CONFIG   101
+#define IDI_APPICON  201
+#define IDC_HOST     1001
+#define IDC_PORT     1002
+#define IDC_STREAM   1003
+#define IDC_TEST     1004
+#define IDC_STATUS   1005
+#define IDC_RATE     1006
+#define IDC_CREDITS1 1007
+#define IDC_CREDITS2 1008
+#define IDC_SOURCE   1009
+#define IDC_TARGET   1010
+#define IDC_REFRESH  1011
