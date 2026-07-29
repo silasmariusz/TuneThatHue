@@ -25,18 +25,61 @@ SetupIconFile={#TTHIcon}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-; The component is x64 and only loads in 64-bit foobar2000 2.x.
-ArchitecturesAllowed=x64compatible
+; Both 32-bit and 64-bit foobar2000 are supported, so this runs anywhere; the
+; matching DLL is chosen at install time (see [Files] and IsFoobar64).
 PrivilegesRequired=lowest
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "..\foobar\foo_tunethathue.dll"; DestDir: "{app}"; Flags: ignoreversion
+; foobar2000 v2 exists as 32-bit and 64-bit, and a component built for the wrong
+; one fails to load with "Not a valid Win32 application". Ship both and let
+; IsFoobar64 pick, so the user never has to know which build they installed.
+Source: "..\foobar\foo_tunethathue-x64.dll"; DestName: "foo_tunethathue.dll"; DestDir: "{app}"; Flags: ignoreversion; Check: IsFoobar64
+Source: "..\foobar\foo_tunethathue-x86.dll"; DestName: "foo_tunethathue.dll"; DestDir: "{app}"; Flags: ignoreversion; Check: not IsFoobar64
 Source: "..\foobar\README.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 
 [Code]
+// Decide which build of foobar2000 is installed by reading the PE machine type
+// of foobar2000.exe - the install path is not a reliable hint (people put the
+// 32-bit build under Program Files, and portable installs live anywhere).
+// Pascal Script has no byte-array stream reads, so the file is loaded as a
+// string and indexed (1-based: file offset N is S[N+1]).
+function ExeIsX64(const Path: String): Boolean;
+var
+  S: AnsiString;
+  PEOff, Machine: Integer;
+begin
+  Result := False;
+  if not FileExists(Path) then exit;
+  if not LoadStringFromFile(Path, S) then exit;
+  if Length(S) < 64 then exit;
+  PEOff := Ord(S[61]) or (Ord(S[62]) shl 8) or (Ord(S[63]) shl 16) or (Ord(S[64]) shl 24);
+  if (PEOff <= 0) or (PEOff + 6 > Length(S)) then exit;
+  Machine := Ord(S[PEOff + 5]) or (Ord(S[PEOff + 6]) shl 8);   // COFF Machine
+  Result := (Machine = $8664);
+end;
+
+function IsFoobar64(): Boolean;
+var
+  Path: String;
+begin
+  // Where the player actually is, per its own registry entry; fall back to the
+  // usual locations. Unknown -> assume 32-bit, which is the safer guess since
+  // it is what a plain "foobar2000" download still installs.
+  Path := '';
+  if not RegQueryStringValue(HKLM, 'SOFTWARE\foobar2000', 'InstallDir', Path) then
+    RegQueryStringValue(HKCU, 'SOFTWARE\foobar2000', 'InstallDir', Path);
+  if (Path <> '') and FileExists(AddBackslash(Path) + 'foobar2000.exe') then
+    Result := ExeIsX64(AddBackslash(Path) + 'foobar2000.exe')
+  else if FileExists(ExpandConstant('{commonpf64}\foobar2000\foobar2000.exe')) then
+    Result := ExeIsX64(ExpandConstant('{commonpf64}\foobar2000\foobar2000.exe'))
+  else if FileExists(ExpandConstant('{commonpf32}\foobar2000\foobar2000.exe')) then
+    Result := ExeIsX64(ExpandConstant('{commonpf32}\foobar2000\foobar2000.exe'))
+  else
+    Result := False;
+end;
 // foobar keeps components in the profile; if it is running it holds the DLL
 // open, so ask the user to close it rather than failing mid-copy.
 function InitializeSetup(): Boolean;

@@ -101,19 +101,32 @@ if ($SkipFoobar) {
 } elseif (-not (Test-Path "$root\foobar\sdk\pfc")) {
     $skipped.Add("foobar component (SDK missing - run tools\fetch_foobar_sdk.ps1)")
 } else {
-    & "$root\foobar\build.bat" | Select-Object -Last 1
-    $dll = "$root\foobar\foo_tunethathue.dll"
-    if (Test-Path $dll) {
-        Invoke-Sign $dll
-        # A .fb2k-component is a plain zip; double-clicking it installs the DLL.
+    # foobar2000 v2 ships as 32-bit AND 64-bit, and a component that does not
+    # match the player fails to load with "Not a valid Win32 application".
+    # Build both and ship one package that covers either.
+    & "$root\foobar\build.bat" x86 | Select-Object -Last 1
+    & "$root\foobar\build.bat" x64 | Select-Object -Last 1
+    $dll32 = "$root\foobar\foo_tunethathue-x86.dll"
+    $dll64 = "$root\foobar\foo_tunethathue-x64.dll"
+    if ((Test-Path $dll32) -and (Test-Path $dll64)) {
+        Invoke-Sign $dll32
+        Invoke-Sign $dll64
+        # A .fb2k-component is a plain zip; double-clicking it installs it.
+        # Dual-architecture layout: 32-bit at the root, 64-bit under x64\.
         $pkgDir = "$root\installers\Output"
         New-Item -ItemType Directory -Force -Path $pkgDir | Out-Null
+        $stage = "$env:TEMP\tth_fb2k_stage"
+        Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path "$stage\x64" | Out-Null
+        Copy-Item $dll32 "$stage\foo_tunethathue.dll" -Force
+        Copy-Item $dll64 "$stage\x64\foo_tunethathue.dll" -Force
         $zip = "$pkgDir\foo_tunethathue.zip"
         $component = "$pkgDir\foo_tunethathue.fb2k-component"
         Remove-Item $zip, $component -ErrorAction SilentlyContinue
-        Compress-Archive -Path $dll -DestinationPath $zip -Force
+        Compress-Archive -Path "$stage\*" -DestinationPath $zip -Force
         Move-Item $zip $component -Force
-        $built.Add("installers\Output\foo_tunethathue.fb2k-component")
+        Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+        $built.Add("installers\Output\foo_tunethathue.fb2k-component (x86 + x64)")
     } else { throw "foobar component build failed" }
 }
 
