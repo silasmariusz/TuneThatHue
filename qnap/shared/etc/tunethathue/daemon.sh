@@ -73,7 +73,10 @@ start_daemon() {
         trap '' HUP
         cd / 2>/dev/null || true
         exec </dev/null >>"$LOG" 2>&1
-        "$PY" "$APP/python/tth_phase2.py" \
+        # -u: without it Python block-buffers stdout into the log file, so the
+        # last minute of stats never reaches disk and the log reads as stale
+        # exactly when someone is watching it to debug.
+        "$PY" -u "$APP/python/tth_phase2.py" \
             --output none --config "$CONF" \
             --port "$VBAN_PORT" --webui-port "$WEBUI_PORT" &
         echo $! > "$PIDFILE"
