@@ -21,8 +21,9 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from aiohttp import web
 
-from hue_fx.constants import COLOR_MODES, PULSE_SELECT_OPTIONS, STROBE_COLOR_OPTIONS
+from hue_fx.constants import COLOR_MODES, PALETTE_ALBUM_COLORS
 from hue_fx.palettes import palette_names
+from ma_schema import load_schema
 
 if TYPE_CHECKING:
     import tth_phase2
@@ -82,6 +83,12 @@ def _persist_section(config_path: Path, section: str, changes: dict[str, Any]) -
 # The provider's CONF_* name is what the UI and the engine speak; the file keeps the
 # shorter spelling it always had.
 _SETTING_MAP: dict[str, tuple[str, str]] = {
+    "hue_latency_ms": ("sendspin", "latency_ms"),
+    "palette_rotate": ("effects.rotation", "enabled"),
+    "palette_rotate_list": ("effects.rotation", "list"),
+    "palette_rotate_beats": ("effects.rotation", "beats"),
+    "palette_rotate_smooth": ("effects.rotation", "smooth"),
+    "color_boost": ("effects", "color_boost"),
     "color_mode": ("effects", "mode"),
     "brightness": ("effects", "brightness"),
     "palette": ("effects", "palette"),
@@ -102,10 +109,35 @@ _SETTING_MAP: dict[str, tuple[str, str]] = {
     # The file spells the two percentage knobs with a _pct suffix.
     "pulse_decay": ("pulse", "decay_pct"),
     "pulse_floor": ("pulse", "floor_pct"),
+    "strobe_lights": ("strobe", "lights"),
 }
 
 
+
+def _schema_with_palettes() -> list[dict[str, Any]]:
+    """
+    The provider's schema, with the palette list filled in.
+
+    MA builds the palette options from ``palette_names()`` at runtime, which the static
+    parse cannot see, so the same call fills them here.
+    """
+    schema = load_schema()
+    for entry in schema:
+        if entry["key"] == "palette":
+            album = entry["options"][0] if entry["options"] else {
+                "value": PALETTE_ALBUM_COLORS, "title": "Music / album colours"
+            }
+            entry["options"] = [album] + [{"value": n, "title": n} for n in palette_names()]
+    return schema
+
+
 def _toml_line(key: str, value: Any) -> str:
+    if isinstance(value, (list, tuple)):
+        inner = ", ".join(
+            f'"{v}"' if isinstance(v, str) else str(v).lower() if isinstance(v, bool) else str(v)
+            for v in value
+        )
+        return f"{key} = [{inner}]"
     if isinstance(value, bool):
         return f"{key} = {'true' if value else 'false'}"
     if isinstance(value, (int, float)):
@@ -194,11 +226,9 @@ def create_app(
                 # Every provider setting the engine understands, under its CONF_* name,
                 # so the panel can render the full set instead of a hand-picked three.
                 "settings": daemon.cfg.as_dict(),
-                "pulse_selects": [value for value, _title in PULSE_SELECT_OPTIONS],
-                "strobe_colors": [
-                    {"value": hex_value, "title": title}
-                    for hex_value, title in STROBE_COLOR_OPTIONS
-                ],
+                # The settings screen is generated from the Music Assistant provider
+                # sources we carry, so the two screens name and order everything alike.
+                "schema": _schema_with_palettes(),
             }
         )
 

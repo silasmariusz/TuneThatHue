@@ -120,6 +120,10 @@ FEATURE_RATE_HZ = 20
 RENDER_RATE_HZ = 30
 RENDER_AHEAD_US = 200_000  # render latency lead, mirrors hue latency default
 RESYNC_GAP_S = 2.0
+# Resuming the saved output right after a restart races the bridge releasing the
+# previous entertainment session, so the first attempt often times out.
+_RESUME_ATTEMPTS = 4
+_RESUME_BACKOFF_S = 3.0
 
 
 class Stats:
@@ -258,10 +262,25 @@ class Phase2Daemon:
                     self.config_path, area_name
                 )
             self.output = mode
+            # Remember it: a restart used to come back with the lights off, which reads
+            # as "the effect stopped working" when it is only the output being off.
+            self._persist_output()
             return {"ok": True, "output": self.output, "area": self.area_name}
         except Exception as err:  # noqa: BLE001 - surface bridge/pairing errors to the UI
             self.output = "none"
             return {"ok": False, "error": str(err)}
+
+    def _persist_output(self) -> None:
+        """Save the output choice + area into [bridge] so a restart resumes it."""
+        if self.config_path is None:
+            return
+        import webui  # noqa: PLC0415 - imported lazily; webui imports this module
+
+        webui._persist_section(
+            self.config_path,
+            "bridge",
+            {"output": self.output, "area": self.area_name or ""},
+        )
 
     async def _close_session(self) -> None:
         if self.session is not None:
@@ -574,7 +593,24 @@ async def main() -> None:
     # is what makes every provider setting in hue-box.toml take effect at startup.
     daemon.apply_config()
 
-    if args.output == "hue":
+    # Resume the saved output, so the lights come back after a restart instead of
+    # silently staying off. An explicit --output on the command line still wins.
+    saved = daemon.cfg.get_value("bridge_output")
+    saved_area = daemon.cfg.get_value("bridge_area") or None
+    if args.output != "hue" and saved == "hue":
+        # A restart tears the old DTLS stream down and comes straight back up, so the
+        # bridge can still be holding the previous session for a moment and the first
+        # connect times out. Retry a few times before giving up.
+        for attempt in range(_RESUME_ATTEMPTS):
+            result = await daemon.apply_output("hue", saved_area)
+            if result["ok"]:
+                print(f"[hue] resumed output on area '{daemon.area_name}'")
+                break
+            if attempt < _RESUME_ATTEMPTS - 1:
+                await asyncio.sleep(_RESUME_BACKOFF_S)
+        else:
+            print(f"[hue] could not resume output: {result['error']} (toggle it in the WebUI)")
+    elif args.output == "hue":
         result = await daemon.apply_output("hue")
         if not result["ok"]:
             print(f"[hue] could not start output: {result['error']} (continuing; toggle it in the WebUI)")

@@ -84,31 +84,17 @@
     <p class="hint" id="outMsg"></p>
   </section>
 
-  <section class="panel">
-    <h2>Effect</h2>
-    <div class="row"><label>Mode</label><select id="mode"></select></div>
-    <div class="row"><label>Palette</label><select id="palette"></select></div>
-    <div class="row"><label>Brightness</label><input type="range" id="brightness" min="0" max="100" step="5"><span id="brightVal" style="width:38px;text-align:right">100</span></div>
-    <p class="hint">Changes apply live to the running engine and are saved for next start.</p>
-  </section>
 
   <section class="panel">
-    <h2>VFX</h2>
-    <div class="row"><label>Ratio</label><input type="range" id="strobe_coverage" min="5" max="100" step="5"><span id="strobe_coverageVal" style="width:38px;text-align:right"></span></div>
-    <div class="row"><label>Sensitivity</label><input type="range" id="strobe_sensitivity" min="0" max="100" step="5"><span id="strobe_sensitivityVal" style="width:38px;text-align:right"></span></div>
-    <div class="row"><label>Auto</label><input type="checkbox" id="strobe_auto"><span class="hint">structure-driven: quiet in verses, builds up, hits the drop</span></div>
-    <div class="row"><label>Blackout</label><input type="checkbox" id="strobe_blackout"><span class="hint">dark between flashes</span></div>
-    <div class="row"><label>Flash colour</label><select id="strobe_color"></select></div>
-    <div class="row"><label>Flash cap</label><input type="range" id="strobe_brightness" min="1" max="100" step="5"><span id="strobe_brightnessVal" style="width:38px;text-align:right"></span></div>
-    <p class="hint">Same knobs as the Music Assistant provider, same engine code.</p>
-  </section>
-
-  <section class="panel">
-    <h2>Pulse / Club fire</h2>
-    <div class="row"><label>Which light fires</label><select id="pulse_select"></select></div>
-    <div class="row"><label>Bloom on downbeat</label><input type="checkbox" id="pulse_downbeat"></div>
-    <div class="row"><label>Fade length</label><input type="range" id="pulse_decay" min="50" max="100" step="5"><span id="pulse_decayVal" style="width:38px;text-align:right"></span></div>
-    <div class="row"><label>Darkness between beats</label><input type="range" id="pulse_floor" min="0" max="40" step="5"><span id="pulse_floorVal" style="width:38px;text-align:right"></span></div>
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Settings</h2>
+      <label style="font-weight:400;font-size:.8125rem;color:var(--dim)">
+        <input type="checkbox" id="showAdvanced"> Show advanced settings
+      </label>
+    </div>
+    <p class="hint">Same names, order and defaults as the Music Assistant provider - the screen is
+       generated from its own sources, so a setting means the same thing on both sides.</p>
+    <div id="schemaHost"></div>
   </section>
 </main>
 <footer>
@@ -162,56 +148,78 @@ async function loadConfig(){
   if(!(c.areas||[]).length){const o=document.createElement('option');o.textContent=c.area||'(pair first)';areaSel.appendChild(o);}
   curOutput = c.output;
   reflectOutput(c.output==='hue');
-  const modeSel=$('mode'); modeSel.innerHTML='';
-  c.modes.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m[0].toUpperCase()+m.slice(1);if(m===c.mode)o.selected=true;modeSel.appendChild(o);});
-  const palSel=$('palette'); palSel.innerHTML='';
-  const optMusic=document.createElement('option'); optMusic.value=''; optMusic.textContent='Music / album colours'; if(!c.palette)optMusic.selected=true; palSel.appendChild(optMusic);
-  c.palettes.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;if(p===c.palette)o.selected=true;palSel.appendChild(o);});
-  $('brightness').value=c.brightness; $('brightVal').textContent=c.brightness;
+  renderSchema(c);
+}
 
-  // Dropdowns whose options come from the engine's own constants.
-  const psSel=$('pulse_select'); psSel.innerHTML='';
-  (c.pulse_selects||[]).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v[0].toUpperCase()+v.slice(1);psSel.appendChild(o);});
-  const scSel=$('strobe_color'); scSel.innerHTML='';
-  (c.strobe_colors||[]).forEach(x=>{const o=document.createElement('option');o.value=x.value;o.textContent=x.title;scSel.appendChild(o);});
-
-  // Reflect every provider setting we render. Values arrive under their CONF_* names;
-  // anything the file does not set keeps the control's own default.
-  const s = c.settings || {};
-  for(const key of EXTRA_KEYS){
-    const el = $(key); if(!el || s[key] === undefined) continue;
-    if(el.type === 'checkbox') el.checked = !!s[key];
-    else el.value = s[key];
-    const out = $(key + 'Val'); if(out) out.textContent = el.value;
+// The settings screen is built from the provider's own entries: same keys, same labels,
+// same order, same advanced split. Nothing about the layout is decided here.
+let SCHEMA = [], VALUES = {};
+function renderSchema(c){
+  SCHEMA = c.schema || [];
+  VALUES = c.settings || {};
+  const host = $('schemaHost');
+  host.innerHTML = '';
+  const adv = $('showAdvanced').checked;
+  for (const e of SCHEMA){
+    if (e.hidden) continue;
+    if (e.advanced && !adv) continue;
+    if (e.type === 'divider'){
+      const h = document.createElement('h2');
+      h.textContent = e.label; h.style.marginTop = '18px';
+      host.appendChild(h); continue;
+    }
+    if (e.type === 'label'){
+      const p = document.createElement('p');
+      p.className = 'hint'; p.textContent = e.label;
+      host.appendChild(p); continue;
+    }
+    if (!e.applicable) continue;          // addresses Music Assistant, not this box
+    host.appendChild(buildRow(e));
   }
 }
+
+function buildRow(e){
+  const row = document.createElement('div'); row.className = 'row';
+  const lab = document.createElement('label');
+  lab.textContent = e.label; lab.style.minWidth = '210px';
+  if (e.description) lab.title = e.description;
+  row.appendChild(lab);
+  const cur = VALUES[e.key] !== undefined ? VALUES[e.key] : e.default;
+  let el;
+  if (e.type === 'boolean'){
+    el = document.createElement('input'); el.type = 'checkbox'; el.checked = !!cur;
+    el.onchange = () => apply({[e.key]: el.checked});
+  } else if (e.options && e.options.length){
+    el = document.createElement('select');
+    for (const o of e.options){
+      const opt = document.createElement('option');
+      opt.value = o.value; opt.textContent = o.title;
+      if (String(o.value) === String(cur)) opt.selected = true;
+      el.appendChild(opt);
+    }
+    el.onchange = () => apply({[e.key]: el.value});
+  } else if (e.type === 'integer' && e.range){
+    el = document.createElement('input'); el.type = 'range';
+    el.min = e.range[0]; el.max = e.range[1];
+    el.value = cur !== null && cur !== undefined ? cur : e.range[0];
+    const out = document.createElement('span');
+    out.style.cssText = 'width:42px;text-align:right'; out.textContent = el.value;
+    el.oninput = () => { out.textContent = el.value; };
+    el.onchange = () => apply({[e.key]: parseInt(el.value)});
+    row.appendChild(el); row.appendChild(out);
+    return row;
+  } else {
+    el = document.createElement('input'); el.type = 'text';
+    el.value = cur === null || cur === undefined ? '' : cur;
+    el.onchange = () => apply({[e.key]: el.value});
+  }
+  row.appendChild(el);
+  return row;
+}
+
+$('showAdvanced').onchange = () => renderSchema({schema: SCHEMA, settings: VALUES});
 
 async function apply(patch){ await fetch(API + 'api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}); }
-
-$('mode').onchange = e => apply({mode:e.target.value});
-$('palette').onchange = e => apply({palette:e.target.value});
-$('brightness').oninput = e => { $('brightVal').textContent=e.target.value; };
-$('brightness').onchange = e => apply({brightness:parseInt(e.target.value)});
-
-// The rest of the provider's settings. Each control's id IS the provider's CONF_* key,
-// so one loop wires them all: sliders update their readout while dragging and save on
-// release, checkboxes and selects save immediately.
-const EXTRA_KEYS = [
-  'strobe_coverage','strobe_sensitivity','strobe_auto','strobe_blackout',
-  'strobe_color','strobe_brightness',
-  'pulse_select','pulse_downbeat','pulse_decay','pulse_floor',
-];
-for(const key of EXTRA_KEYS){
-  const el = $(key); if(!el) continue;
-  if(el.type === 'range'){
-    el.oninput  = e => { const o=$(key+'Val'); if(o) o.textContent=e.target.value; };
-    el.onchange = e => apply({[key]: parseInt(e.target.value)});
-  } else if(el.type === 'checkbox'){
-    el.onchange = e => apply({[key]: e.target.checked});
-  } else {
-    el.onchange = e => apply({[key]: e.target.value});
-  }
-}
 
 function reflectOutput(on){
   curOutput = on ? 'hue' : 'none';

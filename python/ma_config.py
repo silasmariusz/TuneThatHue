@@ -21,7 +21,7 @@ from typing import Any
 
 # [effects] holds the base look; the strobe/VFX and pulse blocks mirror the provider's
 # own grouping. Anything absent falls back to the engine's own default.
-_SECTIONS = ("effects", "strobe", "pulse")
+_SECTIONS = ("effects", "strobe", "pulse", "bridge")
 
 # hue-box.toml spells a couple of keys more naturally than the provider's CONF_* value.
 # Both are accepted so existing config files keep working.
@@ -33,6 +33,9 @@ _ALIASES = {
     "pulse_decay_pct": "pulse_decay",
     "pulse_floor_pct": "pulse_floor",
     "strobe_duty_pct": "strobe_duty",
+    # [bridge] output/area are the daemon's own runtime state, kept under a prefix so
+    # they cannot collide with a provider CONF_* key.
+    "bridge_host": "bridge_host",
 }
 
 

@@ -2,30 +2,10 @@
   "config_entries": {
     "bridge_host": {
       "label": "Bridge IP Address",
-      "description": "IP address of the Philips Hue bridge, e.g. 192.168.1.50. Find it in the Hue app under Settings > My Hue System > the bridge."
+      "description": "IP address of the Philips Hue bridge."
     },
-    "bridge_id": {
-      "label": "Bridge ID"
-    },
-    "pair": {
-      "label": "Pair with Hue Bridge",
-      "description": "Press the round button on top of the Hue bridge first, then click here within 30 seconds to retrieve the API credentials."
-    },
-    "repair_bridge": {
-      "label": "(Re)Pair with Hue Bridge",
-      "description": "Press the round button on top of the Hue bridge first, then click here within 30 seconds to retrieve fresh API credentials."
-    },
-    "hue_username": {
-      "label": "Hue API Username"
-    },
-    "hue_clientkey": {
-      "label": "Hue Client Key"
-    },
-    "divider_base": {
-      "label": "Base effects"
-    },
-    "label_base_info": {
-      "label": "The base effect runs on every light: pick a Mode and a Colour palette. Fine-tuning lives behind 'Show advanced settings'."
+    "pair_intro": {
+      "label": "Enter your Hue Bridge IP address below, then press the round link button on top of the bridge and continue within 30 seconds."
     },
     "brightness": {
       "label": "Overall brightness",
@@ -34,6 +14,20 @@
     "color_mode": {
       "label": "Mode (base effect)",
       "description": "Base visual style on every light.\nSmooth: brightness follows the spectrum, palette drifts. Ambient: colour cycle, no pulse. Flashing: pulse every beat, harder on downbeats. Energetic: big swings on hits + fast palette. Club: structure-aware (groove -> build -> white drop -> breakdown blackout). Pulse: one light fires per beat, chasing the room, full bloom on the downbeat.\nHouse/techno: pick Club or Pulse."
+    },
+    "hue_latency_ms": {
+      "label": "Light latency (ms)",
+      "description": "How many milliseconds ahead of the audio the lights render, to cancel the Hue bridge + DTLS + network delay.\nIncrease if the lights LAG the music; decrease if they run AHEAD. Typical 50-400 ms.\nApplies instantly (no save) so you can tune it live against the preview."
+    },
+    "repair_bridge": {
+      "label": "(Re)Pair with Hue Bridge",
+      "description": "Press the round button on top of the Hue bridge first, then click here within 30 seconds to retrieve fresh API credentials."
+    },
+    "divider_base": {
+      "label": "Base effects"
+    },
+    "label_base_info": {
+      "label": "The base effect runs on every light: pick a Mode and a Colour palette. Fine-tuning lives behind 'Show advanced settings'."
     },
     "palette": {
       "label": "Colour palette",
@@ -137,19 +131,28 @@
     "label_debug_info": {
       "label": "Timing calibration - open the live preview and use its metronome to dial in the light latency below."
     },
-    "hue_latency_ms": {
-      "label": "Light latency (ms)",
-      "description": "How many milliseconds ahead of the audio the lights render, to cancel the Hue bridge + DTLS + network delay.\nIncrease if the lights LAG the music; decrease if they run AHEAD. Typical 50-400 ms.\nApplies instantly (no save) so you can tune it live against the preview."
-    },
     "live_preview": {
       "label": "Live preview - click the (?) button to open the preview panel."
     },
     "color_boost": {
       "label": "Boost colours",
-      "description": "Stream accurate Hue colours (CIE xy), consistent across mixed Hue models. On (default): saturated colours are pushed to the gamut edge for a punchier show. Off: colour-accurate, steadier."
+      "description": "Send accurate Hue colours (CIE xy), the same on every model. On (default): saturated colours are pushed to the light's gamut edge, for more punch. Off: colour-accurate and steadier."
+    }
+  },
+  "setup_flow": {
+    "user": {
+      "title": "Pair with your Hue Bridge",
+      "description": "Enter your Hue Bridge IP address, press the round link button on top of the bridge, then continue within 30 seconds."
+    },
+    "pairing": {
+      "title": "Pairing with the Hue Bridge",
+      "progress_text": "Press the round link button on top of your Hue Bridge now..."
     }
   },
   "manifest": {
     "description": "Sync Philips Hue lights to music using Entertainment Mode."
+  },
+  "errors": {
+    "button_not_pressed": "The link button was not pressed in time. Press the round button on top of your Hue Bridge, then try again."
   }
 }

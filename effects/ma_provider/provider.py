@@ -17,18 +17,21 @@ from typing import TYPE_CHECKING, Any, cast
 
 from aiohttp import web
 from hue_entertainment import HueEntertainmentAPI
+from music_assistant_models.config_entries import ConfigEntry, ConfigValueOption
+from music_assistant_models.enums import ConfigEntryType, ProviderFeature
 from zeroconf import ServiceStateChange
 
 from music_assistant.models.plugin import PluginProvider
 
 from .analyzer import PulseSettings
-from .bridge import HueEntertainmentBridgeManager
+from .bridge import ColorMode, HueEntertainmentBridgeManager
 from .calibration import Calibrator
 from .constants import (
     COLOR_MODES,
     CONF_BRIDGE_HOST,
     CONF_BRIDGE_ID,
     CONF_BRIGHTNESS,
+    CONF_COLOR_BOOST,
     CONF_COLOR_MODE,
     CONF_HUE_LATENCY_MS,
     CONF_PALETTE,
@@ -55,25 +58,74 @@ from .constants import (
     CONF_STROBE_RELEASE_MS,
     CONF_STROBE_SENSITIVITY,
     CONF_USERNAME,
+    DEFAULT_COLOR_BOOST,
     DEFAULT_COLOR_MODE,
     DEFAULT_HUE_LATENCY_MS,
+    DEFAULT_PALETTE,
+    DEFAULT_PALETTE_ROTATE,
     DEFAULT_PALETTE_ROTATE_BEATS,
     DEFAULT_PALETTE_ROTATE_SMOOTH,
+    DEFAULT_PERLIGHT_BRIGHTNESS_DATA,
+    DEFAULT_PULSE_DECAY,
+    DEFAULT_PULSE_DOWNBEAT,
+    DEFAULT_PULSE_FLOOR,
+    DEFAULT_PULSE_SELECT,
+    DEFAULT_STROBE_AUTO,
+    DEFAULT_STROBE_BEAT_SYNC,
+    DEFAULT_STROBE_BLACKOUT,
+    DEFAULT_STROBE_BRIGHTNESS,
+    DEFAULT_STROBE_COLOR,
+    DEFAULT_STROBE_COVERAGE,
+    DEFAULT_STROBE_DUTY,
+    DEFAULT_STROBE_ENABLED,
+    DEFAULT_STROBE_FLASH_HZ,
+    DEFAULT_STROBE_MIN_HOLD_MS,
+    DEFAULT_STROBE_RELEASE_MS,
+    DEFAULT_STROBE_SENSITIVITY,
+    PALETTE_ALBUM_COLORS,
+    PULSE_SELECT_OPTIONS,
+    STROBE_COLOR_OPTIONS,
 )
-from .palettes import palettes_with_colors
+from .palettes import palette_names, palettes_with_colors
 from .preview import PreviewServer
 from .strobe_overlay import StrobeSettings
 
 if TYPE_CHECKING:
     from hue_entertainment import EntertainmentArea, LightChannel, LightColorCommand
     from music_assistant_models.config_entries import ProviderConfig
-    from music_assistant_models.enums import ProviderFeature
     from music_assistant_models.provider import ProviderManifest
     from zeroconf.asyncio import AsyncServiceInfo
 
     from music_assistant.mass import MusicAssistant
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _areas_to_options(areas: list[EntertainmentArea]) -> list[ConfigValueOption]:
+    """
+    Build a selectable option for every channel across the given areas.
+
+    Each option value is "<area_id>:<channel_id>" so a selection survives even
+    though channel ids restart at 0 per area. Channels that share a device name
+    within an area (the segments of a gradient lightstrip) are numbered
+    "<name> - section N" in channel order so each segment is individually
+    selectable.
+    """
+    options: list[ConfigValueOption] = []
+    for area in areas:
+        name_counts: dict[str, int] = {}
+        for channel in area.channels:
+            name_counts[channel.name] = name_counts.get(channel.name, 0) + 1
+        seen: dict[str, int] = {}
+        for channel in area.channels:
+            base = channel.name or f"Light {channel.channel_id}"
+            if name_counts.get(channel.name, 0) > 1:
+                seen[channel.name] = seen.get(channel.name, 0) + 1
+                title = f"{area.name} - {base} - section {seen[channel.name]}"
+            else:
+                title = f"{area.name} - {base}"
+            options.append(ConfigValueOption(value=f"{area.id}:{channel.channel_id}", title=title))
+    return options
 
 
 class HueEntertainmentProvider(PluginProvider):
@@ -97,6 +149,325 @@ class HueEntertainmentProvider(PluginProvider):
         # state-changing preview endpoints require it so they can't be driven by
         # an arbitrary client that can merely reach the webserver.
         self._preview_token = secrets.token_urlsafe(24)
+
+    async def get_config_entries(self) -> tuple[ConfigEntry, ...]:
+        """
+        Return the (options) config entries for the Hue Entertainment provider.
+
+        Bridge pairing runs in the interactive setup flow (see ``setup_flow.py``), so only the
+        playback and visualization settings live here. Running on the loaded instance means the
+        light pickers read the areas we already discovered, with no network round-trip.
+        """
+        strobe_options = _areas_to_options(self.entertainment_areas)
+        preview_url = (
+            f"{self.mass.webserver.base_url}/hue_preview" if self.mass.webserver.base_url else ""
+        )
+        entries: list[ConfigEntry] = [
+            ConfigEntry(
+                key=CONF_PERLIGHT_BRIGHTNESS_DATA,
+                type=ConfigEntryType.STRING,
+                hidden=True,
+                required=False,
+                default_value=DEFAULT_PERLIGHT_BRIGHTNESS_DATA,
+            ),
+            ConfigEntry(
+                key=CONF_PALETTE_ROTATE,
+                type=ConfigEntryType.BOOLEAN,
+                hidden=True,
+                required=False,
+                default_value=DEFAULT_PALETTE_ROTATE,
+            ),
+            ConfigEntry(
+                key=CONF_PALETTE_ROTATE_LIST,
+                type=ConfigEntryType.STRING,
+                multi_value=True,
+                hidden=True,
+                required=False,
+                default_value=[],
+            ),
+            ConfigEntry(
+                key=CONF_PALETTE_ROTATE_BEATS,
+                type=ConfigEntryType.INTEGER,
+                hidden=True,
+                required=False,
+                default_value=DEFAULT_PALETTE_ROTATE_BEATS,
+            ),
+            # ---- Base effects ----
+            ConfigEntry(
+                key="divider_base",
+                type=ConfigEntryType.DIVIDER,
+                category="settings",
+            ),
+            ConfigEntry(
+                key="label_base_info",
+                type=ConfigEntryType.LABEL,
+                category="settings",
+            ),
+            ConfigEntry(
+                key=CONF_BRIGHTNESS,
+                type=ConfigEntryType.INTEGER,
+                default_value=100,
+                range=(0, 100),
+                immediate_apply=True,
+                category="settings",
+            ),
+            ConfigEntry(
+                key=CONF_COLOR_MODE,
+                type=ConfigEntryType.STRING,
+                default_value=DEFAULT_COLOR_MODE,
+                options=[ConfigValueOption(mode, title=mode.capitalize()) for mode in COLOR_MODES],
+                immediate_apply=True,
+                category="settings",
+            ),
+            ConfigEntry(
+                key=CONF_COLOR_BOOST,
+                type=ConfigEntryType.BOOLEAN,
+                default_value=DEFAULT_COLOR_BOOST,
+                immediate_apply=True,
+                category="settings",
+                # Only meaningful when the streaming library supports ColorMode; without it
+                # the stream is plain RGB and there is nothing to boost.
+                hidden=ColorMode is None,
+            ),
+            ConfigEntry(
+                key=CONF_PALETTE,
+                type=ConfigEntryType.STRING,
+                default_value=DEFAULT_PALETTE,
+                options=[
+                    ConfigValueOption(PALETTE_ALBUM_COLORS),
+                    *(ConfigValueOption(name, title=name) for name in palette_names()),
+                ],
+                immediate_apply=True,
+                category="settings",
+            ),
+            ConfigEntry(
+                key=CONF_PALETTE_ROTATE_SMOOTH,
+                type=ConfigEntryType.BOOLEAN,
+                default_value=DEFAULT_PALETTE_ROTATE_SMOOTH,
+                immediate_apply=True,
+                category="settings",
+                advanced=True,
+            ),
+            # ---- Pulse / Club fire engine ----
+            # These four values drive BOTH the Pulse and Club base modes, so they cannot
+            # be gated with depends_on (single-value equality only) - advanced instead.
+            ConfigEntry(
+                key="divider_pulse",
+                type=ConfigEntryType.DIVIDER,
+                category="settings",
+                advanced=True,
+            ),
+            ConfigEntry(
+                key="label_pulse_info",
+                type=ConfigEntryType.LABEL,
+                category="settings",
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_PULSE_SELECT,
+                type=ConfigEntryType.STRING,
+                default_value=DEFAULT_PULSE_SELECT,
+                options=[ConfigValueOption(value) for value, _ in PULSE_SELECT_OPTIONS],
+                immediate_apply=True,
+                category="settings",
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_PULSE_DOWNBEAT,
+                type=ConfigEntryType.BOOLEAN,
+                default_value=DEFAULT_PULSE_DOWNBEAT,
+                immediate_apply=True,
+                category="settings",
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_PULSE_DECAY,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_PULSE_DECAY,
+                range=(50, 100),
+                immediate_apply=True,
+                category="settings",
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_PULSE_FLOOR,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_PULSE_FLOOR,
+                range=(0, 40),
+                immediate_apply=True,
+                category="settings",
+                advanced=True,
+            ),
+            # ---- Strobe overlay ----
+            ConfigEntry(
+                key="divider_strobe",
+                type=ConfigEntryType.DIVIDER,
+                category="settings",
+            ),
+            ConfigEntry(
+                key="label_strobe_info",
+                type=ConfigEntryType.LABEL,
+                category="settings",
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_LIGHTS,
+                type=ConfigEntryType.STRING,
+                multi_value=True,
+                default_value=[],
+                required=False,
+                options=strobe_options,
+                category="settings",
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_COVERAGE,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_STROBE_COVERAGE,
+                range=(5, 100),
+                immediate_apply=True,
+                category="settings",
+                depends_on=CONF_STROBE_LIGHTS,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_SENSITIVITY,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_STROBE_SENSITIVITY,
+                range=(0, 100),
+                immediate_apply=True,
+                category="settings",
+                depends_on=CONF_STROBE_LIGHTS,
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_ENABLED,
+                type=ConfigEntryType.BOOLEAN,
+                default_value=DEFAULT_STROBE_ENABLED,
+                immediate_apply=True,
+                category="settings",
+                # No UI toggle: picking VFX lights is the activation (empty list = off).
+                # Kept as a hidden, API-settable key so a paused-without-clearing state
+                # is still reachable for tuning.
+                hidden=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_AUTO,
+                type=ConfigEntryType.BOOLEAN,
+                default_value=DEFAULT_STROBE_AUTO,
+                immediate_apply=True,
+                category="settings",
+                depends_on=CONF_STROBE_LIGHTS,
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_BLACKOUT,
+                type=ConfigEntryType.BOOLEAN,
+                default_value=DEFAULT_STROBE_BLACKOUT,
+                immediate_apply=True,
+                category="settings",
+                depends_on=CONF_STROBE_LIGHTS,
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_COLOR,
+                type=ConfigEntryType.STRING,
+                default_value=DEFAULT_STROBE_COLOR,
+                options=[
+                    ConfigValueOption(hex_value, title=name)
+                    for hex_value, name in STROBE_COLOR_OPTIONS
+                ],
+                immediate_apply=True,
+                category="settings",
+                depends_on=CONF_STROBE_LIGHTS,
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_BRIGHTNESS,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_STROBE_BRIGHTNESS,
+                range=(1, 100),
+                immediate_apply=True,
+                category="settings",
+                depends_on=CONF_STROBE_LIGHTS,
+                advanced=True,
+            ),
+            # Expert strobe shaping - removed from the UI on maintainer feedback but kept
+            # as hidden keys: values persist and stay settable via the API for tuning work.
+            ConfigEntry(
+                key=CONF_STROBE_FLASH_HZ,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_STROBE_FLASH_HZ,
+                range=(1, 25),
+                immediate_apply=True,
+                category="settings",
+                hidden=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_DUTY,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_STROBE_DUTY,
+                range=(5, 90),
+                immediate_apply=True,
+                category="settings",
+                hidden=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_MIN_HOLD_MS,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_STROBE_MIN_HOLD_MS,
+                range=(0, 3000),
+                immediate_apply=True,
+                category="settings",
+                hidden=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_RELEASE_MS,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_STROBE_RELEASE_MS,
+                range=(0, 3000),
+                immediate_apply=True,
+                category="settings",
+                hidden=True,
+            ),
+            ConfigEntry(
+                key=CONF_STROBE_BEAT_SYNC,
+                type=ConfigEntryType.BOOLEAN,
+                default_value=DEFAULT_STROBE_BEAT_SYNC,
+                immediate_apply=True,
+                category="settings",
+                hidden=True,
+            ),
+            # ---- Debug & tuning ----
+            ConfigEntry(
+                key="divider_debug",
+                type=ConfigEntryType.DIVIDER,
+                category="settings",
+                advanced=True,
+            ),
+            ConfigEntry(
+                key="label_debug_info",
+                type=ConfigEntryType.LABEL,
+                category="settings",
+                advanced=True,
+            ),
+            ConfigEntry(
+                key=CONF_HUE_LATENCY_MS,
+                type=ConfigEntryType.INTEGER,
+                default_value=DEFAULT_HUE_LATENCY_MS,
+                range=(0, 3000),
+                immediate_apply=True,
+                category="settings",
+                advanced=True,
+            ),
+        ]
+        if preview_url:
+            entries.append(
+                ConfigEntry(
+                    key="live_preview",
+                    type=ConfigEntryType.LABEL,
+                    help_link=preview_url,
+                    category="settings",
+                )
+            )
+        return tuple(entries)
 
     @property
     def hue_api(self) -> HueEntertainmentAPI | None:
@@ -246,8 +617,8 @@ class HueEntertainmentProvider(PluginProvider):
         if stored_mode is not None and str(stored_mode) not in COLOR_MODES:
             self._update_config_value(CONF_COLOR_MODE, DEFAULT_COLOR_MODE)
 
-        host = self.config.get_value(CONF_BRIDGE_HOST)
-        username = self.config.get_value(CONF_USERNAME)
+        host = self.get_setup_value(CONF_BRIDGE_HOST)
+        username = self.get_setup_value(CONF_USERNAME)
 
         if not host or not username:
             self.logger.warning("Hue bridge not configured, provider inactive")
@@ -324,7 +695,7 @@ class HueEntertainmentProvider(PluginProvider):
         if not bridge_id:
             return
 
-        configured_bridge_id = self.config.get_value(CONF_BRIDGE_ID) or ""
+        configured_bridge_id = self.get_setup_value(CONF_BRIDGE_ID) or ""
 
         if state_change == ServiceStateChange.Removed:
             if bridge_id == configured_bridge_id:
@@ -351,7 +722,7 @@ class HueEntertainmentProvider(PluginProvider):
             return
 
         # Update the host if it changed
-        current_host = self.config.get_value(CONF_BRIDGE_HOST) or ""
+        current_host = self.get_setup_value(CONF_BRIDGE_HOST) or ""
         if new_host != current_host:
             self.logger.info(
                 "Hue bridge %s IP changed from %s to %s",
@@ -362,7 +733,7 @@ class HueEntertainmentProvider(PluginProvider):
             if self._hue_api:
                 self._hue_api.host = new_host
             # Persist the new IP
-            self._update_config_value(CONF_BRIDGE_HOST, new_host)
+            self._update_setup_data(CONF_BRIDGE_HOST, new_host)
 
         if not self.available:
             # Re-initialize bridges if we were previously unavailable, and only flip
