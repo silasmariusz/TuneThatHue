@@ -51,8 +51,38 @@ EFFECT_FILES = [
     "constants.py",
 ]
 
+# The rest of the provider. These import Music Assistant (or aiohttp) and cannot run
+# inside the daemon, so they are kept OUT of the importable hue_fx package - but they
+# are still carried byte-identical, because writing an effect means reading how the
+# provider wires it up (config entries, the bridge, the preview page). Same two-way
+# rule: edit here, --push, and it lands in the provider ready to use.
+REFERENCE_FILES = [
+    "__init__.py",
+    "provider.py",
+    "bridge.py",
+    "preview.py",
+    "calibration.py",
+    "strings.json",
+    "manifest.json",
+    "README.md",
+    "resources/preview.html",
+]
+
 EFFECTS_DIR = HUE_BOX_ROOT / "effects" / "hue_fx"
+REFERENCE_DIR = HUE_BOX_ROOT / "effects" / "ma_provider"
 MANIFEST = HUE_BOX_ROOT / "effects" / "MANIFEST.sha256"
+
+
+def sync_items() -> list[tuple[str, str, Path]]:
+    """
+    Every synced file as (manifest key, path within the provider, path here).
+
+    The manifest key carries the destination subdir so the two sets cannot collide
+    (both hold an ``__init__.py``).
+    """
+    items = [(f"hue_fx/{n}", n, EFFECTS_DIR / n) for n in EFFECT_FILES]
+    items += [(f"ma_provider/{n}", n, REFERENCE_DIR / n) for n in REFERENCE_FILES]
+    return items
 
 # Per-file state, worked out from (provider, here, manifest).
 IN_SYNC = "in sync"
@@ -82,7 +112,7 @@ def source_commit(server_repo: Path) -> str:
 
 
 def read_manifest() -> dict[str, str]:
-    """Hashes recorded at the last sync: {filename: sha256}."""
+    """Hashes recorded at the last sync: {manifest key: sha256}."""
     if not MANIFEST.is_file():
         return {}
     out: dict[str, str] = {}
@@ -92,7 +122,9 @@ def read_manifest() -> dict[str, str]:
             continue
         parts = line.split()
         if len(parts) == 2:
-            out[Path(parts[1]).name] = parts[0]
+            # Keyed on the full "<subdir>/<name>" path: the two sets both contain an
+            # __init__.py, so a basename key would make them shadow each other.
+            out[parts[1]] = parts[0]
     return out
 
 
@@ -101,8 +133,8 @@ def classify(server_repo: Path) -> list[tuple[str, str, Path, Path]]:
     src_dir = server_repo / PROVIDER_REL
     base = read_manifest()
     rows = []
-    for name in EFFECT_FILES:
-        src, dst = src_dir / name, EFFECTS_DIR / name
+    for key, rel, dst in sync_items():
+        src = src_dir / rel
         if not src.is_file() and not dst.is_file():
             state = "missing on both sides"
         elif not src.is_file():
@@ -113,15 +145,15 @@ def classify(server_repo: Path) -> list[tuple[str, str, Path, Path]]:
             s, d = sha256_of(src), sha256_of(dst)
             if s == d:
                 state = IN_SYNC
-            elif name not in base:
+            elif key not in base:
                 state = UNKNOWN
-            elif d == base[name]:
+            elif d == base[key]:
                 state = THEIRS
-            elif s == base[name]:
+            elif s == base[key]:
                 state = OURS
             else:
                 state = BOTH
-        rows.append((name, state, src, dst))
+        rows.append((key, state, src, dst))
     return rows
 
 
@@ -131,10 +163,9 @@ def write_manifest(server_repo: Path, direction: str) -> None:
         f"# synced: {datetime.now(timezone.utc).isoformat()}  ({direction})",
         f"# provider: {server_repo} @ {source_commit(server_repo)}",
     ]
-    for name in EFFECT_FILES:
-        f = EFFECTS_DIR / name
+    for key, _rel, f in sync_items():
         if f.is_file():
-            lines.append(f"{sha256_of(f)}  hue_fx/{name}")
+            lines.append(f"{sha256_of(f)}  {key}")
     MANIFEST.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -189,12 +220,26 @@ def transfer(server_repo: Path, direction: str, force: bool) -> int:
         print(f"ERROR: provider dir not found: {src_dir}", file=sys.stderr)
         return 2
     EFFECTS_DIR.mkdir(parents=True, exist_ok=True)
+    REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
     init_py = EFFECTS_DIR / "__init__.py"
     if not init_py.exists():
         init_py.write_text(
             '"""The Music Assistant hue_entertainment engine, kept byte-identical.\n\n'
             "Edit freely to develop effects, then ship it back with\n"
             'tools/sync_effects.py --push."""\n',
+            encoding="utf-8",
+        )
+    readme = REFERENCE_DIR / "SYNCED.md"
+    if not readme.exists():
+        readme.write_text(
+            "# Music Assistant provider files (reference copy)\n\n"
+            "Byte-identical copies of the rest of the `hue_entertainment` provider. They\n"
+            "import Music Assistant, so they are NOT importable here and the daemon never\n"
+            "loads them - they are here so you can read and edit the whole provider in one\n"
+            "place while writing effects.\n\n"
+            "The runnable engine lives in `../hue_fx/`.\n\n"
+            "Sync both ways with `tools/sync_effects.py` (`--pull` / `--push`); never edit\n"
+            "a copy by hand on one side only.\n",
             encoding="utf-8",
         )
 
