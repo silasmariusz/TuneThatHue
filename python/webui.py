@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from aiohttp import web
 
-from hue_fx.constants import COLOR_MODES
+from hue_fx.constants import COLOR_MODES, PULSE_SELECT_OPTIONS, STROBE_COLOR_OPTIONS
 from hue_fx.palettes import palette_names
 
 if TYPE_CHECKING:
@@ -32,31 +32,77 @@ RESOURCES = Path(__file__).resolve().parents[1] / "resources"
 
 def _persist_effects(config_path: Path, changes: dict[str, Any]) -> None:
     """Write changed [effects] keys into hue-box.toml, preserving everything else."""
+    _persist_section(config_path, "effects", changes)
+
+
+def _persist_section(config_path: Path, section: str, changes: dict[str, Any]) -> None:
+    """
+    Write changed keys into one table of hue-box.toml, preserving everything else.
+
+    Line-based on purpose: the file is hand-edited and commented, and rewriting it from
+    a parsed structure would throw all of that away. A table that does not exist yet is
+    appended.
+    """
     if not config_path.exists():
         return
     keys = {k: v for k, v in changes.items() if v is not None}
     if not keys:
         return
+    header = f"[{section}]"
     out: list[str] = []
-    in_effects = False
+    in_section = False
+    seen_section = False
     written: set[str] = set()
     for line in config_path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if stripped.startswith("["):
-            if in_effects:
+            if in_section:
                 out.extend(_toml_line(k, keys[k]) for k in keys if k not in written)
                 written.update(keys)
-            in_effects = stripped == "[effects]"
-        elif in_effects and "=" in stripped and not stripped.startswith("#"):
+            # The shipped file annotates its tables ("[pulse]  # drives ..."), so compare
+            # the header only. Matching the whole line appended a duplicate table, which
+            # makes the file unparseable.
+            in_section = stripped.split("#", 1)[0].strip() == header
+            seen_section = seen_section or in_section
+        elif in_section and "=" in stripped and not stripped.startswith("#"):
             key = stripped.split("=", 1)[0].strip()
             if key in keys:
                 out.append(_toml_line(key, keys[key]))
                 written.add(key)
                 continue
         out.append(line)
-    if in_effects:
+    if in_section:
         out.extend(_toml_line(k, keys[k]) for k in keys if k not in written)
+    elif not seen_section:
+        out.extend(["", header, *(_toml_line(k, keys[k]) for k in keys)])
     config_path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+# Which toml table each provider setting lives in, and its key inside that table.
+# The provider's CONF_* name is what the UI and the engine speak; the file keeps the
+# shorter spelling it always had.
+_SETTING_MAP: dict[str, tuple[str, str]] = {
+    "color_mode": ("effects", "mode"),
+    "brightness": ("effects", "brightness"),
+    "palette": ("effects", "palette"),
+    "strobe_coverage": ("strobe", "coverage"),
+    "strobe_sensitivity": ("strobe", "sensitivity"),
+    "strobe_auto": ("strobe", "auto"),
+    "strobe_blackout": ("strobe", "blackout"),
+    "strobe_color": ("strobe", "color"),
+    "strobe_brightness": ("strobe", "brightness"),
+    "strobe_enabled": ("strobe", "enabled"),
+    "strobe_flash_hz": ("strobe", "flash_hz"),
+    "strobe_duty": ("strobe", "duty_pct"),
+    "strobe_min_hold_ms": ("strobe", "min_hold_ms"),
+    "strobe_release_ms": ("strobe", "release_ms"),
+    "strobe_beat_sync": ("strobe", "beat_sync"),
+    "pulse_select": ("pulse", "select"),
+    "pulse_downbeat": ("pulse", "downbeat"),
+    # The file spells the two percentage knobs with a _pct suffix.
+    "pulse_decay": ("pulse", "decay_pct"),
+    "pulse_floor": ("pulse", "floor_pct"),
+}
 
 
 def _toml_line(key: str, value: Any) -> str:
@@ -145,6 +191,14 @@ def create_app(
                 "palette": eff.get("palette", "Disco"),
                 "modes": list(COLOR_MODES),
                 "palettes": palette_names(),
+                # Every provider setting the engine understands, under its CONF_* name,
+                # so the panel can render the full set instead of a hand-picked three.
+                "settings": daemon.cfg.as_dict(),
+                "pulse_selects": [value for value, _title in PULSE_SELECT_OPTIONS],
+                "strobe_colors": [
+                    {"value": hex_value, "title": title}
+                    for hex_value, title in STROBE_COLOR_OPTIONS
+                ],
             }
         )
 
@@ -188,21 +242,37 @@ def create_app(
         return web.json_response(result)
 
     async def settings(req: web.Request) -> web.Response:
+        """
+        Apply any subset of the provider's settings, live, and persist them.
+
+        The body is keyed by the provider's own CONF_* names. Each is written to its
+        table in hue-box.toml and the whole file is then re-applied through the engine's
+        own from_config path, so one code path handles every setting and the result is
+        exactly what Music Assistant would do with the same values.
+        """
         data = await req.json()
-        mode = data.get("mode")
-        palette = data.get("palette")
-        brightness = data.get("brightness")
-        if brightness is not None:
-            brightness = int(brightness)
-        # apply live to the running engine
-        daemon.analyzer.update_settings(
-            color_mode=mode if mode in COLOR_MODES else None,
-            brightness=brightness,
-            palette=palette,
+        # "mode" is what the old UI sent; accept it as color_mode.
+        if "mode" in data and "color_mode" not in data:
+            data["color_mode"] = data.pop("mode")
+        if data.get("color_mode") not in COLOR_MODES:
+            data.pop("color_mode", None)
+
+        by_section: dict[str, dict[str, Any]] = {}
+        unknown = []
+        for key, value in data.items():
+            target = _SETTING_MAP.get(key)
+            if target is None:
+                unknown.append(key)
+                continue
+            section, name = target
+            by_section.setdefault(section, {})[name] = value
+        for section, changes in by_section.items():
+            _persist_section(config_path, section, changes)
+
+        daemon.apply_config()
+        return web.json_response(
+            {"ok": True, "applied": sorted(k for k in data if k not in unknown), "ignored": unknown}
         )
-        # persist so a restart keeps them
-        _persist_effects(config_path, {"mode": mode, "brightness": brightness, "palette": palette})
-        return web.json_response({"ok": True})
 
     app.add_routes(
         [

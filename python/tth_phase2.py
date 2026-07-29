@@ -92,8 +92,23 @@ def _get_feature_extractor():
 
 
 from hue_fx.analyzer import HueAudioAnalyzer, PulseSettings
-from hue_fx.constants import SPECTRUM_BINS, SPECTRUM_F_MAX, SPECTRUM_F_MIN, SPECTRUM_SCALE
+from hue_fx.constants import (
+    CONF_BRIGHTNESS,
+    CONF_COLOR_MODE,
+    CONF_PALETTE,
+    CONF_PALETTE_ROTATE,
+    CONF_PALETTE_ROTATE_BEATS,
+    CONF_PALETTE_ROTATE_LIST,
+    CONF_PALETTE_ROTATE_SMOOTH,
+    DEFAULT_PALETTE_ROTATE_BEATS,
+    DEFAULT_PALETTE_ROTATE_SMOOTH,
+    SPECTRUM_BINS,
+    SPECTRUM_F_MAX,
+    SPECTRUM_F_MIN,
+    SPECTRUM_SCALE,
+)
 from hue_fx.strobe_overlay import StrobeSettings
+from ma_config import TomlConfig
 
 VBAN_HDR = struct.Struct("<4sBBBB16sI")
 VBAN_SR_TABLE = [
@@ -171,15 +186,20 @@ class Phase2Daemon:
             )
             for i in range(4)
         ]
+        # Settings come through the same path the provider uses: a config object with
+        # get_value(), fed to the engine's own from_config() builders. Nothing about the
+        # settings logic is reimplemented here, so a value tuned in this box behaves
+        # identically once the files go back to Music Assistant.
+        self.cfg = TomlConfig()
         self.analyzer = HueAudioAnalyzer(
             channels=channels,
-            color_mode="pulse",
-            brightness=100,
+            color_mode=str(self.cfg.get_value(CONF_COLOR_MODE) or "pulse"),
+            brightness=int(float(str(self.cfg.get_value(CONF_BRIGHTNESS) or 100))),
             strobe_channel_ids=set(),
-            strobe=StrobeSettings(),
-            palette="Disco",
+            strobe=StrobeSettings.from_config(self.cfg),
+            palette=str(self.cfg.get_value(CONF_PALETTE) or ""),
             per_light={},
-            pulse=PulseSettings(),
+            pulse=PulseSettings.from_config(self.cfg),
         )
 
         self.extractor: VisualizerFeatureExtractor | None = None
@@ -199,6 +219,33 @@ class Phase2Daemon:
 
     def now_us(self) -> int:
         return int(self.loop.time() * 1_000_000)
+
+    def apply_config(self) -> None:
+        """
+        Re-read hue-box.toml and push every setting into the running engine.
+
+        Uses the engine's own from_config builders, so the full provider setting set
+        (strobe/VFX, pulse, palette rotation, brightness, mode) takes effect exactly as
+        it would in Music Assistant. Safe to call while streaming.
+        """
+        if self.config_path is None:
+            return
+        self.cfg.reload(self.config_path)
+        get = self.cfg.get_value
+        self.analyzer.update_settings(
+            color_mode=str(get(CONF_COLOR_MODE) or "pulse"),
+            brightness=int(float(str(get(CONF_BRIGHTNESS) or 100))),
+            palette=str(get(CONF_PALETTE) or ""),
+            strobe=StrobeSettings.from_config(self.cfg),
+            pulse=PulseSettings.from_config(self.cfg),
+        )
+        rotate_smooth = get(CONF_PALETTE_ROTATE_SMOOTH)
+        self.analyzer.set_rotation(
+            bool(get(CONF_PALETTE_ROTATE)),
+            list(get(CONF_PALETTE_ROTATE_LIST) or []),
+            int(float(str(get(CONF_PALETTE_ROTATE_BEATS) or DEFAULT_PALETTE_ROTATE_BEATS))),
+            DEFAULT_PALETTE_ROTATE_SMOOTH if rotate_smooth is None else bool(rotate_smooth),
+        )
 
     async def apply_output(self, mode: str, area_name: str | None = None) -> dict:
         """Start/stop the Hue stream at runtime. Returns {ok, output, area, error}."""
@@ -523,6 +570,9 @@ async def main() -> None:
 
     daemon = Phase2Daemon(args.output)
     daemon.config_path = args.config
+    # The daemon is built before the config path is known, so apply the file now: this
+    # is what makes every provider setting in hue-box.toml take effect at startup.
+    daemon.apply_config()
 
     if args.output == "hue":
         result = await daemon.apply_output("hue")

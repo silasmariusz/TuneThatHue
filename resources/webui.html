@@ -91,6 +91,25 @@
     <div class="row"><label>Brightness</label><input type="range" id="brightness" min="0" max="100" step="5"><span id="brightVal" style="width:38px;text-align:right">100</span></div>
     <p class="hint">Changes apply live to the running engine and are saved for next start.</p>
   </section>
+
+  <section class="panel">
+    <h2>VFX</h2>
+    <div class="row"><label>Ratio</label><input type="range" id="strobe_coverage" min="5" max="100" step="5"><span id="strobe_coverageVal" style="width:38px;text-align:right"></span></div>
+    <div class="row"><label>Sensitivity</label><input type="range" id="strobe_sensitivity" min="0" max="100" step="5"><span id="strobe_sensitivityVal" style="width:38px;text-align:right"></span></div>
+    <div class="row"><label>Auto</label><input type="checkbox" id="strobe_auto"><span class="hint">structure-driven: quiet in verses, builds up, hits the drop</span></div>
+    <div class="row"><label>Blackout</label><input type="checkbox" id="strobe_blackout"><span class="hint">dark between flashes</span></div>
+    <div class="row"><label>Flash colour</label><select id="strobe_color"></select></div>
+    <div class="row"><label>Flash cap</label><input type="range" id="strobe_brightness" min="1" max="100" step="5"><span id="strobe_brightnessVal" style="width:38px;text-align:right"></span></div>
+    <p class="hint">Same knobs as the Music Assistant provider, same engine code.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Pulse / Club fire</h2>
+    <div class="row"><label>Which light fires</label><select id="pulse_select"></select></div>
+    <div class="row"><label>Bloom on downbeat</label><input type="checkbox" id="pulse_downbeat"></div>
+    <div class="row"><label>Fade length</label><input type="range" id="pulse_decay" min="50" max="100" step="5"><span id="pulse_decayVal" style="width:38px;text-align:right"></span></div>
+    <div class="row"><label>Darkness between beats</label><input type="range" id="pulse_floor" min="0" max="40" step="5"><span id="pulse_floorVal" style="width:38px;text-align:right"></span></div>
+  </section>
 </main>
 <footer>
   TuneThatHue &copy; 2025–2026 Silas Mariusz Grzybacz · <a href="https://devspark.pl">devspark.pl</a><br>
@@ -149,6 +168,22 @@ async function loadConfig(){
   const optMusic=document.createElement('option'); optMusic.value=''; optMusic.textContent='Music / album colours'; if(!c.palette)optMusic.selected=true; palSel.appendChild(optMusic);
   c.palettes.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;if(p===c.palette)o.selected=true;palSel.appendChild(o);});
   $('brightness').value=c.brightness; $('brightVal').textContent=c.brightness;
+
+  // Dropdowns whose options come from the engine's own constants.
+  const psSel=$('pulse_select'); psSel.innerHTML='';
+  (c.pulse_selects||[]).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v[0].toUpperCase()+v.slice(1);psSel.appendChild(o);});
+  const scSel=$('strobe_color'); scSel.innerHTML='';
+  (c.strobe_colors||[]).forEach(x=>{const o=document.createElement('option');o.value=x.value;o.textContent=x.title;scSel.appendChild(o);});
+
+  // Reflect every provider setting we render. Values arrive under their CONF_* names;
+  // anything the file does not set keeps the control's own default.
+  const s = c.settings || {};
+  for(const key of EXTRA_KEYS){
+    const el = $(key); if(!el || s[key] === undefined) continue;
+    if(el.type === 'checkbox') el.checked = !!s[key];
+    else el.value = s[key];
+    const out = $(key + 'Val'); if(out) out.textContent = el.value;
+  }
 }
 
 async function apply(patch){ await fetch(API + 'api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}); }
@@ -157,6 +192,26 @@ $('mode').onchange = e => apply({mode:e.target.value});
 $('palette').onchange = e => apply({palette:e.target.value});
 $('brightness').oninput = e => { $('brightVal').textContent=e.target.value; };
 $('brightness').onchange = e => apply({brightness:parseInt(e.target.value)});
+
+// The rest of the provider's settings. Each control's id IS the provider's CONF_* key,
+// so one loop wires them all: sliders update their readout while dragging and save on
+// release, checkboxes and selects save immediately.
+const EXTRA_KEYS = [
+  'strobe_coverage','strobe_sensitivity','strobe_auto','strobe_blackout',
+  'strobe_color','strobe_brightness',
+  'pulse_select','pulse_downbeat','pulse_decay','pulse_floor',
+];
+for(const key of EXTRA_KEYS){
+  const el = $(key); if(!el) continue;
+  if(el.type === 'range'){
+    el.oninput  = e => { const o=$(key+'Val'); if(o) o.textContent=e.target.value; };
+    el.onchange = e => apply({[key]: parseInt(e.target.value)});
+  } else if(el.type === 'checkbox'){
+    el.onchange = e => apply({[key]: e.target.checked});
+  } else {
+    el.onchange = e => apply({[key]: e.target.value});
+  }
+}
 
 function reflectOutput(on){
   curOutput = on ? 'hue' : 'none';
