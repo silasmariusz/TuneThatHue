@@ -108,6 +108,8 @@ def create_app(
                 "bytes": s.bytes,
                 "spectra": s.frames,
                 "peaks": s.peaks,
+                "beats": s.beats,
+                "bpm": round(s.bpm, 1),
                 "renders": s.renders,
                 "lit": s.lit,
                 "format": s.format,

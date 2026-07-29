@@ -16,6 +16,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from .constants import PALETTE_ALBUM_COLORS
+
 _PALETTES_PATH = Path(__file__).parent / "palettes.json"
 
 # Empty selection = keep the default behaviour (derive colours from the music).
@@ -75,8 +77,8 @@ def resolve_palette(name: object) -> list[tuple[float, float, float]] | None:
     """
     Return the colour list for a palette name, or None for 'use music colours'.
 
-    :param name: The selected palette name (empty / unknown -> None).
+    :param name: The selected palette name (album colours / empty / unknown -> None).
     """
-    if not name:
+    if not name or name == PALETTE_ALBUM_COLORS:
         return None
     return _bundled().get(str(name))

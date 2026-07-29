@@ -115,6 +115,8 @@ class Stats:
         self.peaks = 0
         self.renders = 0
         self.lit = 0
+        self.beats = 0
+        self.bpm = 0.0
         self.format = "-"
         self.last_spectrum: list[int] = []
 
@@ -181,6 +183,7 @@ class Phase2Daemon:
         )
 
         self.extractor: VisualizerFeatureExtractor | None = None
+        self.tracker = None  # BeatTracker, built with the extractor
         self.ex_rate = 0
         self.ex_channels = 0
         # Sample clock: chunk timestamps derive from a running sample count so
@@ -227,6 +230,16 @@ class Phase2Daemon:
         cls = _get_feature_extractor()
         if cls is None:
             return  # numpy/extractor unavailable - raw-PCM analysis stays off
+        # The beat tracker analyses the same PCM; rebuild it whenever the format
+        # changes so its frame->time maths matches the stream.
+        try:
+            from beat_tracker import BeatTracker  # noqa: PLC0415 - optional, needs numpy
+
+            self.tracker = BeatTracker(sample_rate, channels)
+        except Exception as err:  # noqa: BLE001
+            self.tracker = None
+            print(f"[beats] tracker unavailable ({err}) - no tempo sync")
+
         config = StreamStartVisualizer(
             types=("peak", "spectrum"),
             rate_max=FEATURE_RATE_HZ,
@@ -255,6 +268,8 @@ class Phase2Daemon:
             self.samples_seen = 0
             self.extractor.reset()
             self.analyzer.clear_beats()
+            if self.tracker is not None:
+                self.tracker.reset()  # timestamps re-anchored: the old grid is void
         self.last_packet_mono = mono_now
 
         frames = len(pcm) // (channels * 2)
@@ -273,6 +288,17 @@ class Phase2Daemon:
                     max(0, min(255, int(frame.peak))), frame.timestamp_us
                 )
                 self.stats.peaks += 1
+
+        # Beats. Music Assistant gets these from an offline neural model on the
+        # server; standalone we derive the grid live from the audio. Without them
+        # the Pulse/Club modes have no tempo to fire on and the structure
+        # detector never sees a bar, so no drops and no auto strobe.
+        if self.tracker is not None:
+            beats = self.tracker.process(pcm, ts)
+            if beats:
+                self.analyzer.push_beats(beats)
+                self.stats.beats += len(beats)
+            self.stats.bpm = self.tracker.bpm
 
     async def render_loop(self) -> None:
         period = 1.0 / RENDER_RATE_HZ
@@ -293,9 +319,11 @@ class Phase2Daemon:
             bar = "".join(
                 blocks[min(len(blocks) - 1, v * len(blocks) // 65536)] for v in s.last_spectrum
             )
+            tempo = f"{s.bpm:.0f}bpm" if s.bpm else "--"
             print(
                 f"[stats] pkts={s.packets} ({s.bytes // 1024} KB) fmt={s.format} | "
-                f"spectra={s.frames} peaks={s.peaks} | renders={s.renders} lit={s.lit} | [{bar}]"
+                f"spectra={s.frames} peaks={s.peaks} beats={s.beats} {tempo} | "
+                f"renders={s.renders} lit={s.lit} | [{bar}]"
             )
 
 

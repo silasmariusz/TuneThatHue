@@ -107,9 +107,12 @@ PULSE_SELECT_OPTIONS: Final[tuple[tuple[str, str], ...]] = (
     ("spectrum", "Spectrum (loudest band's light)"),
 )
 
-# Selected colour palette name (empty = derive colours from the music/album art).
+# Selected colour palette name. The album-art choice needs a real value: an empty string
+# flattens the translation key to "...palette.options." and the frontend cannot select it.
+# Older configs stored "" for the same choice, so both still resolve to album colours.
 CONF_PALETTE: Final[str] = "palette"
-DEFAULT_PALETTE: Final[str] = "Disco"
+PALETTE_ALBUM_COLORS: Final[str] = "album_colors"
+DEFAULT_PALETTE: Final[str] = PALETTE_ALBUM_COLORS
 
 # Bar-aligned palette rotation: cycle through a list of palettes, advancing every
 # N detected beats (16 = 4 bars of 4/4), snapped to bar starts (downbeats).
