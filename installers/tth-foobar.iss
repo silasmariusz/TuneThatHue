@@ -15,7 +15,7 @@ AppPublisherURL={#TTHUrl}
 AppSupportURL={#TTHSupportUrl}
 AppUpdatesURL={#TTHUpdatesUrl}
 VersionInfoCopyright={#TTHCopyright}
-DefaultDirName={userappdata}\foobar2000-v2\user-components\foo_tunethathue
+DefaultDirName={code:DefaultComponentDir}
 DisableDirPage=no
 DefaultGroupName=TuneThatHue
 DisableProgramGroupPage=yes
@@ -59,6 +59,44 @@ begin
   if (PEOff <= 0) or (PEOff + 6 > Length(S)) then exit;
   Machine := Ord(S[PEOff + 5]) or (Ord(S[PEOff + 6]) shl 8);   // COFF Machine
   Result := (Machine = $8664);
+end;
+
+// A portable foobar2000 keeps its components next to the exe, not in the user
+// profile, and ignores whatever is in %APPDATA%. Installing to the default would
+// silently do nothing, so find the portable root first and use that instead.
+function FoobarDir(): String;
+var
+  Path: String;
+begin
+  Result := '';
+  Path := '';
+  if not RegQueryStringValue(HKLM, 'SOFTWARE\foobar2000', 'InstallDir', Path) then
+    RegQueryStringValue(HKCU, 'SOFTWARE\foobar2000', 'InstallDir', Path);
+  if (Path <> '') and FileExists(AddBackslash(Path) + 'foobar2000.exe') then
+    Result := RemoveBackslash(Path)
+  else if FileExists(ExpandConstant('{commonpf64}\foobar2000\foobar2000.exe')) then
+    Result := ExpandConstant('{commonpf64}\foobar2000')
+  else if FileExists(ExpandConstant('{commonpf32}\foobar2000\foobar2000.exe')) then
+    Result := ExpandConstant('{commonpf32}\foobar2000');
+end;
+
+function IsPortableFoobar(): Boolean;
+var
+  Dir: String;
+begin
+  Dir := FoobarDir();
+  Result := (Dir <> '') and FileExists(AddBackslash(Dir) + 'portable_mode_enabled');
+end;
+
+// Components must sit in their OWN subfolder (user-components\foo_x\foo_x.dll).
+// A DLL dropped loose into user-components is simply not loaded - that is the
+// old 1.x layout - and the failure is silent, which makes it hard to diagnose.
+function DefaultComponentDir(Param: String): String;
+begin
+  if IsPortableFoobar() then
+    Result := AddBackslash(FoobarDir()) + 'user-components\foo_tunethathue'
+  else
+    Result := ExpandConstant('{userappdata}\foobar2000-v2\user-components\foo_tunethathue');
 end;
 
 function IsFoobar64(): Boolean;
