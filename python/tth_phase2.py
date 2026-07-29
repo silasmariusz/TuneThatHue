@@ -224,6 +224,22 @@ class Phase2Daemon:
     def now_us(self) -> int:
         return int(self.loop.time() * 1_000_000)
 
+    def _rebuild_analyzer(self, channels: list) -> None:
+        """Recreate the analyzer for a new set of light channels, keeping the settings."""
+        get = self.cfg.get_value
+        self.analyzer = HueAudioAnalyzer(
+            channels=channels,
+            color_mode=str(get(CONF_COLOR_MODE) or "pulse"),
+            brightness=int(float(str(get(CONF_BRIGHTNESS) or 100))),
+            strobe_channel_ids={int(c) for c in (get("strobe_lights") or [])},
+            strobe=StrobeSettings.from_config(self.cfg),
+            palette=str(get(CONF_PALETTE) or ""),
+            per_light={},
+            pulse=PulseSettings.from_config(self.cfg),
+        )
+        self.apply_config()
+        self.channel_count = len(channels)
+
     def apply_config(self) -> None:
         """
         Re-read hue-box.toml and push every setting into the running engine.
@@ -240,6 +256,7 @@ class Phase2Daemon:
             color_mode=str(get(CONF_COLOR_MODE) or "pulse"),
             brightness=int(float(str(get(CONF_BRIGHTNESS) or 100))),
             palette=str(get(CONF_PALETTE) or ""),
+            strobe_channel_ids={int(c) for c in (get("strobe_lights") or [])},
             strobe=StrobeSettings.from_config(self.cfg),
             pulse=PulseSettings.from_config(self.cfg),
         )
@@ -258,9 +275,12 @@ class Phase2Daemon:
             if mode == "hue":
                 if self.config_path is None:
                     return {"ok": False, "error": "no config path"}
-                self.session, self.area_name = await open_entertainment(
-                    self.config_path, area_name
-                )
+                self.session, area = await open_entertainment(self.config_path, area_name)
+                self.area_name = area.name
+                # Rebuild the engine around the REAL lights. The analyzer spreads colour
+                # by channel POSITION, so driving placeholder channels laid out in a line
+                # gave every light a different colour than Music Assistant would.
+                self._rebuild_analyzer(list(area.channels))
             self.output = mode
             # Remember it: a restart used to come back with the lights off, which reads
             # as "the effect stopped working" when it is only the output being off.
@@ -415,6 +435,19 @@ async def list_areas(config_path: Path) -> list[str]:
         await api.close()
 
 
+def _resolve_color_mode(config_path: Path):
+    """Return the ColorMode the settings ask for, or None on an older library."""
+    import hue_entertainment  # noqa: PLC0415 - optional feature, resolved at call time
+
+    color_mode_cls = getattr(hue_entertainment, "ColorMode", None)
+    if color_mode_cls is None:
+        return None
+    cfg = TomlConfig(config_path)
+    boost = cfg.get_value("color_boost")
+    boost = True if boost is None else bool(boost)
+    return color_mode_cls("vivid" if boost else "xy")
+
+
 async def open_entertainment(config_path: Path, area_name: str | None = None):
     """
     Open a Hue Entertainment DTLS stream to the chosen area (or the configured /
@@ -437,12 +470,19 @@ async def open_entertainment(config_path: Path, area_name: str | None = None):
     )
     if area is None:
         raise RuntimeError("no entertainment area found on the bridge")
+    # Match the provider: stream CIE xy when the library supports it, with the
+    # "Boost colours" toggle picking vivid. Without this the box sent raw RGB while
+    # Music Assistant sent xy, so the same settings produced different colours.
+    kwargs: dict = {"idle_timeout": 0}
+    color_mode = _resolve_color_mode(config_path)
+    if color_mode is not None:
+        kwargs["color_mode"] = color_mode
     session = EntertainmentSession(
-        str(bridge["host"]), str(bridge["username"]), str(bridge["clientkey"]), idle_timeout=0
+        str(bridge["host"]), str(bridge["username"]), str(bridge["clientkey"]), **kwargs
     )
     await session.start(area.id)
-    print(f"[hue] streaming to area '{area.name}'")
-    return session, area.name
+    print(f"[hue] streaming to area '{area.name}' ({len(area.channels)} channels)")
+    return session, area
 
 
 def _save_bridge_creds(

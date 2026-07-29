@@ -174,7 +174,13 @@ def create_app(
 
     async def index(_req: web.Request) -> web.StreamResponse:
         html = (RESOURCES / "webui.html").read_text(encoding="utf-8")
-        return web.Response(text=html, content_type="text/html")
+        # The panel changes with every deploy, and a cached copy talking to a newer API
+        # looks exactly like a broken page. Never let the browser hold on to it.
+        return web.Response(
+            text=html,
+            content_type="text/html",
+            headers={"Cache-Control": "no-store, must-revalidate", "Pragma": "no-cache"},
+        )
 
     async def status(_req: web.Request) -> web.Response:
         s = daemon.stats
