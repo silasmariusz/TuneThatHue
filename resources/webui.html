@@ -153,10 +153,11 @@ async function loadConfig(){
 
 // The settings screen is built from the provider's own entries: same keys, same labels,
 // same order, same advanced split. Nothing about the layout is decided here.
-let SCHEMA = [], VALUES = {};
+let SCHEMA = [], VALUES = {}, LIGHTS = [];
 function renderSchema(c){
   SCHEMA = c.schema || [];
   VALUES = c.settings || {};
+  if (c.lights) LIGHTS = c.lights;
   const host = $('schemaHost');
   host.innerHTML = '';
   const adv = $('showAdvanced').checked;
@@ -174,8 +175,44 @@ function renderSchema(c){
       host.appendChild(p); continue;
     }
     if (!e.applicable) continue;          // addresses Music Assistant, not this box
-    host.appendChild(buildRow(e));
+    host.appendChild(e.key === 'strobe_lights' ? buildLightPicker(e) : buildRow(e));
   }
+}
+
+// The lights are a set, not a string: tick the ones that take part, the way the
+// provider's own multi-select does. Sends the ids the engine expects.
+function buildLightPicker(e){
+  const row = document.createElement('div'); row.className = 'row';
+  const lab = document.createElement('label');
+  lab.textContent = e.label; lab.style.minWidth = '210px';
+  if (e.description) lab.title = e.description;
+  row.appendChild(lab);
+  const box = document.createElement('div');
+  box.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;flex:1';
+  const chosen = new Set((VALUES[e.key] || []).map(Number));
+  if (!LIGHTS.length){
+    const p = document.createElement('span');
+    p.className = 'hint';
+    p.textContent = 'Turn the output on to see this area’s lights.';
+    box.appendChild(p);
+  }
+  for (const l of LIGHTS){
+    const wrap = document.createElement('label');
+    wrap.style.cssText = 'min-width:auto;color:var(--ink);display:flex;align-items:center;gap:5px';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = chosen.has(l.id);
+    cb.onchange = () => {
+      cb.checked ? chosen.add(l.id) : chosen.delete(l.id);
+      const ids = [...chosen].sort((a,b)=>a-b);
+      VALUES[e.key] = ids;
+      apply({[e.key]: ids});
+    };
+    wrap.appendChild(cb);
+    wrap.appendChild(document.createTextNode(l.name));
+    box.appendChild(wrap);
+  }
+  row.appendChild(box);
+  return row;
 }
 
 function buildRow(e){

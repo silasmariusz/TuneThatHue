@@ -235,6 +235,9 @@ def create_app(
                 # The settings screen is generated from the Music Assistant provider
                 # sources we carry, so the two screens name and order everything alike.
                 "schema": _schema_with_palettes(),
+                # The area's real lights, so the VFX picker offers them by name instead
+                # of asking for a list of channel numbers.
+                "lights": daemon.lights,
             }
         )
 

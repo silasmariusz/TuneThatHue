@@ -219,6 +219,8 @@ class Phase2Daemon:
         # Runtime-controllable Hue output (togglable from the WebUI, no restart).
         self.session = None
         self.area_name = ""
+        # The area's real lights (id + name), for the VFX light picker.
+        self.lights: list[dict] = []
         self.config_path: Path | None = None
 
     def now_us(self) -> int:
@@ -238,7 +240,10 @@ class Phase2Daemon:
             pulse=PulseSettings.from_config(self.cfg),
         )
         self.apply_config()
-        self.channel_count = len(channels)
+        self.lights = [
+            {"id": int(c.channel_id), "name": getattr(c, "name", "") or f"Light {c.channel_id}"}
+            for c in channels
+        ]
 
     def apply_config(self) -> None:
         """
