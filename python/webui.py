@@ -74,8 +74,16 @@ def _bridge_paired(config_path: Path) -> tuple[bool, str, str]:
     except Exception:  # noqa: BLE001
         return (False, "", "")
     b = d.get("bridge", {})
-    paired = bool(b.get("username") and b.get("clientkey"))
-    return (paired, str(b.get("host", "")), str(b.get("area", "")))
+    paired = _is_real_credential(b.get("username")) and _is_real_credential(b.get("clientkey"))
+    # An unpaired [bridge] is still the shipped example, so its host is boilerplate too:
+    # offering it would send the user pairing against an address that isn't their bridge.
+    host = str(b.get("host", "")) if paired else ""
+    return (paired, host, str(b.get("area", "")))
+
+
+def _is_real_credential(value: Any) -> bool:
+    """Reject the shipped example placeholders, which a first run copies verbatim."""
+    return bool(value) and not str(value).startswith("PASTE-")
 
 
 def create_app(
