@@ -102,23 +102,38 @@ for the installers — missing tools only skip their own step. Output lands in
 
 ## Why the engine is a 1:1 copy (on purpose)
 
-`effects/hue_fx/` is a **verbatim, byte-for-byte copy** of the Music Assistant
-`hue_entertainment` provider's engine (`analyzer.py`, `structure.py`,
-`strobe_overlay.py`, `palettes.py`, `palettes.json`, `constants.py`). It is never
-edited here.
+`effects/hue_fx/` holds the Music Assistant `hue_entertainment` engine
+(`analyzer.py`, `structure.py`, `strobe_overlay.py`, `palettes.py`,
+`palettes.json`, `constants.py`) **byte for byte**. Never ported, never
+rewritten, never tidied up - the same files, on both sides.
 
-That is the whole point: keeping it identical means effect work developed and
-**emulated on Windows/Linux** behaves exactly like the Music Assistant provider,
-and the same engine drops straight onto a Raspberry Pi or QNAP box. Improvements
-happen upstream in Music Assistant and are pulled in with:
+That is what makes this a development environment for the Music Assistant
+effects, not a lookalike. Work on an effect or a preset here, where a restart
+takes a second and the lights are on the desk, then move the changed files
+straight back into the provider and they are ready in Home Assistant. Because
+nothing was rewritten in between, that move is a copy - there is nothing to
+port and nothing to re-test for translation mistakes.
+
+So the copy goes **both ways**:
 
 ```sh
-python tools/sync_effects.py          # copy from a Music Assistant checkout + hash manifest
+python tools/sync_effects.py          # status: who changed what since the last sync
+python tools/sync_effects.py --pull   # Music Assistant -> here  (take their changes)
+python tools/sync_effects.py --push   # here -> Music Assistant (ship what you built)
+python tools/sync_effects.py --diff   # show the actual differences
 python tools/sync_effects.py --check  # verify no drift
 ```
 
-`effects/MANIFEST.sha256` records the source commit and per-file hashes. The engine
-is pure-stdlib Python (no numpy/asyncio) and needs **Python ≥ 3.14**.
+`effects/MANIFEST.sha256` records the source commit and each file's hash as of the
+last sync. That is what keeps the two-way copy safe: comparing both sides against
+it tells the tool who changed what, so a pull cannot quietly discard work done
+here and a push cannot quietly discard work done in the provider - if both moved,
+it stops and says so instead of picking a winner.
+
+The engine is pure-stdlib Python (no numpy/asyncio) and needs **Python ≥ 3.14**.
+Anything Music Assistant does *not* have - the standalone beat tracker, the VBAN
+receiver, the WebUI - lives outside `effects/hue_fx/`, so the shared engine stays
+a clean copy in both directions.
 
 ## Targets & roadmap
 

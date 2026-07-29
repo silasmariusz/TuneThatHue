@@ -1,9 +1,9 @@
-# hue-box effects manifest - written by tools/sync_effects.py
-# synced: 2026-07-29T12:08:37.526418+00:00
-# source: D:\Code\music-assistant-hue-mod\server @ 876967f30ec49fe83cf5defc5d418edb30d9c5ca
+# TuneThatHue effects manifest - written by tools/sync_effects.py
+# synced: 2026-07-29T15:44:18.320383+00:00  (pull)
+# provider: D:\Code\music-assistant-hue-mod\server @ 876967f30ec49fe83cf5defc5d418edb30d9c5ca
 520ef598777928e7b24e0ac533eec4e6605cd0263980d6f79ed8924db7407679  hue_fx/analyzer.py
 a1f9385af3a9bfd4da95d3ca0c689998b1da94cf282149bed73d34b1011c00d4  hue_fx/structure.py
-42226de23f4eaca2bfae02ab021edb51798c750dbee6965e622bb8dc44f856ad  hue_fx/strobe_overlay.py
+d0122c9d69216fe632125aa772553ac2033fe1ee73a14604e61656b34174f597  hue_fx/strobe_overlay.py
 23ff050d9aa49bd5f547327b354493c4970ef5b2a0d739e75e9109a5bf97f6de  hue_fx/palettes.py
 0b969ebf1a0a1750f087feec39919ac9f680a47ceb75539e7be4ee280d4a0df6  hue_fx/palettes.json
-a9f99215c18cb8e4fb1573a759ee976dca71298930cbf9ae1948929a72327ea7  hue_fx/constants.py
+8e59992d8be11a058c3f04423282eeaccc30db4468aa1a57eb784360f8b1880c  hue_fx/constants.py
