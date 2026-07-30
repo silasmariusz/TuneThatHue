@@ -175,6 +175,9 @@ def _option_values(node: ast.AST | None) -> list[tuple[Any, str | None]]:
                     values.append((v, title if isinstance(title, str) else None))
     if values:
         return values
+    comp = _comprehension_options(node)
+    if comp:
+        return comp
     # A bare comprehension over a constants tuple, e.g. [ConfigValueOption(v) for v, _ in X]
     for sub in ast.walk(node):
         if isinstance(sub, ast.Name):
@@ -185,3 +188,52 @@ def _option_values(node: ast.AST | None) -> list[tuple[Any, str | None]]:
                     for c in const
                 ]
     return []
+
+
+def _comprehension_options(node: ast.AST) -> list[tuple[Any, str | None]]:
+    """
+    Unroll ``[ConfigValueOption(x, title=x.capitalize()) for x in SOME_TUPLE]``.
+
+    The provider builds its mode list that way, and reading the title out of it is the
+    difference between the screen saying "Pulse" and saying "pulse".
+    """
+    for sub in ast.walk(node):
+        if not isinstance(sub, ast.ListComp) or len(sub.generators) != 1:
+            continue
+        call, gen = sub.elt, sub.generators[0]
+        if not (isinstance(call, ast.Call) and getattr(call.func, "id", "") == "ConfigValueOption"):
+            continue
+        if not (isinstance(gen.target, ast.Name) and isinstance(gen.iter, ast.Name)):
+            continue
+        items = _constant(gen.iter.id)
+        if not isinstance(items, (list, tuple)):
+            continue
+        var = gen.target.id
+        title_node = next((k.value for k in call.keywords if k.arg == "title"), None)
+        out: list[tuple[Any, str | None]] = []
+        for item in items:
+            out.append((item, _bound(title_node, var, item)))
+        return out
+    return []
+
+
+def _bound(node: ast.AST | None, var: str, item: Any) -> str | None:
+    """Evaluate a title expression with the comprehension variable bound to ``item``."""
+    if node is None:
+        return None
+    if isinstance(node, ast.Name) and node.id == var:
+        return str(item)
+    # str methods that take no arguments: .capitalize(), .title(), .upper(), ...
+    if (
+        isinstance(node, ast.Call)
+        and not node.args
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == var
+        and isinstance(item, str)
+    ):
+        method = getattr(str, node.func.attr, None)
+        if callable(method) and node.func.attr in {"capitalize", "title", "upper", "lower"}:
+            return method(item)
+    lit = _literal(node)
+    return lit if isinstance(lit, str) else None
