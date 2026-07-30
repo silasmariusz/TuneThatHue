@@ -10,6 +10,7 @@ No subscriptions. No cloud. Nothing extra to switch on. You need smart Hue bulbs
 file server you already own, and fire.
 
 **[Download from forum.qnap.net.pl](https://forum.qnap.net.pl/download/tunethathue.1113/)**
+· **[Watch it run](https://www.youtube.com/watch?v=w_EbUPbOirw)**
 
 ![The light wall — what the bridge is actually being sent, live](docs/img/wall.webp)
 
