@@ -13,6 +13,26 @@ export QPKG_ROOT
 
 CTL="$QPKG_ROOT/etc/tunethathue/daemon.sh"
 
+# ── App Center / Main-menu icons ─────────────────────────────────────────────
+# QDK copies the icons into the install root, but the panel serves them from
+# /home/httpd/RSS/images/. Without this the tile keeps whatever placeholder was
+# there, so refresh them on every start (cheap, and it repairs a firmware update
+# that wiped the directory).
+# Delete the destination FIRST. Until an app supplies its own icon the panel leaves a
+# SYMLINK there pointing at the shared no_qpkg_icon_64.gif placeholder, and copying onto
+# a symlink writes through it - which replaces the placeholder for every other app on
+# the NAS. Verified the hard way on QuTS hero 6.0.
+install_icons() {
+    for _suffix in "" "_gray" "_80"; do
+        _src="${QPKG_ROOT}/.qpkg_icon${_suffix}.gif"
+        _dst="/home/httpd/RSS/images/${QPKG_NAME}${_suffix}.gif"
+        [ -f "$_src" ] || continue
+        rm -f "$_dst" 2>/dev/null
+        cp -f "$_src" "$_dst" 2>/dev/null
+    done
+}
+install_icons
+
 # ── cron-based watchdog ──────────────────────────────────────────────────────
 # A single crontab line resurrects the daemon if it dies. It survives reboots
 # (QNAP restores /etc/config/crontab), so this is the supervision mechanism.
