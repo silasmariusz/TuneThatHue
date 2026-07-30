@@ -4,8 +4,12 @@
 
 Play music anywhere in the house. The NAS listens, finds the beat, and drives your Hue
 lights like a small lighting desk — strobe on the drop, lights joining one by one
-through a build-up, colour changing with the music. No Home Assistant, no cloud, no PC
-left running.
+through a build-up, colour changing with the music.
+
+No subscriptions. No cloud. Nothing extra to switch on. You need smart Hue bulbs, the
+file server you already own, and fire.
+
+**[Download from forum.qnap.net.pl](https://forum.qnap.net.pl/download/tunethathue.1113/)**
 
 ![The light wall — what the bridge is actually being sent, live](docs/img/wall.webp)
 
@@ -39,8 +43,9 @@ left running.
 
 ## Install
 
-1. Download the `.qpkg` from [Releases](../../releases) and install it in App Center
-   (*Install Manually*).
+1. Download the `.qpkg` — from
+   [forum.qnap.net.pl](https://forum.qnap.net.pl/download/tunethathue.1113/) or
+   [Releases](../../releases) — and install it in App Center (*Install Manually*).
 2. Open **TuneThatHue** from the QNAP main menu.
 3. Type the bridge address, press **Pair**, then press the round button on the bridge.
 4. Pick the Entertainment area and press **Turn on**.
@@ -70,6 +75,12 @@ behaves the same in Music Assistant, and the other way round.
 The settings screen is generated from the provider's own source files, so a setting means
 the same thing on both sides.
 
+That makes TuneThatHue useful the other way round too: **it is a workbench for building
+and debugging VFX effects for
+[Music Assistant](https://github.com/music-assistant/server).** Restarting the daemon
+takes a second and the lights are in the room, so you can tune an effect here, watch the
+frames on the light wall, and copy the file straight back into the provider.
+
 ![Advanced settings and latency calibration](docs/img/panel.webp)
 
 ## Timing
@@ -89,9 +100,11 @@ click.
 
 Apache-2.0. See [`NOTICE`](NOTICE) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
-TuneThatHue © 2025–2026 Silas Mariusz Grzybacz — [devspark.pl](https://devspark.pl) ·
-published on [forum.qnap.net.pl](https://forum.qnap.net.pl) · QNAP app repo:
-[myqnap.org](https://www.myqnap.org)
-
 Uses the Philips Hue Entertainment API. Not affiliated with, endorsed by, or sponsored by
 Signify / Philips Hue, Winamp, or foobar2000.
+
+---
+
+TuneThatHue © 2025–2026 Silas Mariusz Grzybacz · [devspark.pl](https://devspark.pl)
+published: [forum.qnap.net.pl](https://forum.qnap.net.pl/download/tunethathue.1113/) ·
+qnap app repo: [myqnap.org](https://www.myqnap.org)
