@@ -21,13 +21,15 @@ from typing import Any
 
 # [effects] holds the base look; the strobe/VFX and pulse blocks mirror the provider's
 # own grouping. Anything absent falls back to the engine's own default.
-_SECTIONS = ("effects", "strobe", "pulse", "bridge")
+_SECTIONS = ("effects", "strobe", "pulse", "bridge", "sendspin")
 
 # hue-box.toml spells a couple of keys more naturally than the provider's CONF_* value.
 # Both are accepted so existing config files keep working.
 _ALIASES = {
     "mode": "color_mode",
-    "latency_ms": "hue_latency_ms",
+    # [sendspin] latency_ms is the provider's "Light latency (ms)". Without the
+    # section in _SECTIONS above, the alias never fired and the knob did nothing.
+    "sendspin_latency_ms": "hue_latency_ms",
     # The file marks percentages with a _pct suffix; the engine's CONF_* keys do not.
     # Without these the values were silently ignored and the engine kept its defaults.
     "pulse_decay_pct": "pulse_decay",

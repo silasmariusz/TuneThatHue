@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import struct
 import sys
 import time
@@ -118,8 +119,12 @@ VBAN_SR_TABLE = [
 ]
 FEATURE_RATE_HZ = 20
 RENDER_RATE_HZ = 30
-RENDER_AHEAD_US = 200_000  # render latency lead, mirrors hue latency default
+DEFAULT_RENDER_AHEAD_MS = 200  # used until the config supplies "Light latency (ms)"
 RESYNC_GAP_S = 2.0
+# Preview frame rate pushed to the browser. The render loop runs at 30 Hz; a panel
+# cannot use that and the tee must never become the slow path.
+PREVIEW_RATE_HZ = 20
+PREVIEW_PERIOD_S = 1.0 / PREVIEW_RATE_HZ
 # Resuming the saved output right after a restart races the bridge releasing the
 # previous entertainment session, so the first attempt often times out.
 _RESUME_ATTEMPTS = 4
@@ -221,6 +226,14 @@ class Phase2Daemon:
         self.area_name = ""
         # The area's real lights (id + name), for the VFX light picker.
         self.lights: list[dict] = []
+        # Preview subscribers. The panel watches the exact frames the bridge gets, so
+        # the tee sits after render and is capped well under the render rate - a browser
+        # cannot use 30 fps and the queue must never become the slow path.
+        self._preview_subs: set = set()
+        self._preview_last = 0.0
+        # How far ahead frames are rendered, to cancel the lag of the bridge and the
+        # lights. apply_config() replaces it with "Light latency (ms)" from the file.
+        self.render_ahead_us = DEFAULT_RENDER_AHEAD_MS * 1000
         self.config_path: Path | None = None
 
     def now_us(self) -> int:
@@ -257,6 +270,10 @@ class Phase2Daemon:
             return
         self.cfg.reload(self.config_path)
         get = self.cfg.get_value
+        latency = get("hue_latency_ms")
+        self.render_ahead_us = int(
+            float(str(DEFAULT_RENDER_AHEAD_MS if latency is None else latency)) * 1000
+        )
         self.analyzer.update_settings(
             color_mode=str(get(CONF_COLOR_MODE) or "pulse"),
             brightness=int(float(str(get(CONF_BRIGHTNESS) or 100))),
@@ -391,16 +408,43 @@ class Phase2Daemon:
                 self.stats.beats += len(beats)
             self.stats.bpm = self.tracker.bpm
 
+    def publish_frame(self, cmds: list) -> None:
+        """
+        Hand the frame just rendered to any preview subscriber.
+
+        Never blocks and never grows: a subscriber that stops reading gets its oldest
+        frame dropped, so a stalled browser tab cannot slow the render loop down.
+        """
+        if not self._preview_subs:
+            return
+        now = time.monotonic()
+        if now - self._preview_last < PREVIEW_PERIOD_S:
+            return
+        self._preview_last = now
+        frame = [[c.channel_id, c.red >> 8, c.green >> 8, c.blue >> 8] for c in cmds]
+        payload = json.dumps({"t": int(now * 1000), "f": frame}, separators=(",", ":"))
+        for q in self._preview_subs:
+            if q.full():
+                try:
+                    q.get_nowait()
+                except Exception:  # noqa: BLE001 - a race with the reader is harmless
+                    pass
+            try:
+                q.put_nowait(payload)
+            except Exception:  # noqa: BLE001 - dropping a preview frame is fine
+                pass
+
     async def render_loop(self) -> None:
         period = 1.0 / RENDER_RATE_HZ
         while True:
             await asyncio.sleep(period)
-            cmds = self.analyzer.render(self.now_us() + RENDER_AHEAD_US)
+            cmds = self.analyzer.render(self.now_us() + self.render_ahead_us)
             self.stats.renders += 1
             if any(c.red or c.green or c.blue for c in cmds):
                 self.stats.lit += 1
             if self.session is not None:  # live: set/cleared by apply_output()
                 self.session.send(cmds)
+            self.publish_frame(cmds)
 
     async def stats_loop(self) -> None:
         blocks = " .:-=+*#%@"
