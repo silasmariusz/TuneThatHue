@@ -4,206 +4,485 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TuneThatHue</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B0D10'/%3E%3Crect x='6' y='18' width='4' height='8' fill='%2333E1A0'/%3E%3Crect x='12' y='12' width='4' height='14' fill='%2333E1A0'/%3E%3Crect x='18' y='6' width='4' height='20' fill='%2333E1A0'/%3E%3Crect x='24' y='15' width='4' height='11' fill='%2333E1A0'/%3E%3C/svg%3E">
 <style>
-  :root { --bg:#0d0f14; --panel:#161a22; --border:#252b36; --ink:#e6e9ef; --dim:#8a93a3;
-          --accent:#00d0ff; --ok:#3ad07a; --warn:#ffb020; --off:#4a5262; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,Segoe UI,sans-serif; }
-  header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:baseline; gap:12px; }
-  h1 { font-size:19px; margin:0; letter-spacing:.5px; }
-  header .sub { color:var(--dim); font-size:12px; }
-  main { max-width:820px; margin:0 auto; padding:20px; display:grid; gap:18px; }
-  .panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
-  .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:.6px; color:var(--dim); margin:0 0 12px; }
-  .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0; }
-  label { color:var(--dim); min-width:96px; }
-  input[type=text], select { background:#0e1219; color:var(--ink); border:1px solid var(--border);
-        border-radius:6px; padding:7px 9px; font-size:14px; }
-  input[type=text] { width:150px; }
-  input[type=range] { flex:1; min-width:140px; }
-  button { background:var(--accent); color:#03222b; border:0; border-radius:6px; padding:8px 14px;
-        font-weight:600; cursor:pointer; }
-  button:disabled { opacity:.5; cursor:default; }
-  .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:12px; font-weight:600; }
-  .pill.on { background:rgba(58,208,122,.16); color:var(--ok); }
-  .pill.off { background:rgba(74,82,98,.2); color:var(--off); }
-  .pill.warn{ background:rgba(255,176,32,.16); color:var(--warn); }
-  .spec { display:flex; align-items:flex-end; gap:3px; height:70px; margin:6px 0 2px; }
-  .spec .bar { flex:1; background:linear-gradient(var(--accent),#0a5b6b); border-radius:2px 2px 0 0; height:2px;
-        transition:height .08s linear; }
-  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:8px; }
-  .stat { text-align:center; }
-  .stat .v { font-size:20px; font-weight:700; }
-  .stat .k { color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
-  .hint { color:var(--dim); font-size:12px; margin:6px 0 0; }
-  footer { color:var(--dim); font-size:11px; text-align:center; padding:14px; border-top:1px solid var(--border); }
-  footer a { color:var(--dim); }
+  :root{
+    --desk:#0B0D10;      /* the surface everything sits on */
+    --strip:#14181D;     /* channel strip / card face */
+    --rule:#232A32;      /* hairlines and separators */
+    --legend:#7C8899;    /* silkscreen labels */
+    --read:#E8EDF3;      /* readouts and values */
+    --live:#33E1A0;      /* the one accent: signal present. never decoration */
+    --hot:#FFB020;       /* warnings only */
+    /* Self-hosted is impossible on a box with no internet, so these are system
+       stacks picked for the same shapes: condensed silkscreen, plain body, mono. */
+    --f-display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Liberation Sans Narrow","Arial Narrow",system-ui,sans-serif;
+    --f-body:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+    --f-mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,"SF Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--desk);color:var(--read);font:15px/1.5 var(--f-body);
+       -webkit-font-smoothing:antialiased}
+  a{color:var(--legend)}
+  :focus-visible{outline:2px solid var(--live);outline-offset:2px}
+
+  /* ── silkscreen legends ─────────────────────────────────────────── */
+  .legend{font-family:var(--f-display);font-size:13px;letter-spacing:.18em;
+          text-transform:uppercase;color:var(--legend);margin:0 0 14px}
+  .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+  /* ── header ─────────────────────────────────────────────────────── */
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;
+         border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--desk);z-index:5}
+  .mark{width:22px;height:22px;flex:none}
+  h1{font-family:var(--f-display);font-size:21px;letter-spacing:.22em;text-transform:uppercase;
+     font-weight:600;margin:0}
+  .lamps{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .lamp{font-family:var(--f-display);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+        color:var(--legend);display:flex;align-items:center;gap:6px}
+  .lamp::before{content:"";width:7px;height:7px;border-radius:50%;background:#2A323C;flex:none}
+  .lamp.on{color:var(--read)}
+  .lamp.on::before{background:var(--live);box-shadow:0 0 8px var(--live)}
+  .lamp.warn::before{background:var(--hot)}
+
+  main{max-width:1020px;margin:0 auto;padding:22px;display:grid;gap:22px}
+  section{background:var(--strip);border:1px solid var(--rule);border-radius:4px;padding:18px 20px}
+  section.wall{background:#0E1115}
+
+  /* ── the light wall ─────────────────────────────────────────────── */
+  #wall{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:12px}
+  .tile{border:1px solid var(--rule);border-radius:3px;overflow:hidden;background:#080A0D}
+  .tile .face{height:96px;background:#0A0C10}
+  .tile canvas{display:block;width:100%;height:20px;border-top:1px solid var(--rule);
+               border-bottom:1px solid var(--rule)}
+  .tile .foot{padding:7px 9px}
+  .tile .nm{font-family:var(--f-display);font-size:13px;letter-spacing:.1em;text-transform:uppercase;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .lvl{height:3px;background:#1A2029;margin-top:6px}
+  .tile .lvl i{display:block;height:100%;background:var(--live);width:0}
+  .empty{color:var(--legend);font-size:14px;padding:22px 0}
+
+  /* ── signal chain ───────────────────────────────────────────────── */
+  .chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--rule);
+         border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .link{background:var(--strip);padding:12px 14px}
+  .link h3{font-family:var(--f-display);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+           color:var(--legend);margin:0 0 8px;font-weight:500}
+  .big{font-family:var(--f-mono);font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+  .unit{font-size:12px;color:var(--legend);margin-left:3px}
+  .sub{font-family:var(--f-mono);font-size:12px;color:var(--legend);margin-top:6px}
+  #spec{display:flex;align-items:flex-end;gap:2px;height:40px}
+  #spec i{flex:1;background:var(--live);height:1px;opacity:.85}
+
+  /* ── rows / controls ────────────────────────────────────────────── */
+  .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 0;
+       border-bottom:1px solid rgba(35,42,50,.55)}
+  .row:last-child{border-bottom:0}
+  .row > label:first-child,.fieldname{flex:0 0 210px;color:var(--legend);font-size:14px}
+  .fieldname{display:block;margin-bottom:8px}
+  .grow{flex:1;min-width:150px}
+  input[type=text],select{background:#0A0D11;color:var(--read);border:1px solid var(--rule);
+       border-radius:3px;padding:7px 9px;font:14px var(--f-body)}
+  input[type=text]{width:160px}
+  input[type=range]{flex:1;min-width:130px;accent-color:var(--live)}
+  input[type=checkbox]{accent-color:var(--live);width:15px;height:15px}
+  .val{font-family:var(--f-mono);font-size:13px;width:46px;text-align:right;color:var(--read)}
+  button{background:transparent;color:var(--read);border:1px solid var(--rule);border-radius:3px;
+         padding:8px 15px;font:600 13px/1 var(--f-body);letter-spacing:.03em;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--live);color:var(--live)}
+  button.primary{background:var(--live);border-color:var(--live);color:#05130D}
+  button.primary:hover:not(:disabled){color:#05130D;filter:brightness(1.08)}
+  button:disabled{opacity:.45;cursor:default}
+  .note{color:var(--legend);font-size:13px;margin:8px 0 0}
+  .head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .head .legend{margin:0}
+  .toggle{color:var(--legend);font-size:13px;display:flex;align-items:center;gap:7px;cursor:pointer}
+
+  /* ── palette board ──────────────────────────────────────────────── */
+  .board{border:1px solid var(--rule);border-radius:3px;padding:10px;background:#0A0D11}
+  .board.off{opacity:.4;pointer-events:none}
+  .board input[type=text]{width:100%;margin-bottom:9px}
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:7px;
+            max-height:230px;overflow:auto}
+  .sw{border:1px solid var(--rule);border-radius:3px;padding:0;cursor:pointer;background:#0B0E12;
+      text-align:left;overflow:hidden}
+  .sw .bars{display:flex;height:22px}
+  .sw .bars i{flex:1}
+  .sw .t{display:flex;align-items:center;gap:5px;padding:5px 6px;font-size:12px;color:var(--legend);
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sw[aria-pressed=true]{border-color:var(--live)}
+  .sw[aria-pressed=true] .t{color:var(--read)}
+  .sw .tick{font-family:var(--f-mono);font-size:11px;color:var(--live);margin-left:auto}
+
+  /* ── senders ────────────────────────────────────────────────────── */
+  .senders{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .sender{border:1px solid var(--rule);border-radius:3px;padding:14px}
+  .sender h3{font-family:var(--f-display);font-size:15px;letter-spacing:.12em;text-transform:uppercase;
+             margin:0 0 6px;font-weight:600}
+  .sender p{color:var(--legend);font-size:13px;margin:0 0 12px}
+  .sender a{display:inline-block;text-decoration:none;color:var(--read);border:1px solid var(--rule);
+            border-radius:3px;padding:7px 13px;font-size:13px;font-weight:600}
+  .sender a:hover{border-color:var(--live);color:var(--live)}
+  .sender a[aria-disabled=true]{opacity:.45;pointer-events:none}
+
+  footer{color:var(--legend);font-size:12px;text-align:center;padding:20px;border-top:1px solid var(--rule)}
+
+  @media (max-width:560px){
+    .row > label:first-child{flex:1 0 100%}
+    h1{font-size:18px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+  }
 </style>
 </head>
 <body>
 <header>
+  <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+    <rect x="4" y="18" width="4" height="9" fill="#33E1A0"/>
+    <rect x="11" y="11" width="4" height="16" fill="#33E1A0"/>
+    <rect x="18" y="4" width="4" height="23" fill="#33E1A0"/>
+    <rect x="25" y="15" width="4" height="12" fill="#33E1A0"/>
+  </svg>
   <h1>TuneThatHue</h1>
-  <span class="sub">daemon control panel</span>
-  <span id="conn" class="pill off" style="margin-left:auto">connecting…</span>
+  <div class="lamps">
+    <span class="lamp" id="l-conn">panel</span>
+    <span class="lamp" id="l-rx">receiving</span>
+    <span class="lamp" id="l-out">streaming</span>
+  </div>
 </header>
+
 <main>
-  <section class="panel">
-    <h2>Live</h2>
-    <div class="row">
-      <span>Audio in <span id="rx" class="pill off">idle</span></span>
-      <span style="margin-left:12px">Output <span id="out" class="pill off">none</span></span>
-      <span id="rate" style="margin-left:auto; color:var(--dim)">– KB/s · – pkt/s</span>
+  <!-- ── THE LIGHT WALL ─────────────────────────────────────────── -->
+  <section class="wall">
+    <div class="head">
+      <p class="legend">Light wall <span id="areaName" class="mono" style="letter-spacing:0;text-transform:none"></span></p>
+      <span class="mono" style="font-size:12px;color:var(--legend)" id="fps">— fps</span>
     </div>
-    <div class="spec" id="spec"></div>
-    <div class="stats">
-      <div class="stat"><div class="v" id="s-spectra">0</div><div class="k">spectra</div></div>
-      <div class="stat"><div class="v" id="s-peaks">0</div><div class="k">peaks</div></div>
-      <div class="stat"><div class="v" id="s-renders">0</div><div class="k">renders</div></div>
-      <div class="stat"><div class="v" id="s-lit">0</div><div class="k">lights lit</div></div>
+    <div id="wall"></div>
+    <p class="note" id="wallNote">Turn the output on to watch the frames.</p>
+    <p class="note">The face holds the peak for a moment so a single-frame flash stays
+      visible; the strip under it is the last two seconds, unheld.</p>
+  </section>
+
+  <!-- ── SIGNAL CHAIN ───────────────────────────────────────────── -->
+  <section>
+    <p class="legend">Signal chain</p>
+    <div class="chain">
+      <div class="link">
+        <h3>1 · Audio in</h3>
+        <div id="spec"></div>
+        <div class="sub" id="rate">— KB/s · — pkt/s</div>
+      </div>
+      <div class="link">
+        <h3>2 · Beat</h3>
+        <div class="big"><span id="bpm">—</span><span class="unit">BPM</span></div>
+        <div class="sub"><span id="beats">0</span> beats · <span id="peaks">0</span> peaks</div>
+      </div>
+      <div class="link">
+        <h3>3 · Engine</h3>
+        <div class="big"><span id="renders">0</span></div>
+        <div class="sub"><span id="rps">—</span> frames/s rendered</div>
+      </div>
+      <div class="link">
+        <h3>4 · Bridge</h3>
+        <div class="big"><span id="lit">0</span><span class="unit">lit</span></div>
+        <div class="sub" id="outState">output off</div>
+      </div>
     </div>
   </section>
 
-  <section class="panel">
-    <h2>Hue bridge</h2>
+  <!-- ── BRIDGE ─────────────────────────────────────────────────── -->
+  <section>
+    <p class="legend">Hue bridge</p>
     <div class="row">
-      <label>Status</label><span id="paired" class="pill off">not paired</span>
-      <span id="bhost" style="color:var(--dim)"></span>
-    </div>
-    <div class="row">
-      <label>Bridge IP</label>
+      <label for="host">Bridge address</label>
       <input type="text" id="host" placeholder="10.0.0.x">
       <button id="pairBtn">Pair</button>
+      <span class="mono" id="pairedState" style="font-size:12px;color:var(--legend)">not paired</span>
     </div>
-    <p class="hint" id="pairMsg">Enter the bridge IP (or leave blank to auto-discover), click Pair, then press the round link button on the bridge within 30&nbsp;seconds.</p>
+    <p class="note" id="pairMsg">Leave the address blank to search the network. Press the round button on
+      the bridge within 30 seconds of clicking Pair.</p>
     <div class="row">
-      <label>Area</label><select id="area"></select>
-      <label style="min-width:auto; margin-left:12px">Output</label>
-      <button id="outBtn">Turn on</button>
-      <span id="outState" class="pill off">off</span>
+      <label for="area">Entertainment area</label>
+      <select id="area" class="grow"></select>
+      <button id="outBtn" class="primary">Turn on</button>
     </div>
-    <p class="hint" id="outMsg"></p>
+    <p class="note" id="outMsg"></p>
   </section>
 
-
-  <section class="panel">
-    <div class="row" style="justify-content:space-between">
-      <h2 style="margin:0">Settings</h2>
-      <label style="font-weight:400;font-size:.8125rem;color:var(--dim)">
-        <input type="checkbox" id="showAdvanced"> Show advanced settings
-      </label>
+  <!-- ── SETTINGS (generated from the provider) ─────────────────── -->
+  <section>
+    <div class="head">
+      <p class="legend">Settings</p>
+      <label class="toggle"><input type="checkbox" id="showAdvanced"> Advanced</label>
     </div>
-    <p class="hint">Same names, order and defaults as the Music Assistant provider - the screen is
-       generated from its own sources, so a setting means the same thing on both sides.</p>
+    <p class="note" style="margin:0 0 12px">Generated from the Music Assistant provider's own sources, so
+      every setting here means what it means there.</p>
     <div id="schemaHost"></div>
   </section>
+
+  <!-- ── CALIBRATION ────────────────────────────────────────────── -->
+  <section>
+    <p class="legend">Latency calibration</p>
+    <p class="note" style="margin:0 0 12px">Open this page <strong>on the machine that captures the
+      audio</strong>. The click below goes out through that machine, arrives here as sound, and flashes the
+      lights. Raise the delay until the flash lands on the click.</p>
+    <div class="row">
+      <label>Metronome</label>
+      <button id="metroBtn">Start click</button>
+      <span class="mono" id="metroBeat" style="color:var(--legend)">—</span>
+      <span class="grow"></span>
+      <span class="mono" style="color:var(--legend)">120 BPM · 4/4</span>
+    </div>
+    <div class="row">
+      <label for="latency">Light delay</label>
+      <input type="range" id="latency" min="0" max="500" step="5" value="0">
+      <span class="val" id="latencyVal">0</span><span class="unit">ms</span>
+    </div>
+  </section>
+
+  <!-- ── SENDERS ────────────────────────────────────────────────── -->
+  <section>
+    <p class="legend">Get the senders</p>
+    <p class="note" style="margin:0 0 14px">Something has to send audio to this box. Pick whichever matches
+      how you listen.</p>
+    <div class="senders">
+      <div class="sender">
+        <h3>Sound capture</h3>
+        <p>Sends whatever is playing on the computer. Works with any player.</p>
+        <a href="#" id="dl-soundrecorder" aria-disabled="true">Not in this build</a>
+      </div>
+      <div class="sender">
+        <h3>Winamp</h3>
+        <p>Visualisation plug-in. Sends straight from the player, no capture device.</p>
+        <a href="#" id="dl-winamp" aria-disabled="true">Not in this build</a>
+      </div>
+      <div class="sender">
+        <h3>foobar2000</h3>
+        <p>Output component. Same idea, for foobar.</p>
+        <a href="#" id="dl-foobar" aria-disabled="true">Not in this build</a>
+      </div>
+    </div>
+    <p class="note" id="dlNote"></p>
+  </section>
 </main>
+
 <footer>
   TuneThatHue &copy; 2025–2026 Silas Mariusz Grzybacz · <a href="https://devspark.pl">devspark.pl</a><br>
   published: forum.qnap.net.pl · qnap app repo: myqnap.org
 </footer>
 
 <script>
+"use strict";
 const $ = id => document.getElementById(id);
-// Resolve API calls under the current page's path prefix. Behind the QNAP
-// app-proxy the page is at /TuneThatHue (NO trailing slash), so normalise to
-// exactly one trailing slash: "/" -> "/", "/TuneThatHue" -> "/TuneThatHue/".
-// A leading-slash absolute path would hit the NAS panel root and return HTML.
+// Resolve API calls under the current page's path prefix. Behind the QNAP app-proxy the
+// page is at /TuneThatHue (NO trailing slash), so normalise to exactly one trailing
+// slash. A leading-slash absolute path would hit the NAS panel root and return HTML.
 const API = location.pathname.replace(/\/+$/, '') + '/';
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ══ signal chain ════════════════════════════════════════════════════ */
+const spec = $('spec');
+for (let i = 0; i < 17; i++) spec.appendChild(document.createElement('i'));
+const bars = [...spec.children];
 let prev = null;
 
-// build the 17-bar spectrum
-const spec = $('spec');
-for (let i=0;i<17;i++){ const b=document.createElement('div'); b.className='bar'; spec.appendChild(b); }
-const bars = [...spec.children];
+function lamp(el, on, warn){
+  el.className = 'lamp' + (on ? ' on' : '') + (warn ? ' warn' : '');
+}
 
 async function poll(){
-  try {
-    const r = await fetch(API + 'api/status'); const s = await r.json();
-    $('conn').className='pill on'; $('conn').textContent='connected';
-    $('rx').className = 'pill ' + (s.receiving?'on':'off'); $('rx').textContent = s.receiving?'receiving':'idle';
-    $('out').className = 'pill ' + (s.output==='hue'?'on':'warn'); $('out').textContent = s.output;
-    $('s-spectra').textContent=s.spectra; $('s-peaks').textContent=s.peaks;
-    $('s-renders').textContent=s.renders; $('s-lit').textContent=s.lit;
-    // spectrum bars (0..65535 -> 0..100%)
-    const sp = s.spectrum || [];
-    bars.forEach((b,i)=>{ const v = sp[i]||0; b.style.height = (2 + Math.min(100, v*100/65535)) + '%'; });
-    // rates from deltas
-    if (prev && s.t>prev.t){ const dt=s.t-prev.t;
-      const kbs=((s.bytes-prev.bytes)/1024/dt), pps=((s.packets-prev.packets)/dt);
-      $('rate').textContent = kbs.toFixed(1)+' KB/s · '+pps.toFixed(0)+' pkt/s'; }
-    prev = s;
-  } catch(e){ $('conn').className='pill off'; $('conn').textContent='offline'; }
+  let s;
+  try { s = await (await fetch(API + 'api/status')).json(); }
+  catch(e){ lamp($('l-conn'), false); return; }
+  lamp($('l-conn'), true);
+  lamp($('l-rx'), s.receiving);
+  lamp($('l-out'), s.output === 'hue');
+  $('bpm').textContent = s.bpm ? s.bpm.toFixed(1) : '—';
+  $('beats').textContent = s.beats;
+  $('peaks').textContent = s.peaks;
+  $('renders').textContent = s.renders;
+  $('lit').textContent = s.lit;
+  $('outState').textContent = s.output === 'hue' ? ('streaming · ' + (s.area || '')) : 'output off';
+  const sp = s.spectrum || [];
+  bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
+  if (prev && s.t > prev.t){
+    const dt = s.t - prev.t;
+    $('rate').textContent = ((s.bytes - prev.bytes) / 1024 / dt).toFixed(1) + ' KB/s · '
+                          + ((s.packets - prev.packets) / dt).toFixed(0) + ' pkt/s';
+    $('rps').textContent = ((s.renders - prev.renders) / dt).toFixed(0);
+  }
+  prev = s;
 }
 
-let curOutput = 'none';
-async function loadConfig(){
-  const c = await (await fetch(API + 'api/config')).json();
-  $('paired').className = 'pill ' + (c.paired?'on':'off');
-  $('paired').textContent = c.paired?'paired':'not paired';
-  $('bhost').textContent = c.host ? '· '+c.host : '';
-  if (c.host && !$('host').value) $('host').value = c.host;
-  // area dropdown
-  const areaSel=$('area'); areaSel.innerHTML='';
-  (c.areas||[]).forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===c.area)o.selected=true;areaSel.appendChild(o);});
-  if(!(c.areas||[]).length){const o=document.createElement('option');o.textContent=c.area||'(pair first)';areaSel.appendChild(o);}
-  curOutput = c.output;
-  reflectOutput(c.output==='hue');
-  renderSchema(c);
-}
+/* ══ the light wall ══════════════════════════════════════════════════
+   Tiles are fed by the real frames the bridge is sent, teed off the render
+   loop. The strip under each tile keeps the last two seconds of that light,
+   so a flash you would otherwise miss stays readable. */
+const TRAIL_S = 2, TRAIL_HZ = 20, TRAIL_N = TRAIL_S * TRAIL_HZ;
+let tiles = new Map();       // channel id -> {face, ctx, lvl, hist}
+let frames = 0, fpsMark = 0;
 
-// The settings screen is built from the provider's own entries: same keys, same labels,
-// same order, same advanced split. Nothing about the layout is decided here.
-let SCHEMA = [], VALUES = {}, LIGHTS = [];
-function renderSchema(c){
-  SCHEMA = c.schema || [];
-  VALUES = c.settings || {};
-  if (c.lights) LIGHTS = c.lights;
-  const host = $('schemaHost');
-  host.innerHTML = '';
-  const adv = $('showAdvanced').checked;
-  for (const e of SCHEMA){
-    if (e.hidden) continue;
-    if (e.advanced && !adv) continue;
-    if (e.type === 'divider'){
-      const h = document.createElement('h2');
-      h.textContent = e.label; h.style.marginTop = '18px';
-      host.appendChild(h); continue;
-    }
-    if (e.type === 'label'){
-      const p = document.createElement('p');
-      p.className = 'hint'; p.textContent = e.label;
-      host.appendChild(p); continue;
-    }
-    if (!e.applicable) continue;          // addresses Music Assistant, not this box
-    host.appendChild(e.key === 'strobe_lights' ? buildLightPicker(e) : buildRow(e));
+function buildWall(lights){
+  const wall = $('wall');
+  wall.innerHTML = '';
+  tiles = new Map();
+  if (!lights.length){
+    wall.innerHTML = '<p class="empty">No lights yet — pair a bridge and turn the output on.</p>';
+    return;
+  }
+  for (const l of lights){
+    const t = document.createElement('div'); t.className = 'tile';
+    t.innerHTML = '<div class="face"></div><canvas height="20"></canvas>'
+                + '<div class="foot"><div class="nm"></div><div class="lvl"><i></i></div></div>';
+    t.querySelector('.nm').textContent = l.name;
+    wall.appendChild(t);
+    const cv = t.querySelector('canvas');
+    cv.width = TRAIL_N;                       // one column per sample; CSS stretches it
+    tiles.set(l.id, {
+      face: t.querySelector('.face'),
+      ctx: cv.getContext('2d'),
+      lvl: t.querySelector('.lvl i'),
+      hist: [], hold: [0, 0, 0]
+    });
   }
 }
 
-// The lights are a set, not a string: tick the ones that take part, the way the
-// provider's own multi-select does. Sends the ids the engine expects.
+// A pulse at 126 BPM leaves the light dark most of the time, so a face showing the
+// exact current frame reads as "nothing is happening". The face therefore holds the
+// peak and falls away over ~200 ms, the way a meter does. The trail underneath keeps
+// the real, unheld timing, and the level bar is the true instantaneous value.
+const HOLD_DECAY = 0.82;
+
+function onFrame(list){
+  frames++;
+  for (const [id, r, g, b] of list){
+    const t = tiles.get(id);
+    if (!t) continue;
+    const css = 'rgb(' + r + ',' + g + ',' + b + ')';
+    t.hold = [Math.max(r, t.hold[0] * HOLD_DECAY), Math.max(g, t.hold[1] * HOLD_DECAY),
+              Math.max(b, t.hold[2] * HOLD_DECAY)];
+    t.face.style.background = 'rgb(' + t.hold.map(Math.round).join(',') + ')';
+    t.lvl.style.width = Math.round(Math.max(r, g, b) * 100 / 255) + '%';
+    t.hist.push(css);
+    if (t.hist.length > TRAIL_N) t.hist.shift();
+    if (REDUCED) continue;                    // colour still updates; the trail stops moving
+    const c = t.ctx;
+    c.clearRect(0, 0, TRAIL_N, 20);
+    const off = TRAIL_N - t.hist.length;
+    for (let i = 0; i < t.hist.length; i++){ c.fillStyle = t.hist[i]; c.fillRect(off + i, 0, 1, 20); }
+  }
+}
+
+function openPreview(){
+  const es = new EventSource(API + 'api/preview');
+  es.addEventListener('meta', ev => {
+    const m = JSON.parse(ev.data);
+    $('areaName').textContent = m.area ? '· ' + m.area : '';
+    buildWall(m.lights || []);
+  });
+  es.onmessage = ev => onFrame(JSON.parse(ev.data).f || []);
+  es.onerror = () => { /* EventSource reconnects on its own */ };
+}
+
+setInterval(() => {
+  const now = performance.now();
+  if (fpsMark){ $('fps').textContent = (frames * 1000 / (now - fpsMark)).toFixed(0) + ' fps'; }
+  fpsMark = now; frames = 0;
+  $('wallNote').textContent = tiles.size
+    ? '' : 'Turn the output on to watch the frames.';
+}, 1000);
+
+/* ══ settings, generated from the provider's own entries ═════════════ */
+let SCHEMA = [], VALUES = {}, LIGHTS = [], PALETTES = [];
+let latencyMirror = null;   // set while the Debug & tuning row exists
+
+async function loadConfig(){
+  const c = await (await fetch(API + 'api/config')).json();
+  $('pairedState').textContent = c.paired ? ('paired · ' + c.host) : 'not paired';
+  if (c.host && !$('host').value) $('host').value = c.host;
+  const sel = $('area'); sel.innerHTML = '';
+  const areas = c.areas && c.areas.length ? c.areas : (c.area ? [c.area] : []);
+  for (const a of areas){
+    const o = document.createElement('option');
+    o.value = a; o.textContent = a; o.selected = (a === c.area);
+    sel.appendChild(o);
+  }
+  if (!areas.length) sel.appendChild(new Option('(pair a bridge first)', ''));
+  PALETTES = c.palette_colors || [];
+  LIGHTS = c.lights || [];
+  reflectOutput(c.output === 'hue');
+  if (!tiles.size) buildWall(LIGHTS);
+  SCHEMA = c.schema || [];
+  VALUES = c.settings || {};
+  renderSchema();
+  // Take the range and the fallback from the provider entry, so this slider and the
+  // one in Debug & tuning can never disagree about what the setting is.
+  const entry = SCHEMA.find(e => e.key === 'hue_latency_ms');
+  if (entry && entry.range){ $('latency').min = entry.range[0]; $('latency').max = entry.range[1]; }
+  const lat = VALUES.hue_latency_ms ?? (entry ? entry.default : null);
+  if (lat !== null && lat !== undefined){ $('latency').value = lat; $('latencyVal').textContent = lat; }
+}
+
+function renderSchema(){
+  const host = $('schemaHost');
+  host.innerHTML = '';
+  latencyMirror = null;
+  const adv = $('showAdvanced').checked;
+  for (const e of SCHEMA){
+    if (e.hidden || (e.advanced && !adv)) continue;
+    // Some copy addresses Music Assistant's own screen ("click the (?) button"),
+    // which does not exist here. The parser flags those; drop them.
+    if (!e.applicable) continue;
+    if (e.type === 'divider'){
+      const h = document.createElement('p');
+      h.className = 'legend'; h.style.margin = '22px 0 10px';
+      h.textContent = e.label; host.appendChild(h); continue;
+    }
+    if (e.type === 'label'){
+      const p = document.createElement('p');
+      p.className = 'note'; p.textContent = e.label; host.appendChild(p); continue;
+    }
+    if (e.key === 'strobe_lights')      host.appendChild(buildLightPicker(e));
+    else if (e.key === 'palette')       host.appendChild(buildPaletteBoard(e));
+    else if (e.key === 'palette_rotate_list') host.appendChild(buildRotationList(e));
+    else                                host.appendChild(buildRow(e));
+  }
+}
+
+function labelFor(e, width, cls){
+  const lab = document.createElement('label');
+  lab.textContent = e.label;
+  if (cls) lab.className = cls;
+  if (width) lab.style.flex = '0 0 ' + width;
+  if (e.description) lab.title = e.description;
+  return lab;
+}
+
+/* The lights are a set, not a string: tick the ones that take part, the way the
+   provider's own multi-select does. Sends the ids the engine expects. */
 function buildLightPicker(e){
   const row = document.createElement('div'); row.className = 'row';
-  const lab = document.createElement('label');
-  lab.textContent = e.label; lab.style.minWidth = '210px';
-  if (e.description) lab.title = e.description;
-  row.appendChild(lab);
+  row.appendChild(labelFor(e));
   const box = document.createElement('div');
-  box.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;flex:1';
+  box.className = 'grow';
+  box.style.cssText += ';display:flex;flex-wrap:wrap;gap:14px';
   const chosen = new Set((VALUES[e.key] || []).map(Number));
   if (!LIGHTS.length){
     const p = document.createElement('span');
-    p.className = 'hint';
+    p.style.color = 'var(--legend)'; p.style.fontSize = '13px';
     p.textContent = 'Turn the output on to see this area’s lights.';
     box.appendChild(p);
   }
   for (const l of LIGHTS){
     const wrap = document.createElement('label');
-    wrap.style.cssText = 'min-width:auto;color:var(--ink);display:flex;align-items:center;gap:5px';
+    wrap.style.cssText = 'flex:none;display:flex;align-items:center;gap:6px;font-size:14px';
     const cb = document.createElement('input');
     cb.type = 'checkbox'; cb.checked = chosen.has(l.id);
     cb.onchange = () => {
       cb.checked ? chosen.add(l.id) : chosen.delete(l.id);
-      const ids = [...chosen].sort((a,b)=>a-b);
+      const ids = [...chosen].sort((a, b) => a - b);
       VALUES[e.key] = ids;
       apply({[e.key]: ids});
     };
@@ -215,92 +494,249 @@ function buildLightPicker(e){
   return row;
 }
 
+/* A palette is a set of colours, so show the colours. Greys itself out while
+   rotation is driving the palette, because then this control decides nothing. */
+function buildPaletteBoard(e){
+  const wrap = document.createElement('div');
+  wrap.appendChild(labelFor(e, null, 'fieldname'));
+  const board = document.createElement('div');
+  board.className = 'board'; board.id = 'paletteBoard';
+  const find = document.createElement('input');
+  find.type = 'text'; find.placeholder = 'Find a palette';
+  const grid = document.createElement('div'); grid.className = 'swatches';
+  const album = (e.options || []).find(o => o.value === 'album_colors');
+  const draw = () => {
+    const q = find.value.trim().toLowerCase();
+    grid.innerHTML = '';
+    // "Music / album colours" has no fixed colours — it takes them from the artwork.
+    if (album && (!q || album.title.toLowerCase().includes(q)))
+      grid.appendChild(swatch(album.value, album.title, ['#5E6672', '#8892A0', '#B7C0CC']));
+    for (const p of PALETTES){
+      if (q && !p.name.toLowerCase().includes(q)) continue;
+      grid.appendChild(swatch(p.name, p.name, p.colors));
+    }
+  };
+  const swatch = (value, title, colors) => {
+    const b = document.createElement('button');
+    b.className = 'sw'; b.type = 'button';
+    b.setAttribute('aria-pressed', String(VALUES.palette === value));
+    const barsEl = document.createElement('div'); barsEl.className = 'bars';
+    for (const c of colors){ const i = document.createElement('i'); i.style.background = c; barsEl.appendChild(i); }
+    const t = document.createElement('div'); t.className = 't'; t.textContent = title;
+    if (rotationList().includes(value)){
+      const tick = document.createElement('span'); tick.className = 'tick'; tick.textContent = 'ROT';
+      t.appendChild(tick);
+    }
+    b.appendChild(barsEl); b.appendChild(t);
+    b.onclick = () => { VALUES.palette = value; apply({palette: value}); draw(); };
+    return b;
+  };
+  find.oninput = draw;
+  draw();
+  board.appendChild(find); board.appendChild(grid);
+  wrap.appendChild(board);
+  syncBoard(board);
+  return wrap;
+}
+
+const rotationList = () => (VALUES.palette_rotate_list || []).map(String);
+function syncBoard(board){
+  board.classList.toggle('off', !!VALUES.palette_rotate);
+}
+
+/* The rotation list is the same set of palettes, ticked. */
+function buildRotationList(e){
+  const wrap = document.createElement('div');
+  wrap.appendChild(labelFor(e, null, 'fieldname'));
+  const board = document.createElement('div'); board.className = 'board';
+  const grid = document.createElement('div'); grid.className = 'swatches';
+  const chosen = new Set(rotationList());
+  for (const p of PALETTES){
+    const b = document.createElement('button');
+    b.className = 'sw'; b.type = 'button';
+    b.setAttribute('aria-pressed', String(chosen.has(p.name)));
+    const barsEl = document.createElement('div'); barsEl.className = 'bars';
+    for (const c of p.colors){ const i = document.createElement('i'); i.style.background = c; barsEl.appendChild(i); }
+    const t = document.createElement('div'); t.className = 't'; t.textContent = p.name;
+    b.appendChild(barsEl); b.appendChild(t);
+    b.onclick = () => {
+      chosen.has(p.name) ? chosen.delete(p.name) : chosen.add(p.name);
+      b.setAttribute('aria-pressed', String(chosen.has(p.name)));
+      VALUES[e.key] = [...chosen];
+      apply({[e.key]: VALUES[e.key]});
+    };
+    grid.appendChild(b);
+  }
+  board.appendChild(grid);
+  wrap.appendChild(board);
+  return wrap;
+}
+
 function buildRow(e){
   const row = document.createElement('div'); row.className = 'row';
-  const lab = document.createElement('label');
-  lab.textContent = e.label; lab.style.minWidth = '210px';
-  if (e.description) lab.title = e.description;
-  row.appendChild(lab);
+  row.appendChild(labelFor(e));
   const cur = VALUES[e.key] !== undefined ? VALUES[e.key] : e.default;
   let el;
   if (e.type === 'boolean'){
     el = document.createElement('input'); el.type = 'checkbox'; el.checked = !!cur;
-    el.onchange = () => apply({[e.key]: el.checked});
+    el.onchange = () => {
+      VALUES[e.key] = el.checked;
+      apply({[e.key]: el.checked});
+      if (e.key === 'palette_rotate'){
+        const b = $('paletteBoard'); if (b) syncBoard(b);
+      }
+    };
   } else if (e.options && e.options.length){
     el = document.createElement('select');
     for (const o of e.options){
       const opt = document.createElement('option');
       opt.value = o.value; opt.textContent = o.title;
-      if (String(o.value) === String(cur)) opt.selected = true;
+      opt.selected = String(o.value) === String(cur);
       el.appendChild(opt);
     }
-    el.onchange = () => apply({[e.key]: el.value});
+    el.onchange = () => { VALUES[e.key] = el.value; apply({[e.key]: el.value}); };
   } else if (e.type === 'integer' && e.range){
     el = document.createElement('input'); el.type = 'range';
     el.min = e.range[0]; el.max = e.range[1];
-    el.value = cur !== null && cur !== undefined ? cur : e.range[0];
+    el.value = (cur === null || cur === undefined) ? e.range[0] : cur;
     const out = document.createElement('span');
-    out.style.cssText = 'width:42px;text-align:right'; out.textContent = el.value;
+    out.className = 'val'; out.textContent = el.value;
     el.oninput = () => { out.textContent = el.value; };
-    el.onchange = () => apply({[e.key]: parseInt(el.value)});
+    el.onchange = () => {
+      VALUES[e.key] = parseInt(el.value);
+      apply({[e.key]: VALUES[e.key]});
+      // The calibration card drives the same value; a stale second slider would read
+      // as two different settings.
+      if (e.key === 'hue_latency_ms'){
+        $('latency').value = el.value; $('latencyVal').textContent = el.value;
+      }
+    };
+    if (e.key === 'hue_latency_ms') latencyMirror = v => { el.value = v; out.textContent = v; };
     row.appendChild(el); row.appendChild(out);
     return row;
   } else {
     el = document.createElement('input'); el.type = 'text';
-    el.value = cur === null || cur === undefined ? '' : cur;
-    el.onchange = () => apply({[e.key]: el.value});
+    el.value = (cur === null || cur === undefined) ? '' : cur;
+    el.onchange = () => { VALUES[e.key] = el.value; apply({[e.key]: el.value}); };
   }
   row.appendChild(el);
   return row;
 }
 
-$('showAdvanced').onchange = () => renderSchema({schema: SCHEMA, settings: VALUES});
+$('showAdvanced').onchange = renderSchema;
+async function apply(patch){
+  await fetch(API + 'api/settings', {method:'POST', headers:{'Content-Type':'application/json'},
+                                     body: JSON.stringify(patch)});
+}
 
-async function apply(patch){ await fetch(API + 'api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}); }
-
+/* ══ bridge / output ═════════════════════════════════════════════════ */
+let curOutput = 'none';
 function reflectOutput(on){
   curOutput = on ? 'hue' : 'none';
-  $('outState').className = 'pill ' + (on?'on':'off');
-  $('outState').textContent = on?'streaming':'off';
-  $('outBtn').textContent = on?'Turn off':'Turn on';
+  $('outBtn').textContent = on ? 'Turn off' : 'Turn on';
+  $('outBtn').className = on ? '' : 'primary';
 }
 $('outBtn').onclick = async () => {
   const turningOn = curOutput !== 'hue';
-  $('outBtn').disabled=true; $('outMsg').textContent = turningOn?'starting DTLS stream…':'stopping…';
+  $('outBtn').disabled = true;
+  $('outMsg').textContent = turningOn ? 'Opening the stream…' : 'Stopping…';
   try {
-    const r = await fetch(API + 'api/output',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mode: turningOn?'hue':'none', area: $('area').value})});
-    const res = await r.json();
-    if (res.ok){ reflectOutput(res.output==='hue'); $('outMsg').textContent = res.output==='hue' ? ('streaming to '+res.area) : 'output off'; }
-    else { $('outMsg').textContent = 'error: '+res.error; }
-  } catch(e){ $('outMsg').textContent='error: '+e; }
-  $('outBtn').disabled=false;
+    const res = await (await fetch(API + 'api/output', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mode: turningOn ? 'hue' : 'none', area: $('area').value})})).json();
+    if (res.ok){
+      reflectOutput(res.output === 'hue');
+      $('outMsg').textContent = res.output === 'hue' ? ('Streaming to ' + res.area) : 'Output off';
+      loadConfig();
+    } else $('outMsg').textContent = res.error;
+  } catch(e){ $('outMsg').textContent = String(e); }
+  $('outBtn').disabled = false;
 };
 
 $('pairBtn').onclick = async () => {
   const host = $('host').value.trim();
-  $('pairBtn').disabled=true;
-  $('pairMsg').textContent = '>>> PRESS THE ROUND LINK BUTTON on the bridge NOW (waiting up to 30s) <<<';
-  // Kick off pairing in the background, then poll for the result. The POST
-  // returns immediately so no request is held open (proxy-friendly).
+  $('pairBtn').disabled = true;
+  $('pairMsg').textContent = 'Press the round button on the bridge now — waiting up to 30 seconds.';
+  // Pairing runs in the background and the browser polls, so no request is held
+  // open long enough for the QNAP app-proxy to mangle it.
   try {
-    await fetch(API + 'api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})});
-  } catch(e){ $('pairMsg').textContent='Pairing error: '+e; $('pairBtn').disabled=false; return; }
+    await fetch(API + 'api/pair', {method:'POST', headers:{'Content-Type':'application/json'},
+                                   body: JSON.stringify({host})});
+  } catch(e){ $('pairMsg').textContent = String(e); $('pairBtn').disabled = false; return; }
   const t0 = Date.now();
   const timer = setInterval(async () => {
     try {
       const st = await (await fetch(API + 'api/pair-status')).json();
       if (!st.running && st.result){
-        clearInterval(timer); $('pairBtn').disabled=false;
-        const res = st.result;
-        if (res.ok){ $('pairMsg').textContent = 'Paired! Areas: '+(res.areas||[]).join(', ')+'. Default: '+res.area; loadConfig(); }
-        else { $('pairMsg').textContent = 'Pairing failed: '+res.error; }
-      } else if (Date.now()-t0 > 45000){ clearInterval(timer); $('pairBtn').disabled=false; $('pairMsg').textContent='Pairing timed out (no response).'; }
+        clearInterval(timer); $('pairBtn').disabled = false;
+        $('pairMsg').textContent = st.result.ok
+          ? ('Paired. Areas: ' + (st.result.areas || []).join(', '))
+          : ('Pairing failed: ' + st.result.error);
+        if (st.result.ok) loadConfig();
+      } else if (Date.now() - t0 > 45000){
+        clearInterval(timer); $('pairBtn').disabled = false;
+        $('pairMsg').textContent = 'No answer from the bridge.';
+      }
     } catch(e){ /* keep polling */ }
   }, 1500);
 };
 
+/* ══ metronome ═══════════════════════════════════════════════════════
+   Plays out of this machine's speakers, so a capture sender picks it up and it
+   travels the same path the music does. That is what makes it a calibration. */
+let audio = null, metro = null, beat = 0;
+$('metroBtn').onclick = () => {
+  if (metro){
+    clearInterval(metro); metro = null; beat = 0;
+    $('metroBtn').textContent = 'Start click';
+    $('metroBeat').textContent = '—';
+    return;
+  }
+  audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+  audio.resume();
+  const click = () => {
+    const t = audio.currentTime, down = (beat % 4) === 0;
+    const osc = audio.createOscillator(), g = audio.createGain();
+    osc.frequency.value = down ? 1600 : 1000;
+    g.gain.setValueAtTime(down ? 0.6 : 0.3, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    osc.connect(g).connect(audio.destination);
+    osc.start(t); osc.stop(t + 0.07);
+    $('metroBeat').textContent = (beat % 4) + 1 + ' / 4';
+    beat++;
+  };
+  click();
+  metro = setInterval(click, 500);              // 120 BPM
+  $('metroBtn').textContent = 'Stop click';
+};
+$('latency').oninput = () => { $('latencyVal').textContent = $('latency').value; };
+$('latency').onchange = () => {
+  const v = parseInt($('latency').value);
+  VALUES.hue_latency_ms = v;
+  apply({hue_latency_ms: v});
+  if (latencyMirror) latencyMirror(v);
+};
+
+/* ══ senders ═════════════════════════════════════════════════════════ */
+const RELEASES = 'https://github.com/silasmariusz/TuneThatHue/releases';
+async function loadDownloads(){
+  let have = [];
+  try { have = await (await fetch(API + 'api/downloads')).json(); } catch(e){ /* offline box */ }
+  const byId = new Map(have.map(d => [d.id, d]));
+  for (const id of ['soundrecorder', 'winamp', 'foobar']){
+    const a = $('dl-' + id), d = byId.get(id);
+    if (!d) continue;
+    a.href = API + 'download/' + id;
+    a.removeAttribute('aria-disabled');
+    a.textContent = 'Download · ' + (d.size / 1048576).toFixed(1) + ' MB';
+  }
+  $('dlNote').innerHTML = have.length === 3 ? ''
+    : 'Anything marked “not in this build” is on the <a href="' + RELEASES + '">releases page</a>.';
+}
+
 loadConfig();
+loadDownloads();
+openPreview();
 poll(); setInterval(poll, 1000);
 </script>
 </body>

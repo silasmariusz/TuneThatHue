@@ -14,6 +14,8 @@ receiver and render loop in the same event loop.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import time
 import tomllib
 from pathlib import Path
@@ -22,13 +24,20 @@ from typing import TYPE_CHECKING, Any, Callable
 from aiohttp import web
 
 from hue_fx.constants import COLOR_MODES, PALETTE_ALBUM_COLORS
-from hue_fx.palettes import palette_names
+from hue_fx.palettes import palette_names, palettes_with_colors
 from ma_schema import load_schema
 
 if TYPE_CHECKING:
     import tth_phase2
 
 RESOURCES = Path(__file__).resolve().parents[1] / "resources"
+
+# The senders this build can hand out, if they were bundled at package time.
+DOWNLOADS = {
+    "soundrecorder": "TuneThatHue-SoundRecorder-setup.exe",
+    "winamp": "TuneThatHue-Winamp-plugin-setup.exe",
+    "foobar": "TuneThatHue-foobar2000-setup.exe",
+}
 
 
 def _persist_effects(config_path: Path, changes: dict[str, Any]) -> None:
@@ -229,6 +238,9 @@ def create_app(
                 "palette": eff.get("palette", "Disco"),
                 "modes": list(COLOR_MODES),
                 "palettes": palette_names(),
+                # Name -> swatch colours, so the palette board can show what each one
+                # actually looks like instead of a dropdown of names.
+                "palette_colors": palettes_with_colors(),
                 # Every provider setting the engine understands, under its CONF_* name,
                 # so the panel can render the full set instead of a hand-picked three.
                 "settings": daemon.cfg.as_dict(),
@@ -245,8 +257,6 @@ def create_app(
     # bridge button, and a request held that long is fragile behind the QNAP
     # app-proxy (it mangles the response). So POST /api/pair returns at once and
     # the browser polls /api/pair-status for the result.
-    import asyncio
-
     pair_state: dict = {"running": False, "result": None}
 
     async def pair(req: web.Request) -> web.Response:
@@ -313,6 +323,63 @@ def create_app(
             {"ok": True, "applied": sorted(k for k in data if k not in unknown), "ignored": unknown}
         )
 
+    async def preview_stream(request: web.Request) -> web.StreamResponse:
+        """
+        Stream the frames the bridge is being sent, as server-sent events.
+
+        The first event carries the light list so the page can lay out its tiles before
+        any frame arrives; after that it is one event per rendered frame.
+        """
+        resp = web.StreamResponse(
+            headers={
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-store",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            }
+        )
+        await resp.prepare(request)
+        queue: asyncio.Queue[str] = asyncio.Queue(maxsize=4)
+        daemon._preview_subs.add(queue)
+        try:
+            meta = json.dumps({"lights": daemon.lights, "area": daemon.area_name})
+            await resp.write(f"event: meta\ndata: {meta}\n\n".encode())
+            while True:
+                try:
+                    payload = await asyncio.wait_for(queue.get(), timeout=15)
+                except TimeoutError:
+                    # Keeps the panel proxy from closing an idle stream.
+                    await resp.write(b": keep-alive\n\n")
+                    continue
+                await resp.write(f"data: {payload}\n\n".encode())
+        except (asyncio.CancelledError, ConnectionResetError, RuntimeError):
+            pass
+        finally:
+            daemon._preview_subs.discard(queue)
+        return resp
+
+    async def download(req: web.Request) -> web.StreamResponse:
+        """Serve one of the bundled sender installers."""
+        name = req.match_info.get("name", "")
+        target = DOWNLOADS.get(name)
+        path = (RESOURCES / "downloads" / target) if target else None
+        if path is None or not path.is_file():
+            raise web.HTTPNotFound(text="not bundled in this build")
+        return web.FileResponse(
+            path, headers={"Content-Disposition": f'attachment; filename="{target}"'}
+        )
+
+    async def downloads_index(_req: web.Request) -> web.Response:
+        """Which senders this build actually ships, so the page only offers real files."""
+        here = RESOURCES / "downloads"
+        return web.json_response(
+            [
+                {"id": key, "file": fname, "size": (here / fname).stat().st_size}
+                for key, fname in DOWNLOADS.items()
+                if (here / fname).is_file()
+            ]
+        )
+
     app.add_routes(
         [
             web.get("/", index),
@@ -322,6 +389,9 @@ def create_app(
             web.get("/api/pair-status", pair_status),
             web.post("/api/output", output),
             web.post("/api/settings", settings),
+            web.get("/api/preview", preview_stream),
+            web.get("/api/downloads", downloads_index),
+            web.get("/download/{name}", download),
         ]
     )
     return app
