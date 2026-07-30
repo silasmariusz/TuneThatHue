@@ -54,3 +54,4 @@ installers/Output/
 *.pfx
 *.p12
 # The app icon IS committed (installers and the .rc need it) - do not ignore *.ico.
+qnap/icons/preview.png

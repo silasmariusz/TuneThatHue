@@ -1,165 +1,97 @@
 # TuneThatHue
 
-Sync **Philips Hue** lights to whatever your PC (or a headless box) is playing —
-Winamp, foobar2000, a browser, a game, anything — **without Home Assistant and
-without a running Music Assistant server.**
+**A DJ-style VFX daemon for Philips Hue, running on a QNAP NAS.**
 
-TuneThatHue is a small "null audio player": it captures the sound, analyses it,
-and streams colours to a Hue bridge over the Entertainment API (DTLS). It reuses
-the **exact** effects engine from Music Assistant's `hue_entertainment` provider,
-so the look matches — while running as a standalone daemon you can put on a PC, a
-**Raspberry Pi**, or a **QNAP NAS**.
+Play music anywhere in the house. The NAS listens, finds the beat, and drives your Hue
+lights like a small lighting desk — strobe on the drop, lights joining one by one
+through a build-up, colour changing with the music. No Home Assistant, no cloud, no PC
+left running.
 
-```
-PC audio ──► capture (systray / Winamp plugin) ──VBAN/UDP──► TuneThatHue daemon
-             │                                                │
-             │                          Music Assistant's feature extractor (1:1)
-             │                                                │
-             └───────────────────────────────► effects engine (verbatim copy)
-                                                              │
-                                                       DTLS ──► Hue bridge ──► 💡
-```
+![The light wall — what the bridge is actually being sent, live](docs/img/wall.webp)
 
-Status: the Windows capture front-ends and the Python daemon **work end-to-end on
-real lights today.** The native C++ / `.qpkg` build for QNAP and ARM is the
-roadmap below.
+## What it does
 
-## Components
+- **Beat and tempo tracking.** Reads the tempo from the audio and keeps a beat grid, so
+  every effect lands on the beat instead of near it.
+- **Bars and phrases.** Counts bars and follows the phrasing, so effects change where
+  the music changes, not on a timer.
+- **Build-up detection.** When the track is rising into a drop, lights are recruited one
+  at a time; on the drop, everything fires together.
+- **Strobe (VFX).** Beat-locked flashing with its own rate, duty, colour, brightness cap
+  and blackout between flashes. Pick which lights take part, by name.
+- **155 colour palettes**, or colours taken from the music itself, with optional rotation
+  every N beats.
+- **Live light wall.** The panel shows the exact frames sent to the bridge, with a
+  two-second trail under each light — you can see the rhythm, not just the result.
+- **Sendspin emulation.** The daemon speaks the same protocol Music Assistant uses to
+  feed a visualiser, so the effects engine runs unchanged outside Music Assistant.
+- **Senders for Windows:** a Winamp plug-in, a foobar2000 component, and Sound Capture,
+  which sends whatever is playing on the computer — any player, browser or game.
 
-### Windows capture apps (pick one; installers in the releases)
+## Requirements
 
-- **`soundrecorder/` — TuneThatHue SoundRecorder** *(recommended)*: system-tray app
-  that captures audio and sends it to the daemon. Four sources, chosen in its settings:
-  1. **Default output** — everything you hear (any player, browser, game; DirectSound /
-     XAudio2 / DirectX included, since Windows mixes them before the speakers),
-  2. **A specific output device** — second sound card, HDMI, virtual cable,
-  3. **An input device** — Stereo Mix / "What U Hear", line-in, microphone,
-  4. **A single application** — WASAPI process loopback (Windows 10 2004+).
+| What | Needed |
+| --- | --- |
+| **NAS** | QNAP, any platform (x86_64, ARM) |
+| **Firmware** | **QuTS hero 6.0** or **QTS 6.0** |
+| **Lights** | A Hue bridge with an Entertainment area |
+| **Audio** | One of the Windows senders below, or anything that speaks the same protocol |
 
-  *Known limit:* audio played in WASAPI **exclusive mode** bypasses the Windows mixer,
-  so loopback records silence there — capture that app directly (source 4) or use
-  another output device.
-- **`winamp/`** — Winamp DSP plugin (`dsp_tunethathue.dll`), for Winamp only.
-- **`foobar/`** — native foobar2000 component (`foo_tunethathue.dll`, packaged as
-  `.fb2k-component`), for foobar2000 2.x (64-bit). Add it in
-  *Preferences → Playback → DSP Manager*.
+## Install
 
-The old `systray/tth_capture.c` is the SoundRecorder's predecessor (default-output
-loopback only) and is kept for reference.
+1. Download the `.qpkg` from [Releases](../../releases) and install it in App Center
+   (*Install Manually*).
+2. Open **TuneThatHue** from the QNAP main menu.
+3. Type the bridge address, press **Pair**, then press the round button on the bridge.
+4. Pick the Entertainment area and press **Turn on**.
+5. Install a sender on the computer that plays the music and point it at the NAS.
 
-### The daemon
+![Settings, generated from the Music Assistant provider's own sources](docs/img/settings.webp)
 
-- **`python/tth_phase2.py`** — the daemon: receives audio (VBAN/UDP), runs Music
-  Assistant's own feature extractor + the effects engine, and streams to Hue.
-  Serves a **browser control panel** (`--webui-port`, default 8080): live status,
-  in-browser bridge pairing (auto-discovers the bridge, or enter the IP), area
-  selection, output on/off, and effect settings — a headless box is set up
-  entirely from the browser, no config-file editing.
-- **`effects/hue_fx/`** — the effects engine, a verbatim copy (see below).
+## The senders
 
-Every capture front-end and the daemon speak the same **VBAN/UDP** wire format
-(int16 PCM) plus a tiny `TTHP`/`TTHO` ping for the "Test connection" button, so
-one daemon serves them all.
+![The Winamp plug-in sending to the NAS](docs/img/winamp.webp)
 
-## Quick start (Windows PC → Hue)
+- **Sound Capture** — a tray app that sends whatever is playing. Works with any player.
+  It can also capture one chosen application, a second sound card, or Stereo Mix.
+- **Winamp plug-in** — sends straight from Winamp, no capture device needed.
+- **foobar2000 component** — the same, for foobar2000 2.x.
 
-```sh
-# daemon (Python 3.14)
-python3.14 -m venv venv
-venv/Scripts/pip install -r python/requirements.txt cryptography
-venv/Scripts/pip install hue-entertainment      # or -e a local checkout
+All three send the same thing: a small stream of audio to the NAS on UDP port 6980.
 
-# 1) pair with your bridge (press the round link button when asked)
-venv/Scripts/python python/tth_phase2.py --pair --host <BRIDGE_IP>
+## About the effects
 
-# 2) run: drive the lights + open http://localhost:8080 to configure
-venv/Scripts/python python/tth_phase2.py --output hue
-```
+The effects engine is the one from **Music Assistant**'s `hue_entertainment` provider,
+copied in **byte for byte** — not rewritten, not adapted. TuneThatHue is a faithful
+extension of that work: it adds what a standalone box needs (beat tracking, a panel,
+pairing, packaging) and leaves the effects themselves untouched, so an effect tuned here
+behaves the same in Music Assistant, and the other way round.
 
-Then install **TuneThatHue SoundRecorder** (or the Winamp / foobar2000 plugin), point
-it at the daemon's IP and port, and play music — your Hue Entertainment area reacts.
-Pairing and all daemon settings are also available in the WebUI, so a headless box
-needs no config file editing.
+The settings screen is generated from the provider's own source files, so a setting means
+the same thing on both sides.
 
-### Building the Windows apps yourself
+![Advanced settings and latency calibration](docs/img/panel.webp)
 
-```powershell
-powershell -File tools\fetch_foobar_sdk.ps1   # once: fetch the foobar2000 SDK
-powershell -File build-windows.ps1            # builds apps + installers
-```
+## Timing
 
-Needs Visual Studio Build Tools with the **Desktop development with C++** workload,
-plus [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup`)
-for the installers — missing tools only skip their own step. Output lands in
-`installers\Output\`.
+Light travels faster than sound. Open the panel **on the machine that captures the
+audio**, start the metronome, and raise the light delay until the flash lands on the
+click.
 
-> **Unsigned builds:** these binaries are not code-signed, so SmartScreen warns and
-> some antivirus products quarantine them (Symantec Endpoint Protection does).
-> Set `TTH_SIGN_CERT` / `TTH_SIGN_PASS` before building to sign everything.
+## Building it yourself
 
-> The Hue bridge allows **one** Entertainment stream at a time. If another app
-> (e.g. a Music Assistant add-on) is streaming to the same area, stop it first.
+- `.qpkg`: see [`qnap/README-BUILD.md`](qnap/README-BUILD.md).
+- Windows senders: `build-windows.ps1` (MSVC + Inno Setup).
+- The Python daemon runs on any Linux box, including a Raspberry Pi:
+  `python3 python/tth_phase2.py --pair --host <bridge-ip>`, then `--output hue`.
 
-## Why the engine is a 1:1 copy (on purpose)
+## Credits and licence
 
-`effects/hue_fx/` holds the Music Assistant `hue_entertainment` engine
-(`analyzer.py`, `structure.py`, `strobe_overlay.py`, `palettes.py`,
-`palettes.json`, `constants.py`) **byte for byte**. Never ported, never
-rewritten, never tidied up - the same files, on both sides.
+Apache-2.0. See [`NOTICE`](NOTICE) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
-That is what makes this a development environment for the Music Assistant
-effects, not a lookalike. Work on an effect or a preset here, where a restart
-takes a second and the lights are on the desk, then move the changed files
-straight back into the provider and they are ready in Home Assistant. Because
-nothing was rewritten in between, that move is a copy - there is nothing to
-port and nothing to re-test for translation mistakes.
+TuneThatHue © 2025–2026 Silas Mariusz Grzybacz — [devspark.pl](https://devspark.pl) ·
+published on [forum.qnap.net.pl](https://forum.qnap.net.pl) · QNAP app repo:
+[myqnap.org](https://www.myqnap.org)
 
-So the copy goes **both ways**:
-
-```sh
-python tools/sync_effects.py          # status: who changed what since the last sync
-python tools/sync_effects.py --pull   # Music Assistant -> here  (take their changes)
-python tools/sync_effects.py --push   # here -> Music Assistant (ship what you built)
-python tools/sync_effects.py --diff   # show the actual differences
-python tools/sync_effects.py --check  # verify no drift
-```
-
-`effects/MANIFEST.sha256` records the source commit and each file's hash as of the
-last sync. That is what keeps the two-way copy safe: comparing both sides against
-it tells the tool who changed what, so a pull cannot quietly discard work done
-here and a push cannot quietly discard work done in the provider - if both moved,
-it stops and says so instead of picking a winner.
-
-The engine is pure-stdlib Python (no numpy/asyncio) and needs **Python ≥ 3.14**.
-Anything Music Assistant does *not* have - the standalone beat tracker, the VBAN
-receiver, the WebUI - lives outside `effects/hue_fx/`, so the shared engine stays
-a clean copy in both directions.
-
-## Targets & roadmap
-
-| Target | How | Status |
-|---|---|---|
-| Windows (capture + daemon) | systray/Winamp exe + Python daemon | **working** |
-| Linux / Raspberry Pi | Python daemon (any Py 3.14 box) | **working** (Python); native C++ later |
-| QNAP NAS | native `.qpkg` (`tune-that-hue`) | roadmap |
-
-Native-build ladder: **M1** C++ host embedding CPython 3.14 → **M2** C++ Sendspin
-client → **M3** C++ DTLS-PSK (mbedTLS) + HueStream v2 + CLIP v2 (Python side becomes
-stdlib-only) → **M4** `.qpkg` for x86_64 / armv7 / armv8 (glibc 2.19 floor). See
-`PHASE2-RAW-PCM.md` for the raw-PCM/feature-extractor details.
-
-Windows binaries are cross-compiled with [llvm-mingw](https://github.com/mstorsjo/llvm-mingw)
-via `build-windows.sh`.
-
-## Licence & attribution
-
-TuneThatHue is **Apache-2.0** (see `LICENSE`). It reuses Apache-2.0 code from the
-Music Assistant project (the effects engine and the audio feature extractor) and
-the `hue-entertainment` library — full details in `THIRD-PARTY-NOTICES.md`.
-
-Music Assistant, Sendspin, Philips Hue and QNAP are trademarks of their respective
-owners. **TuneThatHue is an independent project, not affiliated with or endorsed by
-any of them.**
-
-TuneThatHue © 2025–2026 Silas Mariusz Grzybacz · [devspark.pl](https://devspark.pl)
-· published: forum.qnap.net.pl · QNAP app repo: myqnap.org
+Uses the Philips Hue Entertainment API. Not affiliated with, endorsed by, or sponsored by
+Signify / Philips Hue, Winamp, or foobar2000.
