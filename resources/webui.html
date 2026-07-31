@@ -953,56 +953,20 @@ function ledColour(i){
   return '#33E1A0';
 }
 
-const VU_FACE = `<svg viewBox="0 0 200 112" aria-hidden="true">
-  <defs><radialGradient id="vulamp" cx="50%" cy="18%" r="90%"><stop offset="0%" stop-color="#201409"/><stop offset="55%" stop-color="#0E0906"/><stop offset="100%" stop-color="#000"/></radialGradient></defs>
-  <rect width="200" height="112" fill="url(#vulamp)"/>
-  <path d="M46.26 56.26 A76.0 76.0 0 0 1 127.98 39.34" fill="none" stroke="#EFDFA6" stroke-width="2.0" stroke-linecap="round"/>
-  <path d="M128.57 37.85 A77.6 77.6 0 0 1 154.87 55.13" fill="none" stroke="#D8402C" stroke-width="4.4" stroke-linecap="butt"/>
-  <line x1="46.26" y1="56.26" x2="40.60" y2="50.60" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="32.82" y="42.82" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-20</text>
-  <line x1="61.31" y1="44.58" x2="57.24" y2="37.70" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="51.64" y="28.23" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-10</text>
-  <line x1="74.26" y1="38.49" x2="71.55" y2="30.97" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="67.82" y="20.62" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-7</text>
-  <line x1="85.76" y1="35.35" x2="84.26" y2="27.49" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="82.20" y="16.68" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-5</text>
-  <line x1="100.00" y1="34.00" x2="100.00" y2="26.00" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="100.00" y="15.00" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-3</text>
-  <line x1="109.53" y1="34.60" x2="110.53" y2="26.66" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="111.91" y="15.75" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-2</text>
-  <line x1="118.90" y1="36.39" x2="120.89" y2="28.64" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="123.63" y="17.98" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-1</text>
-  <line x1="127.98" y1="39.34" x2="130.92" y2="31.90" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="134.97" y="21.67" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
-  <line x1="136.61" y1="43.40" x2="140.47" y2="36.39" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="145.77" y="26.75" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+1</text>
-  <line x1="144.67" y1="48.51" x2="149.37" y2="42.04" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="155.84" y="33.14" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+2</text>
-  <line x1="153.74" y1="56.26" x2="159.40" y2="50.60" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="167.18" y="42.82" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+3</text>
-  <line x1="53.42" y1="49.95" x2="50.97" y2="46.79" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="67.64" y1="41.23" x2="65.94" y2="37.61" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="79.95" y1="36.69" x2="78.89" y2="32.84" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="92.85" y1="34.34" x2="92.47" y2="30.36" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="104.77" y1="34.15" x2="105.02" y2="30.16" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="114.24" y1="35.35" x2="114.99" y2="31.42" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="123.49" y1="37.72" x2="124.72" y2="33.92" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="132.36" y1="41.23" x2="134.06" y2="37.61" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="140.72" y1="45.83" x2="142.87" y2="42.45" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="149.36" y1="52.21" x2="151.96" y2="49.17" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
-  <path d="M61.67 69.18 A56.0 56.0 0 0 1 120.61 57.93" fill="none" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
-  <path d="M120.61 57.93 A56.0 56.0 0 0 1 138.33 69.18" fill="none" stroke="#D8402C" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="61.67" y1="69.18" x2="64.06" y2="71.73" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <text x="67.83" y="75.74" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
-  <line x1="91.24" y1="54.69" x2="91.79" y2="58.15" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <text x="92.65" y="63.58" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">50</text>
-  <line x1="120.61" y1="57.93" x2="119.33" y2="61.19" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <text x="117.30" y="66.30" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">100%</text>
-  <text x="100" y="84" fill="#EFDFA6" font-size="14" font-weight="700" text-anchor="middle" letter-spacing="2" class="face-print">VU</text>
-  <g class="needle" style="transform-origin:100.0px 110.0px;transform:rotate(-45.0deg);transition:transform .26s cubic-bezier(.22,.9,.3,1)"><line x1="100.0" y1="110.0" x2="100.0" y2="22.0" stroke="#F4E7B8" stroke-width="2" stroke-linecap="round"/><line x1="100.0" y1="110.0" x2="100.0" y2="22.0" stroke="rgba(0,0,0,.55)" stroke-width="4.5" stroke-linecap="round" transform="translate(1.5 1.5)" opacity=".35"/></g>
-  <circle cx="100.0" cy="110.0" r="16" fill="#15130F" stroke="#000" stroke-width="1"/>
-  <circle cx="100.0" cy="110.0" r="16" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1" stroke-dasharray="40 130"/>
-  </svg>`;
+const VU_FACE = `<svg viewBox="0 0 1251.9 770.5" aria-hidden="true">
+  <rect width="1251.9" height="770.5" rx="15" fill="#000"/>
+  <path fill="#C03F23" fill-rule="evenodd" d="M789.5,398.5c-4.7,0-8.6,3.8-8.6,8.5s-5.2,8.6-.5,8.5h303.8c4.7,0,8.6-3.8,8.6-8.5s5.4-8.6.7-8.5h-304Z"/>
+  <path fill="#EFEFF0" fill-rule="evenodd" d="M244.4,398.5c-4.7,0,2,3.8,2,8.5s.5,8.6,5.2,8.5h507.4c4.7,0,8.6-3.8,8.6-8.5s-3.9-8.6-8.6-8.5H244.4Z"/>
+  <path fill="#EFEFF0" fill-rule="evenodd" d="M288.1,436.5c-6.8,0-6.8,10.1,0,10h769.8c6.8,0,6.8-10.1,0-10H288.1Z"/>
+  <path fill="#EFEFF0" fill-rule="evenodd" d="M638.2,282.3v133.1h22.7v-133.1h-22.7ZM531.8,282.3l22.7,133.1h23l-22.7-133.1h-23ZM439.9,282.3l42.3,133.1h23.8l-42.3-133.1h-23.8ZM346,282.3l62.2,133.1h25.1l-62.2-133.1h-25.1ZM233.8,282.3l86.1,133.1h26.9l-86-133.1h-27Z"/>
+  <path fill="#C03F23" fill-rule="evenodd" d="M1125.8,282.3l-105,133.1h28.9l105-133.1h-28.9ZM990.4,282.3l-75.7,133.1h26.1l75.8-133.1h-26.2ZM805.6,282.3l-35.9,133.1h23.6l35.9-133.1h-23.6Z"/>
+  <path fill="#EFEFF0" fill-rule="evenodd" d="M748.6,345.2l-13.2,70.2h11.6l13.2-70.2h-11.6ZM696.8,345.2l-6.7,70.2h11.3l6.7-70.2h-11.3ZM595.8,345.2l6,70.2h11.5l-6-70.2h-11.5ZM503.6,345.2l17.5,70.2h11.7l-17.5-70.2h-11.7ZM434.8,345.2l26.2,70.2h12.1l-26.2-70.2h-12.1ZM240.8,345.2l50.5,70.2h13.9l-50.4-70.2h-14ZM190.2,345.2l56.7,70.2h14.6l-56.7-70.2h-14.6Z"/>
+  <path fill="#C03F23" fill-rule="evenodd" d="M1135,345.2l-61.9,70.2h15.3l61.8-70.2h-15.2ZM1021.2,345.2l-47.5,70.2h13.7l47.5-70.2h-13.7ZM905,345.2l-32.8,70.2h12.4l32.9-70.2h-12.5,0ZM854.9,345.2l-26.5,70.2h12.1l26.5-70.2h-12.1Z"/>
+  <path fill="#EFEFF0" fill-rule="evenodd" d="M306.5,436.6l29.6,41.2h13.9l-29.6-41.2h-13.9ZM388.1,436.6l22.4,41.2h13l-22.5-41.2h-12.9ZM472.4,436.6l15.1,41.2h12l-15.1-41.2h-12ZM585.2,436.6l5.2,41.2h11.4l-5.2-41.2h-11.4ZM695.8,436.6l-4.6,41.2h11.4l4.5-41.2h-11.3,0ZM775.8,436.6l-11.7,41.2h11.9l11.6-41.2h-11.8Z"/>
+  <g class="needle" style="transform-origin:649.5px 904.6px;transform:rotate(-39.4deg);transition:transform .26s cubic-bezier(.22,.9,.3,1)">
+    <line x1="649.5" y1="904.6" x2="649.5" y2="282.3" stroke="#F5811F" stroke-width="13" stroke-linecap="round"/>
+  </g>
+</svg>`;
 
 function buildMeters(){
   for (const side of ['l', 'r']){
@@ -1020,7 +984,7 @@ function paintMeters(left, right){
       ? target : meterState[side] * 0.80 + target * 0.20;
     const v = Math.max(0, Math.min(1, meterState[side]));
     const needle = $('vu-' + side).querySelector('.needle');
-    if (needle) needle.style.transform = 'rotate(' + (-45 + v * 90) + 'deg)';
+    if (needle) needle.style.transform = 'rotate(' + (-39.4 + v * 80.9) + 'deg)';
     const lit = Math.round(v * LED_ROWS);
     [...$('led-' + side).children].forEach((led, i) => {
       const on = i < lit;
