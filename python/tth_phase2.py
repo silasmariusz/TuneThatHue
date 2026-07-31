@@ -500,10 +500,31 @@ class Phase2Daemon:
                 return server
         return target
 
+    def _release_idle_source(self) -> None:
+        """
+        Let go once the driving input goes quiet, and stop the lights coasting.
+
+        The beat schedule is a prediction: without it being refreshed the engine keeps
+        firing to a tempo that is no longer playing, which reads as the lights blinking
+        on their own long after the music stopped.
+        """
+        if not self._source:
+            return
+        if (time.monotonic() - self._source_seen) < TAKEOVER_GAP_S:
+            return
+        print(f"[input] {self._source} went quiet")
+        self._source = ""
+        self.anchor_us = None
+        self.analyzer.clear_beats()
+        if self.tracker is not None:
+            self.tracker.reset()
+        self.stats.bpm = 0.0
+
     async def render_loop(self) -> None:
         period = 1.0 / RENDER_RATE_HZ
         while True:
             await asyncio.sleep(period)
+            self._release_idle_source()
             cmds = self.analyzer.render(self.render_clock_us())
             self.stats.renders += 1
             if any(c.red or c.green or c.blue for c in cmds):
