@@ -29,14 +29,20 @@ All three install the same thing: the daemon, the bundled ffmpeg for that archit
 and a control command (`tunethathue start|stop|status|panel`). The tray is a front end
 for that command, so anything the tray does can also be done from a terminal or a script.
 
-## 2. A plug-in for AIMP
+## 2. AIMP
 
-AIMP has a documented C++ SDK with a DSP interface, which is the same shape as the Winamp
-and foobar2000 plug-ins already here: take the audio as it plays, copy it out over the
-network, leave the sound untouched. The wire format is the one the other two senders
-already use, so nothing on the daemon side changes.
+No new plug-in needed. AIMP loads Winamp DSP plug-ins, so the one in this repo already
+works there: copy `dsp_tunethathue.dll` into AIMP's `Plugins` folder and it appears in
+AIMP's DSP list.
 
-Windows only, because AIMP is.
+One catch worth writing down: the plug-in is 32-bit, so it loads in 32-bit AIMP. On
+64-bit AIMP, use Sound Capture instead, which takes the audio from Windows itself and
+does not care which player produced it.
+
+A native AIMP plug-in would still be nicer (it would show up in AIMP's own plug-in list
+with a settings page). That needs the AIMP SDK, which is downloaded from aimp.ru rather
+than published in a repository, so it waits until someone has it in hand. Writing one
+against an interface nobody here has read would be guesswork.
 
 ## 3. The panel, rebuilt
 
