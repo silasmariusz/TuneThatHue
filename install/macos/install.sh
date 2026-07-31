@@ -34,14 +34,36 @@ if [ "${REMOVE:-0}" = "1" ]; then
   exit 0
 fi
 
-echo "==> checking python"
-PY_BIN="$(command -v python3.13 || command -v python3.12 || command -v python3.11 || command -v python3)"
-"$PY_BIN" - <<'PY'
-import sys
-if sys.version_info < (3, 11):
-    sys.exit("TuneThatHue needs Python 3.11 or newer. Install one with: brew install python@3.13")
-print("    python %d.%d" % sys.version_info[:2])
-PY
+# 3.14 and later only - the engine uses PEP 758 syntax. When the Mac has no 3.14,
+# fetch a portable one rather than send anyone to Homebrew for it.
+echo "==> python"
+PY_BIN=""
+for candidate in python3.14 python3; do
+  if command -v "$candidate" >/dev/null 2>&1 && \
+     "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,14) else 1)'; then
+    PY_BIN="$(command -v "$candidate")"
+    echo "    using $PY_BIN"
+    break
+  fi
+done
+if [ -z "$PY_BIN" ]; then
+  echo "    no Python 3.14 here; fetching a portable one"
+  case "$(uname -m)" in
+    arm64)  PBS_ARCH="aarch64-apple-darwin" ;;
+    x86_64) PBS_ARCH="x86_64-apple-darwin" ;;
+    *) echo "no portable build for $(uname -m)" >&2; exit 1 ;;
+  esac
+  mkdir -p "$PREFIX/runtime"
+  PBS_URL="$(curl -fsSL https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest |
+    # the + in the version is percent-encoded in the API response
+    grep -o "https://[^\"]*cpython-3[.]14[.][0-9.]*%2B[0-9]*-${PBS_ARCH}-install_only[.]tar[.]gz" |
+    head -1)"
+  [ -n "$PBS_URL" ] || { echo "could not find a portable Python 3.14" >&2; exit 1; }
+  curl -fsSL "$PBS_URL" | tar xz -C "$PREFIX/runtime"
+  PY_BIN="$PREFIX/runtime/python/bin/python3"
+  xattr -dr com.apple.quarantine "$PREFIX/runtime/python" 2>/dev/null || true
+  "$PY_BIN" -V
+fi
 
 echo "==> copying files"
 mkdir -p "$PREFIX"

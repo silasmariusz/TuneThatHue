@@ -40,12 +40,19 @@ DAEMON = ROOT / "python" / "tth_phase2.py"
 
 
 def python_exe() -> str:
-    """The interpreter to run the daemon with: the bundled one if we ship one."""
+    """
+    The interpreter to run the daemon with.
+
+    The virtual environment comes first, because that is where the installer put the
+    packages. A bare portable interpreter has the right version and none of the
+    dependencies, and picking it first is how the service ended up restarting forever
+    on ModuleNotFoundError.
+    """
     for candidate in (
-        ROOT / "runtime" / "python" / "bin" / "python3",
-        ROOT / "runtime" / "python" / "python.exe",
         ROOT / "venv" / "bin" / "python",
         ROOT / "venv" / "Scripts" / "python.exe",
+        ROOT / "runtime" / "python" / "bin" / "python3",
+        ROOT / "runtime" / "python" / "python.exe",
     ):
         if candidate.is_file():
             return str(candidate)

@@ -36,13 +36,42 @@ if [ "${REMOVE:-0}" = "1" ]; then
   exit 0
 fi
 
-echo "==> checking python"
-python3 - <<'PY'
-import sys
-if sys.version_info < (3, 11):
-    sys.exit("TuneThatHue needs Python 3.11 or newer; this is %d.%d" % sys.version_info[:2])
-print("    python %d.%d" % sys.version_info[:2])
-PY
+# The effects engine is carried byte-for-byte from Music Assistant and uses PEP 758
+# syntax, which is Python 3.14 and later. Ubuntu 24.04 ships 3.12, so on most machines we
+# fetch a portable interpreter rather than send anyone to a PPA - the same approach the
+# QNAP package already takes.
+echo "==> python"
+PYBIN=""
+for candidate in python3.14 python3; do
+  if command -v "$candidate" >/dev/null 2>&1 && \
+     "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,14) else 1)'; then
+    PYBIN="$(command -v "$candidate")"
+    echo "    using $PYBIN"
+    break
+  fi
+done
+if [ -z "$PYBIN" ]; then
+  echo "    no Python 3.14 here; fetching a portable one"
+  case "$(uname -m)" in
+    x86_64)  PBS_ARCH="x86_64-unknown-linux-gnu" ;;
+    aarch64) PBS_ARCH="aarch64-unknown-linux-gnu" ;;
+    armv7l)  PBS_ARCH="armv7-unknown-linux-gnueabihf" ;;
+    *) echo "no portable build for $(uname -m); install Python 3.14 yourself" >&2; exit 1 ;;
+  esac
+  mkdir -p "$PREFIX/runtime"
+  PBS_URL="$(curl -fsSL https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest |
+    # the + in the version is percent-encoded in the API response
+    grep -o "https://[^\"]*cpython-3[.]14[.][0-9.]*%2B[0-9]*-${PBS_ARCH}-install_only[.]tar[.]gz" |
+    head -1)"
+  if [ -z "$PBS_URL" ]; then
+    echo "could not find a portable Python 3.14 for $PBS_ARCH" >&2
+    exit 1
+  fi
+  echo "    $PBS_URL"
+  curl -fsSL "$PBS_URL" | tar xz -C "$PREFIX/runtime"
+  PYBIN="$PREFIX/runtime/python/bin/python3"
+  "$PYBIN" -V
+fi
 
 echo "==> copying files to $PREFIX"
 mkdir -p "$PREFIX"
@@ -67,7 +96,7 @@ fi
 echo "==> python packages"
 PIP_PKGS="aiohttp zeroconf aiosendspin hue-entertainment numpy"
 [ "$WANT_TRAY" = "1" ] && PIP_PKGS="$PIP_PKGS pystray pillow"
-python3 -m venv "$PREFIX/venv"
+"$PYBIN" -m venv "$PREFIX/venv"
 "$PREFIX/venv/bin/pip" install --quiet --upgrade pip
 # shellcheck disable=SC2086
 "$PREFIX/venv/bin/pip" install --quiet $PIP_PKGS
