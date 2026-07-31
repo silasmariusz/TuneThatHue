@@ -308,6 +308,9 @@ def create_app(
                 "streaming": daemon.session is not None,
                 "area": daemon.area_name,
                 "receiving": receiving,
+                # Stereo peak, for the panel's meters.
+                "level_l": round(s.level_l, 4),
+                "level_r": round(s.level_r, 4),
                 # Which input is currently driving, so the panel can show it.
                 "driving": daemon._source,
                 # The second input, when it is running: who is connected and whether

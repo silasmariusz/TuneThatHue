@@ -144,6 +144,10 @@ class Stats:
         self.beats = 0
         self.bpm = 0.0
         self.format = "-"
+        # Peak per channel, decayed. The panel's two meters are stereo, so they have to
+        # be fed something that is actually stereo - anything else is a prop.
+        self.level_l = 0.0
+        self.level_r = 0.0
         self.last_spectrum: list[int] = []
 
 
@@ -416,6 +420,7 @@ class Phase2Daemon:
         # Reported here rather than in the VBAN reader, because Snapcast feeds the same
         # entry point and the panel would otherwise show no format at all for it.
         self.stats.format = f"{sample_rate} Hz / {channels}ch / int16"
+        self._meter(pcm, channels)
         self._ensure_extractor(sample_rate, channels)
         if self.extractor is None:
             return  # no feature extractor (numpy missing) - drop the audio quietly
@@ -457,6 +462,31 @@ class Phase2Daemon:
                 self.analyzer.push_beats(beats)
                 self.stats.beats += len(beats)
             self.stats.bpm = self.tracker.bpm
+
+    def _meter(self, pcm: bytes, channels: int) -> None:
+        """
+        Peak per channel for the panel's VU meters.
+
+        Sampled rather than exhaustive: a few hundred frames spread through the chunk
+        say the same thing as all of them and cost nothing at 20 ms a time. Rise
+        instantly, fall slowly, which is what a needle does.
+        """
+        if channels < 1 or len(pcm) < 4:
+            return
+        frame = channels * 2
+        count = len(pcm) // frame
+        step = max(1, count // 200)
+        left = right = 0
+        for i in range(0, count, step):
+            base = i * frame
+            l = int.from_bytes(pcm[base:base + 2], "little", signed=True)
+            r = (int.from_bytes(pcm[base + 2:base + 4], "little", signed=True)
+                 if channels > 1 else l)
+            left = max(left, abs(l))
+            right = max(right, abs(r))
+        for name, peak in (("level_l", left / 32768), ("level_r", right / 32768)):
+            was = getattr(self.stats, name)
+            setattr(self.stats, name, peak if peak > was else was * 0.82 + peak * 0.18)
 
     def publish_frame(self, cmds: list) -> None:
         """

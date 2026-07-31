@@ -3,341 +3,650 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#141619">
 <title>TuneThatHue</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231C1C1C'/%3E%3Crect x='6' y='18' width='4' height='8' fill='%23C6E33C'/%3E%3Crect x='12' y='12' width='4' height='14' fill='%23C6E33C'/%3E%3Crect x='18' y='6' width='4' height='20' fill='%23C6E33C'/%3E%3Crect x='24' y='15' width='4' height='11' fill='%23C6E33C'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B0D10'/%3E%3Crect x='6' y='18' width='4' height='8' fill='%2333E1A0'/%3E%3Crect x='12' y='12' width='4' height='14' fill='%2333E1A0'/%3E%3Crect x='18' y='6' width='4' height='20' fill='%2333E1A0'/%3E%3Crect x='24' y='15' width='4' height='11' fill='%2333E1A0'/%3E%3C/svg%3E">
 <style>
-  /* Colours and materials: docs/STYLE-GUIDE.md. Dark chassis, silver decks, nothing else
-     silver. Sampled from Traktor Pro 4 rather than invented. */
-  :root{
-    --chrome:#1C1C1C; --panel:#2C2E2E; --panel-hi:#383B3B; --inset:#141616;
-    --rule:#454848; --rule-dark:#171919; --legend:#8A9090; --read:#E6E9E9;
-    --silver-hi:#E4E6E6; --silver:#C6C9C9; --silver-lo:#9EA2A2; --engrave:#3E4141;
-    --vu-face:#EFE7D2; --vu-ink:#3A3833;
-    --live:#C6E33C; --blue:#3C9AD9; --amber:#E2A032; --red:#D8452F;
-    --f-cond:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Liberation Sans Narrow","Arial Narrow",system-ui,sans-serif;
-    --f-body:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
-    --f-mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,"SF Mono",monospace;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--chrome);color:var(--read);font:13px/1.45 var(--f-body);
-       -webkit-font-smoothing:antialiased}
-  a{color:var(--legend)}
-  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+/* ═══════════════════════════════════════════════════════════════════════
+   TUNETHATHUE — "DECK" THEME
+   Traktor Pro 4 chassis · cassette-deck aluminum faceplates
+   Strict token + component contract: see TRAKTOR-STYLE-GUIDE.md
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  /* chassis — the Traktor housing everything is bolted into */
+  --chassis:#141619;        /* page background */
+  --chassis-2:#1B1E22;      /* header / footer strips */
+  --rail-hi:#34393F;        /* module title rail, top of gradient */
+  --rail-lo:#23272B;        /* module title rail, bottom of gradient */
+  --rail-ink:#C9CED4;       /* text printed on rails */
+  --rail-dim:#7D858D;       /* secondary text on rails / footer */
 
-  .lbl{font-family:var(--f-cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-       color:var(--legend)}
-  .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+  /* faceplate — brushed aluminum, dark silkscreen (the cassette deck) */
+  --alu-hi:#EAEBEC;
+  --alu:#D3D6D8;
+  --alu-lo:#BEC2C5;
+  --ink:#26292C;            /* primary silkscreen print */
+  --ink-soft:#565D63;       /* secondary print, engraved captions */
+  --legend:#565D63;         /* alias kept for the JS (inline var(--legend)) */
 
-  /* ── chassis ────────────────────────────────────────────────────── */
-  header{display:flex;align-items:center;gap:10px;padding:8px 14px;
-         background:linear-gradient(180deg,#2A2C2C,#202222);
-         border-bottom:1px solid var(--rule-dark);position:sticky;top:0;z-index:5}
-  .mark{width:18px;height:18px;flex:none}
-  h1{font-family:var(--f-cond);font-size:16px;letter-spacing:.2em;text-transform:uppercase;
-     font-weight:600;margin:0}
-  .lamps{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
-  .lamp{font-family:var(--f-cond);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-        color:#6E7474;display:flex;align-items:center;gap:5px}
-  .lamp::before{content:"";width:6px;height:6px;border-radius:50%;background:#2A2D2D;
-                box-shadow:inset 0 1px 1px rgba(0,0,0,.8);flex:none}
-  .lamp.on{color:var(--read)}
-  .lamp.on::before{background:var(--live);box-shadow:0 0 6px var(--live)}
-  .lamp.blue.on::before{background:var(--blue);box-shadow:0 0 6px var(--blue)}
-  /* Traktor's info switch. Hints off is a legitimate way to work once you know the box */
+  /* screens — dark glass insets; saturated colour belongs to the lamps */
+  --screen:#0B0D0F;
+  --screen-edge:#000;
+  --read:#DDE3E8;           /* text on screens */
+  --vfd:#FFB868;            /* amber VFD digits, cassette counter style */
+
+  /* deck colours — Traktor's four decks, used ONLY for the signal chain */
+  --deck-a:#2FA8DE;         /* A · blue   · audio in  */
+  --deck-b:#8DC63F;         /* B · green  · beat      */
+  --deck-c:#AEB6BD;         /* C · grey   · engine    */
+  --deck-d:#F0862F;         /* D · orange · bridge    */
+
+  --live:#33E1A0;           /* signal-present LED. never decoration */
+  --hot:#FFB020;            /* warnings only */
+  --accent:#F0862F;         /* the one interactive accent (primary keys, focus) */
+
+  /* type — system stacks only: the box has no internet, we ship no fonts */
+  --f-display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Liberation Sans Narrow","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,"SF Mono",monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--chassis)}
+body{margin:0;background:
+     radial-gradient(1200px 400px at 50% -160px, #22262B, transparent 70%),
+     var(--chassis);
+     color:var(--read);font:13.5px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.grow{flex:1 1 auto;min-width:0}
+
+/* ── silkscreen legends (base = printed dark on aluminum; rails override) ── */
+.legend{font-family:var(--f-display);font-size:11px;font-weight:600;
+        letter-spacing:.2em;text-transform:uppercase;color:var(--ink);margin:0}
+.note{font-size:12.5px;line-height:1.55;color:var(--ink-soft);margin:8px 0 0}
+.note strong{color:var(--ink)}
+.note a{color:var(--ink);text-decoration-color:rgba(38,41,44,.4)}
+
+/* ══ HEADER — the master strip ═══════════════════════════════════════ */
+header{display:flex;align-items:center;gap:12px;padding:10px 18px;
+       position:sticky;top:0;z-index:10;
+       background:linear-gradient(var(--rail-hi),var(--chassis-2));
+       border-bottom:1px solid #000;
+       box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 6px 16px rgba(0,0,0,.45)}
+.mark{width:22px;height:22px;flex:none;filter:drop-shadow(0 0 6px rgba(51,225,160,.35))}
+h1{font-family:var(--f-display);font-size:17px;letter-spacing:.26em;text-transform:uppercase;
+   font-weight:600;margin:0;color:#E8ECEF}
+.tagline{font-family:var(--f-display);font-size:10px;letter-spacing:.24em;text-transform:uppercase;
+         color:var(--rail-dim);border-left:1px solid #3A4046;padding-left:12px;
+         box-shadow:-2px 0 0 rgba(255,255,255,.05)}
+.lamps{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+.lamp{font-family:var(--f-display);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+      color:var(--rail-dim);display:flex;align-items:center;gap:6px}
+.lamp::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;
+      background:#101215;border:1px solid #000;
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.08)}
+.lamp.on{color:#E8ECEF}
+.lamp.on::before{background:var(--live);
+      box-shadow:0 0 8px var(--live),inset 0 -1px 1px rgba(0,0,0,.35)}
+.lamp.warn::before{background:var(--hot);box-shadow:0 0 8px var(--hot)}
+  /* Traktor's info switch. Off is a legitimate way to work once you know the box. */
   .ibtn{width:20px;height:20px;padding:0;border-radius:50%;font:700 11px/1 var(--f-body);
-    background:linear-gradient(180deg,#3E4141,#2E3131);color:var(--legend);
-    border:1px solid var(--rule-dark);cursor:pointer}
-  .ibtn[aria-pressed=true]{background:linear-gradient(180deg,#4AA8E4,#2E82BC);color:#06202F;
-    border-color:#2A6E9E;box-shadow:0 0 6px rgba(60,154,217,.5)}
+    background:linear-gradient(180deg,#3A4046,#272B30);color:var(--rail-dim);
+    border:1px solid #000;cursor:pointer;margin-left:4px}
+  .ibtn[aria-pressed=true]{background:linear-gradient(180deg,#F0A45C,#D9741F);color:#2A1405;
+    border-color:#8A4A12;box-shadow:0 0 7px rgba(240,134,47,.45)}
   [data-hint]{cursor:help}
-  #hint{position:fixed;z-index:50;max-width:280px;pointer-events:none;opacity:0;
-    transition:opacity .12s;background:linear-gradient(180deg,#33383A,#252A2B);
-    border:1px solid #10191C;border-radius:3px;padding:7px 9px;font-size:11.5px;line-height:1.4;
-    color:var(--read);box-shadow:0 6px 18px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
+  #hint{position:fixed;z-index:60;max-width:290px;pointer-events:none;opacity:0;
+    transition:opacity .12s;background:linear-gradient(180deg,#2C3236,#1E2226);
+    border:1px solid #000;border-radius:3px;padding:8px 10px;font-size:12px;line-height:1.45;
+    color:var(--read);box-shadow:0 8px 22px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.07)}
   #hint.on{opacity:1}
-  #hint b{display:block;font-family:var(--f-cond);font-size:10px;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--blue);margin-bottom:3px;font-weight:600}
+  #hint b{display:block;font-family:var(--f-cond);font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:4px;font-weight:600}
+@media(max-width:520px){
+  .tagline{display:none}
+  header{padding:10px 12px;gap:10px}
+  .lamps{gap:10px}
+}
 
-  main{max-width:1080px;margin:0 auto;padding:12px;display:grid;gap:12px}
-  .card{background:linear-gradient(180deg,#313434,var(--panel));border:1px solid var(--rule-dark);
-        border-radius:4px;padding:10px 12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-  .card > .lbl:first-child{display:block;margin-bottom:8px}
-  .head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
-  .head .lbl{margin:0}
+/* ══ LAYOUT — compact rack ═══════════════════════════════════════════ */
+main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
+     display:flex;flex-direction:column;gap:16px}
+.duo{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media(min-width:940px){
+  .duo{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+}
 
-  /* ── the light wall: silver decks ───────────────────────────────── */
-  #wall{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px}
-  .deck{
-    background:linear-gradient(180deg,var(--silver-hi) 0%,var(--silver) 38%,
-                #B7BABA 72%,var(--silver-lo) 100%);
-    border:1px solid #7E8181;border-radius:3px;padding:6px 6px 5px;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 2px 0 rgba(255,255,255,.35),
-               inset 0 -1px 0 rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.55);
-    position:relative;overflow:hidden}
-  /* brushed metal: any stronger than this and it buzzes */
-  .deck::before{content:"";position:absolute;inset:0;pointer-events:none;
-    background:repeating-linear-gradient(90deg,rgba(255,255,255,.5) 0 1px,rgba(0,0,0,.5) 1px 2px);
-    opacity:.035}
-  .deck .meter{background:linear-gradient(180deg,#F5EEDC,var(--vu-face));border-radius:2px;
-    padding:1px;box-shadow:inset 0 1px 3px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.7);
-    border:1px solid #A9A392}
-  .deck .vu{display:block;width:100%;height:52px}
-  /* the window and the trail sit in one recessed bay, like a tape window */
-  .deck .bay{background:var(--inset);border-radius:2px;padding:3px;margin:4px 0 5px;
-    box-shadow:inset 0 2px 5px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.5)}
-  .deck .win{height:26px;border-radius:1px;background:#0B0C0C}
-  .deck canvas{display:block;width:100%;height:9px;border-radius:1px;margin-top:3px;
-    background:#0B0C0C;opacity:.75}
-  .deck .leds{display:flex;gap:3px;margin:0 0 5px;padding:3px;border-radius:2px;
-    background:#7E8282;box-shadow:inset 0 1px 3px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.55)}
-  .deck .leds i{flex:1;height:5px;border-radius:3px;background:#5E6262;
-    box-shadow:inset 0 1px 1px rgba(0,0,0,.5)}
-  .deck .nm{font-family:var(--f-cond);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--engrave);text-shadow:0 1px 0 rgba(255,255,255,.7);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .empty{color:var(--legend);font-size:12px;padding:14px 0}
+/* ══ MODULE — one rack unit: dark rail + aluminum plate ══════════════ */
+.module{border-radius:8px;overflow:hidden;border:1px solid #000;min-width:0;
+        box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 10px 24px rgba(0,0,0,.45)}
+.rail{display:flex;align-items:center;gap:12px;padding:7px 14px;
+      background:linear-gradient(var(--rail-hi),var(--rail-lo));
+      border-bottom:1px solid #000;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.rail .legend{color:var(--rail-ink)}
+.rail .mono{font-size:11.5px;color:var(--rail-dim)}
+.rail .sp{flex:1 1 auto}
+.rail .toggle{color:var(--rail-ink)}
+.plate{padding:14px 16px 16px;color:var(--ink);
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.14) 0 1px, rgba(255,255,255,0) 1px 4px),
+    linear-gradient(180deg,var(--alu-hi),var(--alu) 14%,var(--alu) 86%,var(--alu-lo));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(0,0,0,.18)}
 
-  /* ── signal strip ───────────────────────────────────────────────── */
-  .chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
-    background:var(--rule-dark);border:1px solid var(--rule-dark);border-radius:3px;overflow:hidden}
-  .link{background:linear-gradient(180deg,#343737,#2A2C2C);padding:8px 10px}
-  .link .lbl{display:block;margin-bottom:5px}
-  .big{font-family:var(--f-mono);font-size:20px;line-height:1;font-variant-numeric:tabular-nums}
-  .unit{font-size:10px;color:var(--legend);margin-left:2px}
-  .sub{font-family:var(--f-mono);font-size:10px;color:var(--legend);margin-top:4px}
-  #spec{display:flex;align-items:flex-end;gap:2px;height:30px;background:var(--inset);
-    border-radius:2px;padding:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,.8)}
-  #spec i{flex:1;background:linear-gradient(0deg,var(--live),#7FA524);height:1px;border-radius:1px}
+/* ── dark glass screens, recessed into the metal ── */
+.screen{background:var(--screen);border:1px solid var(--screen-edge);border-radius:5px;
+        box-shadow:inset 0 2px 8px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.04),
+                   0 1px 0 rgba(255,255,255,.55)}
 
-  /* ── rows and controls ──────────────────────────────────────────── */
-  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 0;
-    border-bottom:1px solid rgba(69,72,72,.4)}
-  .row:last-child{border-bottom:0}
-  .row > label:first-child,.fieldname{flex:0 0 180px;color:var(--legend);font-size:12px}
-  .fieldname{display:block;margin-bottom:5px}
-  .grow{flex:1;min-width:120px}
-  input[type=text],select{background:var(--inset);color:var(--read);border:1px solid var(--rule-dark);
-    border-radius:2px;padding:5px 7px;font:12px var(--f-body);
-    box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
-  input[type=text]{width:150px}
-  input[type=range]{flex:1;min-width:110px;accent-color:var(--blue);height:18px}
-  input[type=checkbox]{accent-color:var(--live);width:14px;height:14px}
-  .val{font-family:var(--f-mono);font-size:12px;width:40px;text-align:right}
-  button{background:linear-gradient(180deg,#3E4141,#2E3131);color:var(--read);
-    border:1px solid var(--rule-dark);border-radius:2px;padding:6px 12px;
-    font:600 11px/1 var(--f-body);letter-spacing:.04em;cursor:pointer;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
-  button:hover:not(:disabled){border-color:var(--blue);color:#fff}
-  button.on{background:linear-gradient(180deg,#A9C433,#8FAA24);color:#1B2205;border-color:#6E8519;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
-  button:active:not(:disabled){box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
-  button:disabled{opacity:.45;cursor:default}
-  .note{color:var(--legend);font-size:11px;margin:5px 0 0}
-  .toggle{color:var(--legend);font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer}
-  .state{font-family:var(--f-mono);font-size:11px;color:var(--legend)}
+/* ══ THE LIGHT WALL — the deck display ═══════════════════════════════ */
+.wallscreen{padding:8px}
+#wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
+.tile{background:#101317;border:1px solid #000;border-radius:4px;overflow:hidden;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)}
+.tile .face{height:56px;background:#000;
+      transition:background 60ms linear}
+.tile canvas{display:block;width:100%;height:20px;image-rendering:pixelated;
+      border-top:1px solid #000;border-bottom:1px solid #000;background:#050607}
+.tile .foot{padding:6px 8px 7px;display:flex;flex-direction:column;gap:4px}
+.tile .nm{font-family:var(--f-display);font-size:11.5px;font-weight:600;letter-spacing:.12em;
+      text-transform:uppercase;color:#C7CDD3;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .lvl{height:4px;background:#000;border-radius:2px;overflow:hidden;
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.9)}
+.tile .lvl i{display:block;height:100%;width:0;border-radius:2px;
+      background:linear-gradient(90deg,#1E8A5F,var(--live));
+      transition:width 60ms linear}
+.empty{margin:22px 10px;text-align:center;font-size:12.5px;color:#78818A}
+@media(prefers-reduced-motion:reduce){
+  .tile .face,.tile .lvl i{transition:none}
+}
 
-  /* ── palette board ──────────────────────────────────────────────── */
-  .board{border:1px solid var(--rule-dark);border-radius:2px;padding:7px;background:#232525;
-    box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
-  .board.off{opacity:.35;pointer-events:none}
-  .board input[type=text]{width:100%;margin-bottom:6px}
-  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:5px;
-    max-height:180px;overflow:auto}
-  .sw{border:1px solid var(--rule-dark);border-radius:2px;padding:0;cursor:pointer;
-    background:#1E2020;text-align:left;overflow:hidden}
-  .sw .bars{display:flex;height:16px}
-  .sw .bars i{flex:1}
-  .sw .t{display:flex;align-items:center;gap:4px;padding:3px 5px;font-size:10px;color:var(--legend);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sw[aria-pressed=true]{border-color:var(--live);box-shadow:0 0 0 1px var(--live)}
-  .sw[aria-pressed=true] .t{color:var(--read)}
-  .sw .tick{font-family:var(--f-mono);font-size:9px;color:var(--live);margin-left:auto}
+/* ══ SIGNAL CHAIN — four decks in sequence ═══════════════════════════ */
+/* ══ signal chain: two stacked readouts, the meters, two more readouts ══════ */
+.chain{display:grid;gap:10px;grid-template-columns:1fr;align-items:stretch}
+@media(min-width:900px){.chain{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}}
+.chain .col{display:grid;gap:10px;align-content:start}
 
-  /* ── senders and footer ─────────────────────────────────────────── */
-  .logos{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
-  .logo{display:flex;flex-direction:column;align-items:center;gap:5px;text-decoration:none;
-    background:linear-gradient(180deg,#343737,#2A2C2C);border:1px solid var(--rule-dark);
-    border-radius:3px;padding:9px 12px;min-width:88px;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-  .logo:hover{border-color:var(--blue)}
-  .logo img{height:24px;width:auto;filter:brightness(0) invert(.72);transition:filter .15s}
-  .logo:hover img{filter:none}
-  .logo span{font-family:var(--f-cond);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--legend)}
-  .logo:hover span{color:var(--read)}
-  footer{border-top:1px solid var(--rule-dark);padding:12px;text-align:center;
-    color:#6E7474;font-size:11px;background:#191B1B}
-  footer .logos{justify-content:center;margin-top:9px}
-  footer .logo{background:none;border:0;box-shadow:none;padding:5px 8px;min-width:0}
-  footer .logo img{height:18px}
+.meters{display:grid;grid-template-columns:repeat(4,auto);gap:8px;justify-content:center;
+  align-items:stretch}
+.mirror{transform:scaleX(-1)}
+.mirror .mtr-cap{transform:scaleX(-1)}
+/* the face is mirrored on purpose; its printing is not */
+.mirror .face-print{transform:scaleX(-1);transform-origin:60px 24px}
 
-  @media (max-width:640px){
-    main{padding:8px;gap:8px}
-    #wall{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
-    .row > label:first-child{flex:1 0 100%}
-    .row{padding:6px 0}
-    h1{font-size:14px}
-    .lamps{width:100%;margin-left:0}
-    header{flex-wrap:wrap}
-  }
-  @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
+/* the analog meter: a black face with an orange lamp behind it, the way a deck's
+   meter looks with the light on */
+.mtr{display:flex;flex-direction:column;align-items:center;gap:4px}
+.vuwrap{width:152px;border-radius:3px;padding:4px;background:#07080A;
+  border:1px solid #000;
+  box-shadow:inset 0 0 22px rgba(240,134,47,.20), inset 0 2px 6px rgba(0,0,0,.9),
+             0 1px 0 rgba(255,255,255,.45)}
+.vuwrap svg{display:block;width:100%;height:86px}
+.mtr-cap{font-family:var(--f-cond);font-size:9px;letter-spacing:.2em;color:var(--ink-soft)}
+
+/* LED column: Traktor's meter. Small segments, quiet until they are not. */
+.ledcol{display:flex;flex-direction:column-reverse;gap:2px;padding:5px 4px;width:22px;
+  background:#07080A;border:1px solid #000;border-radius:3px;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.45)}
+.ledcol i{flex:1;min-height:3px;border-radius:1px;background:#1A1E20}
+.chain-old{display:none}
+
+.link{position:relative;min-width:0}
+.link h3{display:flex;align-items:center;gap:8px;margin:0 0 8px;
+      font-family:var(--f-display);font-size:11px;font-weight:600;
+      letter-spacing:.16em;text-transform:uppercase;color:var(--ink)}
+.cap{flex:none;width:18px;height:18px;border-radius:3px;display:grid;place-items:center;
+      font-family:var(--f-display);font-size:11px;font-weight:700;color:#0D0F11;
+      border:1px solid rgba(0,0,0,.55);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 0 rgba(255,255,255,.5)}
+.cap-a{background:var(--deck-a)} .cap-b{background:var(--deck-b)}
+.cap-c{background:var(--deck-c)} .cap-d{background:var(--deck-d)}
+@media(min-width:760px){
+  .link:not(:last-child)::after{content:"▸";position:absolute;top:2px;right:-9px;
+      font-size:11px;color:var(--ink-soft)}
+}
+.lcd{height:52px;display:flex;align-items:center;justify-content:center;padding:6px 10px}
+.big{font-family:var(--f-mono);font-variant-numeric:tabular-nums;
+      font-size:24px;line-height:1;color:var(--vfd);
+      text-shadow:0 0 10px rgba(255,184,104,.35);white-space:nowrap}
+.big .unit{font-size:10px;letter-spacing:.14em;margin-left:6px;color:#8A6F4E;text-shadow:none}
+.sub{margin-top:6px;font-family:var(--f-mono);font-size:11px;color:var(--ink-soft);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* spectrum — 17 mel bins as a VU wall inside deck A's screen */
+#spec{display:flex;align-items:flex-end;gap:2px;width:100%;height:100%}
+#spec i{flex:1;min-height:1px;border-radius:1px 1px 0 0;
+      background:linear-gradient(180deg,var(--live),#17714B)}
+@media(prefers-reduced-motion:no-preference){#spec i{transition:height 80ms linear}}
+
+/* ══ ROWS — a channel strip line on the faceplate ════════════════════ */
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0}
+.row>label:first-child{flex:0 0 148px;font-family:var(--f-display);font-size:11.5px;
+      font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+label.fieldname{display:block;margin:14px 0 8px;font-family:var(--f-display);font-size:11.5px;
+      font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;
+      -webkit-user-select:none;user-select:none}
+input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+@media(max-width:560px){
+  .row>label:first-child{flex:1 1 100%}
+}
+
+/* wells — inputs and selects, cut into the metal like jack sockets */
+input[type=text],select{font:12.5px/1.4 var(--f-mono);color:var(--read);
+      background:#101317;border:1px solid #000;border-radius:4px;padding:6px 10px;
+      min-width:0;box-shadow:inset 0 2px 5px rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.5)}
+input[type=text]{flex:1 1 140px}
+input[type=text]::placeholder{color:#5C646C}
+select{appearance:none;-webkit-appearance:none;padding-right:26px;cursor:pointer;
+      background-image:linear-gradient(45deg,transparent 49%,#8A929A 50%),
+                       linear-gradient(-45deg,transparent 49%,#8A929A 50%);
+      background-position:right 14px center,right 9px center;
+      background-size:5px 5px;background-repeat:no-repeat}
+
+/* keys — Traktor's soft-touch transport keys, machined into the plate */
+button{font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.12em;
+      text-transform:uppercase;color:#D9DEE3;cursor:pointer;
+      background:linear-gradient(#3D434A,#26292D);
+      border:1px solid #000;border-radius:4px;padding:7px 16px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 1px 0 rgba(255,255,255,.55),
+                 0 2px 4px rgba(0,0,0,.25)}
+button:hover{background:linear-gradient(#464C54,#2B2F34)}
+button:active{background:#1F2226;box-shadow:inset 0 2px 4px rgba(0,0,0,.6),
+                 0 1px 0 rgba(255,255,255,.55)}
+button:disabled{opacity:.55;cursor:default}
+button.primary{color:#231503;text-shadow:0 1px 0 rgba(255,255,255,.25);
+      background:linear-gradient(#F7A945,#DE7A1D);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 0 rgba(255,255,255,.55),
+                 0 0 12px rgba(240,134,47,.35)}
+button.primary:hover{background:linear-gradient(#FCB558,#E88526)}
+
+/* faders — a cassette-deck slot fader */
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1 1 160px;height:24px;
+      background:transparent;cursor:pointer;min-width:120px}
+input[type=range]::-webkit-slider-runnable-track{height:7px;border-radius:3px;
+      background:#101317;border:1px solid #000;
+      box-shadow:inset 0 2px 4px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.5)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:17px;
+      margin-top:-6px;border-radius:3px;border:1px solid #000;
+      background:linear-gradient(180deg,#F2F3F4,#C9CDD0 45%,#AEB3B7);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 2px 4px rgba(0,0,0,.4);
+      background-image:linear-gradient(90deg,transparent 11px,#3A3F44 11px,#3A3F44 13px,transparent 13px),
+                       linear-gradient(180deg,#F2F3F4,#C9CDD0 45%,#AEB3B7)}
+input[type=range]::-moz-range-track{height:7px;border-radius:3px;background:#101317;
+      border:1px solid #000;box-shadow:inset 0 2px 4px rgba(0,0,0,.7)}
+input[type=range]::-moz-range-thumb{width:24px;height:15px;border-radius:3px;border:1px solid #000;
+      background:linear-gradient(90deg,#DDE0E2 10px,#3A3F44 10px,#3A3F44 12px,#DDE0E2 12px)}
+.val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;
+      color:var(--vfd);background:#101317;border:1px solid #000;border-radius:3px;
+      padding:2px 8px;min-width:44px;text-align:right;
+      box-shadow:inset 0 2px 4px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.5)}
+.unit{font-family:var(--f-display);font-size:10px;letter-spacing:.12em;
+      text-transform:uppercase;color:var(--ink-soft)}
+
+/* status readouts printed next to controls (JS colours these var(--legend)) */
+#src-vban,#src-sendspin,#src-snapcast,#src-slimproto,#src-dlna,#pairedState,#metroBeat{
+      font-size:12px !important}
+
+/* ══ PALETTE BOARD — cue-point pads ══════════════════════════════════ */
+.board{margin-top:4px}
+.board.off{opacity:.45;filter:grayscale(.6);pointer-events:none}
+.board>input[type=text]{width:100%;margin-bottom:10px}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;
+      max-height:264px;overflow-y:auto;padding:8px;border-radius:5px;
+      background:rgba(0,0,0,.06);box-shadow:inset 0 1px 3px rgba(0,0,0,.18),
+      0 1px 0 rgba(255,255,255,.5)}
+.sw{display:block;padding:0;margin:0;text-align:left;letter-spacing:0;text-transform:none;
+      background:#14171B;border:1px solid #000;border-radius:4px;overflow:hidden;
+      box-shadow:0 1px 0 rgba(255,255,255,.4);cursor:pointer}
+.sw:hover{background:#1B1F24;box-shadow:0 1px 0 rgba(255,255,255,.4)}
+.sw:active{background:#101317}
+.sw .bars{display:flex;height:26px}
+.sw .bars i{flex:1}
+.sw .t{display:flex;align-items:center;gap:5px;padding:4px 7px;
+      font:10.5px/1.3 var(--f-body);color:#B8BFC6;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sw[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-2px;
+      box-shadow:0 0 10px rgba(240,134,47,.4),0 1px 0 rgba(255,255,255,.4)}
+.sw[aria-pressed="true"] .t{color:#FFD9AE}
+.tick{flex:none;margin-left:auto;font-family:var(--f-display);font-size:8.5px;
+      letter-spacing:.1em;color:#0D0F11;background:var(--deck-b);
+      border-radius:2px;padding:1px 4px}
+
+/* ══ SENDERS — the tape shelf ════════════════════════════════════════ */
+.senders{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.sender{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:5px;
+      border:1px solid rgba(0,0,0,.28);
+      background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0));
+      box-shadow:0 1px 0 rgba(255,255,255,.5),inset 0 1px 0 rgba(255,255,255,.6)}
+.sender h3{display:flex;align-items:center;gap:8px;margin:0;
+      font-family:var(--f-display);font-size:12px;font-weight:600;
+      letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.sender h3 svg{width:18px;height:18px;flex:none;color:var(--ink-soft)}
+.sender p{margin:0;font-size:12px;line-height:1.5;color:var(--ink-soft);flex:1 1 auto}
+.sender a{align-self:flex-start;font-family:var(--f-display);font-size:11px;font-weight:600;
+      letter-spacing:.1em;text-transform:uppercase;text-decoration:none;
+      color:#D9DEE3;background:linear-gradient(#3D434A,#26292D);
+      border:1px solid #000;border-radius:4px;padding:6px 12px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 1px 0 rgba(255,255,255,.5)}
+.sender a:hover{background:linear-gradient(#464C54,#2B2F34)}
+.sender a[aria-disabled="true"]{opacity:.5;pointer-events:none}
+
+/* ══ FOOTER — brand strip + copyright ════════════════════════════════ */
+footer{margin-top:8px;border-top:1px solid #000;
+      background:linear-gradient(var(--chassis-2),var(--chassis));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+      padding:18px 14px 22px}
+.ftr{max-width:1180px;margin:0 auto}
+.ftr-logos{display:flex;flex-wrap:wrap;gap:22px 36px;align-items:flex-start;
+      padding-bottom:16px;margin-bottom:14px;border-bottom:1px solid #23272C}
+.brandset{display:flex;flex-direction:column;gap:9px}
+.eyebrow{font-family:var(--f-display);font-size:9.5px;font-weight:600;
+      letter-spacing:.22em;text-transform:uppercase;color:#5C646C}
+.brandrow{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:7px;color:var(--rail-dim);
+      font-family:var(--f-display);font-size:10.5px;letter-spacing:.1em;
+      text-transform:uppercase;transition:color .15s}
+.brand svg{width:20px;height:20px;flex:none}
+.brand:hover{color:#E8ECEF}
+.proto{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:3px;
+      border:1px solid #2B3036;color:var(--rail-dim);
+      font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em}
+.proto .proto-slot{width:14px;height:14px;flex:none;border-radius:2px;
+      background:#23272C;box-shadow:inset 0 1px 2px rgba(0,0,0,.7)}
+.proto .proto-slot:not(:empty){background:none;box-shadow:none}
+.proto .proto-slot svg{width:14px;height:14px;display:block}
+.ftr-copy{margin:0;font-size:11.5px;line-height:1.8;color:#5C646C}
+.ftr-copy a{color:#8A929A;text-decoration-color:#3A4046}
+.ftr-copy a:hover{color:#E8ECEF}
+
+@media(prefers-reduced-motion:reduce){
+  *{transition:none !important}
+}
+/* a small OLED, like a tape counter: amber digits on black glass */
+.oled{font-family:var(--f-mono);font-size:11px;font-variant-numeric:tabular-nums;
+  color:var(--vfd);background:#07080A;border:1px solid #000;border-radius:2px;
+  padding:2px 7px;letter-spacing:.06em;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.9), 0 0 8px rgba(255,184,104,.14)}
+
 </style>
 </head>
 <body>
+
+<!-- brand glyphs, drawn once, reused in senders + footer -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="sym-winamp" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path fill="currentColor" d="M19.6 6.5 9.5 18.2h4.9L11.9 25.5 22.5 13.4h-5.1z"/>
+    </symbol>
+    <symbol id="sym-foobar" viewBox="0 0 512 512">
+      <path fill="currentColor" d="M256 473.5S221 445 186 408c-27.5-29-54-64.5-68-92-31.5-62.5-13-137 59-257l54 74s12-2 25-2.1c13 .1 25 2.1 25 2.1l54-74c72 120 90.5 194.5 59 257-14 27.5-40.5 63-68 92-35 37-70 65.5-70 65.5Z"/>
+      <path class="knock" fill="var(--chassis-2)" d="M149 212c31.5 8 57.5 38.5 71 67 15 32.5 9 62-26 50.5-39.5-14-58.5-45-67.5-69-5-13-14.5-58 22.5-48.5Z"/>
+      <path class="knock" fill="var(--chassis-2)" d="M363 212c-31.5 8-57.5 38.5-71 67-15 32.5-9 62 26 50.5 39.5-14 58.5-45 67.5-69 5-13 14.5-58-22.5-48.5Z"/>
+    </symbol>
+    <symbol id="sym-aimp" viewBox="0 0 256 256">
+      <circle cx="128" cy="128" r="118" fill="none" stroke="currentColor" stroke-width="16"/>
+      <path fill="currentColor" d="M60,170 L155,170 L142,150 L98,150 L127,102 L170,170 L196,170 L127,55z"/>
+    </symbol>
+    <symbol id="sym-windows" viewBox="0 0 32 32">
+      <path fill="currentColor" d="M4 6.8 14.4 5.4v9.8H4zM16 5.2 28 3.5v11.7H16zM4 17.2h10.4v9.6L4 25.2zM16 17.2h12v11.3l-12-1.7z"/>
+    </symbol>
+    <symbol id="sym-macos" viewBox="0 0 32 32">
+      <path fill="currentColor" d="M21.7 17.1c0-3 2.5-4.5 2.6-4.6-1.4-2.1-3.6-2.4-4.4-2.4-1.9-.2-3.7 1.1-4.6 1.1-1 0-2.4-1.1-4-1.1-2 0-3.9 1.2-5 3-2.1 3.7-.5 9.1 1.5 12.1 1 1.5 2.2 3.1 3.8 3 1.5-.1 2.1-1 4-1s2.4 1 4 1 2.7-1.5 3.7-2.9c1.2-1.7 1.7-3.3 1.7-3.4-.1 0-3.3-1.3-3.3-4.8ZM18.6 7.9c.8-1 1.4-2.5 1.2-3.9-1.2 0-2.7.8-3.6 1.9-.8.9-1.5 2.4-1.3 3.8 1.4.1 2.8-.7 3.7-1.8Z"/>
+    </symbol>
+    <symbol id="sym-capture" viewBox="0 0 32 32">
+      <path fill="currentColor" d="M6 12v8h5l7 6V6l-7 6H6z"/>
+      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            d="M21.5 12.5a5 5 0 0 1 0 7M25 9.5a10 10 0 0 1 0 13"/>
+    </symbol>
+  </defs>
+</svg>
+
 <header>
   <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-    <rect x="4" y="18" width="4" height="9" fill="#C6E33C"/>
-    <rect x="11" y="11" width="4" height="16" fill="#C6E33C"/>
-    <rect x="18" y="4" width="4" height="23" fill="#C6E33C"/>
-    <rect x="25" y="15" width="4" height="12" fill="#C6E33C"/>
+    <rect x="4" y="18" width="4" height="9" fill="#33E1A0"/>
+    <rect x="11" y="11" width="4" height="16" fill="#33E1A0"/>
+    <rect x="18" y="4" width="4" height="23" fill="#33E1A0"/>
+    <rect x="25" y="15" width="4" height="12" fill="#33E1A0"/>
   </svg>
   <h1>TuneThatHue</h1>
+  <span class="tagline">Hue VFX Console</span>
   <div class="lamps">
-    <span class="lamp blue" id="l-conn">panel</span>
-    <span class="lamp" id="l-rx">audio</span>
-    <span class="lamp" id="l-out">output</span>
+    <span class="lamp" id="l-conn">panel</span>
+    <span class="lamp" id="l-rx">receiving</span>
+    <span class="lamp" id="l-out">streaming</span>
     <button class="ibtn" id="hintBtn" aria-pressed="true" title="Hints on">i</button>
   </div>
 </header>
 
 <div id="hint" role="tooltip"></div>
 <main>
-  <section class="card">
-    <div class="head">
-      <p class="lbl" data-hint="Lights|The frames actually being sent to the bridge. The needle holds its peak for a moment so a single flash stays visible; the strip below it is the last two seconds, unheld.">Lights <span id="areaName" class="mono" style="letter-spacing:0;text-transform:none"></span></p>
-      <span class="mono" style="font-size:10px;color:var(--legend)" id="fps">—</span>
+  <!-- ── THE LIGHT WALL — the deck display ─────────────────────────── -->
+  <section class="module">
+    <div class="rail">
+      <h2 class="legend">Light wall</h2>
+      <span id="areaName" class="mono"></span>
+      <span class="sp"></span>
+      <span class="oled" id="fps">—</span>
     </div>
-    <div id="wall"></div>
-    <p class="note" id="wallNote">Turn the output on.</p>
-  </section>
-
-  <section class="card">
-    <div class="chain">
-      <div class="link">
-        <span class="lbl" data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second.">Audio</span>
-        <div id="spec"></div>
-        <div class="sub" id="rate">—</div>
+    <div class="plate">
+      <div class="screen wallscreen">
+        <div id="wall"></div>
       </div>
-      <div class="link">
-        <span class="lbl" data-hint="Beat|Tempo read from the audio. Effects fire on this grid, so if the number is wrong the lights will be too.">Beat</span>
-        <div class="big"><span id="bpm">—</span><span class="unit">BPM</span></div>
-        <div class="sub"><span id="beats">0</span> beats</div>
-      </div>
-      <div class="link">
-        <span class="lbl">Engine</span>
-        <div class="big"><span id="rps">—</span><span class="unit">fps</span></div>
-        <div class="sub"><span id="renders">0</span> frames</div>
-      </div>
-      <div class="link">
-        <span class="lbl">Bridge</span>
-        <div class="big"><span id="lit">0</span><span class="unit">lit</span></div>
-        <div class="sub" id="outState">off</div>
-      </div>
+      <p class="note" id="wallNote">Turn the output on to watch the frames.</p>
+      <p class="note">The face holds the peak for a moment so a single-frame flash stays
+        visible; the strip under it is the last two seconds, unheld.</p>
     </div>
   </section>
 
-  <section class="card">
-    <p class="lbl" data-hint="Sources|Leave as many on as you like. One drives the lights at a time; another takes over a couple of seconds after it goes quiet.">Sources <span id="driving" class="state" style="text-transform:none;letter-spacing:0"></span></p>
-    <div class="row">
-      <label data-hint="Sender|A plug-in for Winamp, foobar2000 or AIMP, or the Sound Capture app, sending audio here on UDP 6980. Nothing to discover: you give the sender this machine's address.">Sender</label>
-      <span class="state" id="src-vban">idle</span>
-      <span class="grow"></span><span class="state">UDP 6980</span>
-    </div>
-    <div class="row">
-      <label for="ssDevice" data-hint="Sendspin|The box announces itself and a Sendspin server such as Music Assistant finds it, then sends the audio it has already analysed. No sender to install, and it can join a group of players.">On the network</label>
-      <label class="toggle" style="flex:none"><input type="checkbox" id="ssDevice"> Announce</label>
-      <span class="state" id="src-sendspin">off</span>
-    </div>
-    <div class="row">
-      <label for="snapHost" data-hint="Snapcast|Give it a snapserver address and it joins as a client, then follows whatever group it is put in. Every transport codec works except opus, which Snapcast sends without a container.">Snapcast</label>
-      <input type="text" id="snapHost" placeholder="server address">
-      <button id="snapBtn">Join</button>
-      <span class="state" id="src-snapcast">off</span>
-    </div>
-    <div class="row">
-      <label for="slimDevice" data-hint="Squeezebox|Finds a Logitech Media Server or Music Assistant by broadcast and appears there as a player, ready for a sync group. Plays flac, mp3, aac, opus and wav.">Squeezebox</label>
-      <label class="toggle" style="flex:none"><input type="checkbox" id="slimDevice"> Appear as a player</label>
-      <span class="state" id="src-slimproto">off</span>
-    </div>
-    <div class="row">
-      <label for="dlnaDevice" data-hint="DLNA|Shows up wherever a phone, a hi-fi app or Music Assistant looks for a network speaker. Send it anything: flac, mp3, aac, ogg, opus, alac, wma or wav.">DLNA</label>
-      <label class="toggle" style="flex:none"><input type="checkbox" id="dlnaDevice"> Appear as a speaker</label>
-      <span class="state" id="src-dlna">off</span>
+  <!-- ── SIGNAL CHAIN — four decks in sequence ─────────────────────── -->
+  <section class="module">
+    <div class="rail"><h2 class="legend">Signal chain</h2></div>
+    <div class="plate">
+      <div class="chain">
+        <div class="col">
+          <div class="link">
+            <h3><b class="cap cap-a">A</b>Audio in</h3>
+            <div class="screen lcd"><div id="spec"></div></div>
+            <div class="sub" id="rate">— KB/s</div>
+          </div>
+          <div class="link">
+            <h3><b class="cap cap-b">B</b>Beat</h3>
+            <div class="screen lcd"><div class="big"><span id="bpm">—</span><span class="unit">BPM</span></div></div>
+            <div class="sub"><span id="beats">0</span> beats</div>
+          </div>
+        </div>
+
+        <div class="meters">
+          <div class="mtr"><div class="vuwrap" id="vu-l"></div><span class="mtr-cap">L</span></div>
+          <div class="ledcol" id="led-l"></div>
+          <div class="ledcol mirror" id="led-r"></div>
+          <div class="mtr mirror"><div class="vuwrap" id="vu-r"></div><span class="mtr-cap">R</span></div>
+        </div>
+
+        <div class="col">
+          <div class="link">
+            <h3><b class="cap cap-c">C</b>Engine</h3>
+            <div class="screen lcd"><div class="big"><span id="renders">0</span></div></div>
+            <div class="sub"><span id="rps">—</span> frames/s</div>
+          </div>
+          <div class="link">
+            <h3><b class="cap cap-d">D</b>Bridge</h3>
+            <div class="screen lcd"><div class="big"><span id="lit">0</span><span class="unit">lit</span></div></div>
+            <div class="sub" id="outState">output off</div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="card">
-    <p class="lbl">Bridge</p>
-    <div class="row">
-      <label for="host" data-hint="Bridge address|Leave it blank to search the network. After pressing Pair you have 30 seconds to press the round button on the bridge.">Address</label>
-      <input type="text" id="host" placeholder="10.0.0.x">
-      <button id="pairBtn">Pair</button>
-      <span class="state" id="pairedState">not paired</span>
-    </div>
-    <div class="row">
-      <label for="area">Area</label>
-      <select id="area" class="grow"></select>
-      <button id="outBtn" class="on">Turn on</button>
-    </div>
-    <p class="note" id="pairMsg"></p>
-    <p class="note" id="outMsg"></p>
-  </section>
+  <div class="duo">
+    <!-- ── SOURCES ─────────────────────────────────────────────────── -->
+    <section class="module">
+      <div class="rail"><h2 class="legend">Sources</h2></div>
+      <div class="plate">
+        <p class="note" style="margin:0 0 10px">Where the audio comes from. Leave as many on as you
+          like — one drives the lights at a time, and another takes over a couple of seconds after it
+          goes quiet. <span id="driving"></span></p>
+        <div class="row">
+          <label data-hint="Sender|A plug-in for Winamp, foobar2000 or AIMP, or the Sound Capture app, sending audio here on UDP 6980. You give the sender this machine’s address.">Sender (VBAN)</label>
+          <span class="mono" id="src-vban" style="font-size:13px;color:var(--legend)">idle</span>
+          <span class="grow"></span>
+          <span class="mono" style="font-size:12px;color:var(--legend)">UDP 6980</span>
+        </div>
+        <div class="row">
+          <label data-hint="Sendspin|The box announces itself and a Sendspin server such as Music Assistant finds it, then sends audio it has already analysed. No sender to install, and it can join a group of players." for="ssDevice">On the network</label>
+          <label class="toggle" style="flex:none"><input type="checkbox" id="ssDevice"> Announce this box</label>
+          <span class="mono" id="src-sendspin" style="font-size:13px;color:var(--legend)">off</span>
+        </div>
+        <div class="row">
+          <label data-hint="Snapcast|Give it a snapserver address and it joins as a client, then follows whatever group it is put in. Every transport codec works except opus, which Snapcast sends without a container." for="snapHost">Snapcast server</label>
+          <input type="text" id="snapHost" placeholder="address of the snapserver">
+          <button id="snapBtn">Join</button>
+          <span class="mono" id="src-snapcast" style="font-size:13px;color:var(--legend)">off</span>
+        </div>
+        <div class="row">
+          <label data-hint="Squeezebox|Finds a Logitech Media Server or Music Assistant by broadcast and appears there as a player, ready for a sync group. Plays flac, mp3, aac, opus and wav." for="slimDevice">As a Squeezebox</label>
+          <label class="toggle" style="flex:none"><input type="checkbox" id="slimDevice"> Appear as a player</label>
+          <span class="mono" id="src-slimproto" style="font-size:13px;color:var(--legend)">off</span>
+        </div>
+        <div class="row">
+          <label data-hint="DLNA|Shows up wherever a phone, a hi-fi app or Music Assistant looks for a network speaker. Send it anything: flac, mp3, aac, ogg, opus, alac, wma or wav." for="dlnaDevice">As a DLNA speaker</label>
+          <label class="toggle" style="flex:none"><input type="checkbox" id="dlnaDevice"> Appear as a renderer</label>
+          <span class="mono" id="src-dlna" style="font-size:13px;color:var(--legend)">off</span>
+        </div>
+      </div>
+    </section>
 
-  <section class="card">
-    <div class="head">
-      <p class="lbl">Settings</p>
+    <div class="stack">
+      <!-- ── BRIDGE ────────────────────────────────────────────────── -->
+      <section class="module">
+        <div class="rail"><h2 class="legend">Hue bridge</h2></div>
+        <div class="plate">
+          <div class="row">
+            <label for="host">Bridge address</label>
+            <input type="text" id="host" placeholder="10.0.0.x">
+            <button id="pairBtn">Pair</button>
+            <span class="mono" id="pairedState" style="font-size:12px;color:var(--legend)">not paired</span>
+          </div>
+          <p class="note" id="pairMsg">Leave the address blank to search the network. Press the round button on
+            the bridge within 30 seconds of clicking Pair.</p>
+          <div class="row">
+            <label for="area">Entertainment area</label>
+            <select id="area" class="grow"></select>
+            <button id="outBtn" class="primary">Turn on</button>
+          </div>
+          <p class="note" id="outMsg"></p>
+        </div>
+      </section>
+
+      <!-- ── CALIBRATION ───────────────────────────────────────────── -->
+      <section class="module">
+        <div class="rail"><h2 class="legend">Latency calibration</h2></div>
+        <div class="plate">
+          <p class="note" style="margin:0 0 10px">Open this page <strong>on the machine that captures the
+            audio</strong>. The click below goes out through that machine, arrives here as sound, and flashes the
+            lights. Raise the delay until the flash lands on the click.</p>
+          <div class="row">
+            <label>Metronome</label>
+            <button id="metroBtn">Start click</button>
+            <span class="mono" id="metroBeat" style="color:var(--legend)">—</span>
+            <span class="grow"></span>
+            <span class="mono" style="font-size:12px;color:var(--legend)">120 BPM · 4/4</span>
+          </div>
+          <div class="row">
+            <label for="latency">Light delay</label>
+            <input type="range" id="latency" min="0" max="500" step="5" value="0">
+            <span class="val" id="latencyVal">0</span><span class="unit">ms</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS (generated from the provider) ────────────────────── -->
+  <section class="module">
+    <div class="rail">
+      <h2 class="legend">Settings</h2>
+      <span class="sp"></span>
       <label class="toggle"><input type="checkbox" id="showAdvanced"> Advanced</label>
     </div>
-    <div id="schemaHost"></div>
-  </section>
-
-  <section class="card">
-    <p class="lbl" data-hint="Latency|Light travels faster than sound. Open this page on the machine that CAPTURES the audio, start the click, and raise the delay until the flash lands on it.">Latency</p>
-    <div class="row">
-      <label>Metronome</label>
-      <button id="metroBtn">Start</button>
-      <span class="state" id="metroBeat">—</span>
-      <span class="grow"></span><span class="state">120 BPM · 4/4</span>
-    </div>
-    <div class="row">
-      <label for="latency">Light delay</label>
-      <input type="range" id="latency" min="0" max="500" step="5" value="0">
-      <span class="val" id="latencyVal">0</span><span class="unit">ms</span>
+    <div class="plate">
+      <p class="note" style="margin:0 0 10px">Generated from the Music Assistant provider's own sources, so
+        every setting here means what it means there.</p>
+      <div id="schemaHost"></div>
     </div>
   </section>
 
-  <section class="card">
-    <p class="lbl" data-hint="Senders|Something has to send audio here. Pick whichever matches how you listen - each link goes to its download.">Senders</p>
-    <div class="logos">
-      <a class="logo" id="dl-soundrecorder" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
-        <img src="logos/windows.svg" alt=""><span>Windows</span></a>
-      <a class="logo" id="dl-macos" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
-        <img src="logos/macos.svg" alt=""><span>macOS</span></a>
-      <a class="logo" id="dl-winamp" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
-        <img src="logos/winamp.png" alt=""><span>Winamp</span></a>
-      <a class="logo" id="dl-foobar" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
-        <img src="logos/foobar2000.svg" alt=""><span>foobar2000</span></a>
-      <a class="logo" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
-        <img src="logos/aimp.svg" alt=""><span>AIMP</span></a>
+  <!-- ── SENDERS ───────────────────────────────────────────────────── -->
+  <section class="module">
+    <div class="rail"><h2 class="legend">Get the senders</h2></div>
+    <div class="plate">
+      <p class="note" style="margin:0 0 12px">Something has to send audio to this box. Pick whichever matches
+        how you listen.</p>
+      <div class="senders">
+        <div class="sender">
+          <h3><svg aria-hidden="true"><use href="#sym-capture"/></svg>Sound capture</h3>
+          <p>Sends whatever is playing on the computer. Works with any player.</p>
+          <a href="#" id="dl-soundrecorder" aria-disabled="true">Not in this build</a>
+        </div>
+        <div class="sender">
+          <h3><svg aria-hidden="true"><use href="#sym-winamp"/></svg>Winamp</h3>
+          <p>Visualisation plug-in. Sends straight from the player, no capture device.</p>
+          <a href="#" id="dl-winamp" aria-disabled="true">Not in this build</a>
+        </div>
+        <div class="sender">
+          <h3><svg aria-hidden="true"><use href="#sym-foobar"/></svg>foobar2000</h3>
+          <p>Output component. Same idea, for foobar.</p>
+          <a href="#" id="dl-foobar" aria-disabled="true">Not in this build</a>
+        </div>
+      </div>
+      <p class="note" id="dlNote"></p>
     </div>
   </section>
 </main>
 
 <footer>
-  TuneThatHue &copy; 2025–2026 Silas Mariusz Grzybacz · <a href="https://devspark.pl">devspark.pl</a><br>
-  <a href="https://forum.qnap.net.pl/download/tunethathue.1113/">forum.qnap.net.pl</a> ·
-  <a href="https://www.myqnap.org">myqnap.org</a> ·
-  <a href="https://github.com/silasmariusz/TuneThatHue">github</a>
-  <div class="logos">
-    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/winamp.png" alt="Winamp"></a>
-    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/foobar2000.svg" alt="foobar2000"></a>
-    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/aimp.svg" alt="AIMP"></a>
-    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/windows.svg" alt="Windows"></a>
-    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/macos.svg" alt="macOS"></a>
-    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/dlna.svg" alt="DLNA"></a>
-    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/raspberrypi.svg" alt="Raspberry Pi"></a>
+  <div class="ftr">
+    <div class="ftr-logos">
+      <div class="brandset">
+        <span class="eyebrow">Player plug-ins</span>
+        <div class="brandrow">
+          <span class="brand" title="Winamp"><svg aria-hidden="true"><use href="#sym-winamp"/></svg>Winamp</span>
+          <span class="brand" title="foobar2000"><svg aria-hidden="true"><use href="#sym-foobar"/></svg>foobar2000</span>
+          <span class="brand" title="AIMP"><svg aria-hidden="true"><use href="#sym-aimp"/></svg>AIMP</span>
+        </div>
+      </div>
+      <div class="brandset">
+        <span class="eyebrow">Sound capture</span>
+        <div class="brandrow">
+          <span class="brand" title="Windows"><svg aria-hidden="true"><use href="#sym-windows"/></svg>Windows</span>
+          <span class="brand" title="macOS"><svg aria-hidden="true"><use href="#sym-macos"/></svg>macOS</span>
+        </div>
+      </div>
+      <div class="brandset">
+        <span class="eyebrow">Protocols</span>
+        <div class="brandrow">
+          <!-- drop a 14×14 svg inside each .proto-slot when the icons are ready -->
+          <span class="proto" id="proto-snapcast"><span class="proto-slot" aria-hidden="true"></span>snapcast</span>
+          <span class="proto" id="proto-dlna"><span class="proto-slot" aria-hidden="true"></span>dlna</span>
+          <span class="proto" id="proto-squeezebox"><span class="proto-slot" aria-hidden="true"></span>squeezebox</span>
+        </div>
+      </div>
+    </div>
+    <p class="ftr-copy">
+      TuneThatHue &copy; 2025–2026 Silas Mariusz Grzybacz · <a href="https://devspark.pl">devspark.pl</a><br>
+      published: <a href="https://forum.qnap.net.pl/download/tunethathue.1113/">forum.qnap.net.pl</a>
+      · qnap app repo: <a href="https://www.myqnap.org">myqnap.org</a><br>
+      Not affiliated with, endorsed by, or sponsored by Signify / Philips Hue, Native Instruments,
+      Winamp, foobar2000 or AIMP. Marks belong to their owners.
+    </p>
   </div>
 </footer>
+
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -346,6 +655,124 @@ const $ = id => document.getElementById(id);
 // slash. A leading-slash absolute path would hit the NAS panel root and return HTML.
 const API = location.pathname.replace(/\/+$/, '') + '/';
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+
+
+/* ══ hints ═══════════════════════════════════════════════════════════
+   Traktor's info switch. On by default, because the first hour is when hints help;
+   the choice is remembered, because after that they are in the way. */
+const hintBox = $('hint');
+let hintsOn = localStorage.getItem('tth-hints') !== 'off';
+
+function paintHintButton(){
+  $('hintBtn').setAttribute('aria-pressed', String(hintsOn));
+  $('hintBtn').title = hintsOn ? 'Hints on' : 'Hints off';
+}
+
+function showHint(el){
+  if (!hintsOn) return;
+  const raw = el.getAttribute('data-hint');
+  if (!raw) return;
+  const cut = raw.indexOf('|');
+  hintBox.textContent = '';
+  if (cut > 0){
+    const b = document.createElement('b'); b.textContent = raw.slice(0, cut);
+    hintBox.appendChild(b);
+  }
+  hintBox.appendChild(document.createTextNode(cut > 0 ? raw.slice(cut + 1) : raw));
+  hintBox.classList.add('on');
+  const r = el.getBoundingClientRect();
+  const w = hintBox.offsetWidth, h = hintBox.offsetHeight;
+  // Keep it on screen: flip above when there is no room below, never past an edge.
+  let top = r.bottom + 8;
+  if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 8);
+  hintBox.style.top = top + 'px';
+  hintBox.style.left = Math.min(Math.max(8, r.left), innerWidth - w - 8) + 'px';
+}
+
+const hideHint = () => hintBox.classList.remove('on');
+
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-hint]');
+  if (el) showHint(el); else hideHint();
+});
+document.addEventListener('focusin', e => {
+  const el = e.target.closest('[data-hint]');
+  if (el) showHint(el);
+});
+addEventListener('scroll', hideHint, true);
+
+$('hintBtn').onclick = () => {
+  hintsOn = !hintsOn;
+  localStorage.setItem('tth-hints', hintsOn ? 'on' : 'off');
+  paintHintButton();
+  if (!hintsOn) hideHint();
+};
+paintHintButton();
+
+/* ══ meters ══════════════════════════════════════════════════════════
+   Two analog faces and two LED columns, fed by real per-channel peak from the
+   daemon. Black faces with an orange lamp behind them; the needle rises at once
+   and falls slowly, because that is what a needle with mass does. */
+const LED_ROWS = 14;
+// Traktor's ladder: mostly quiet green, amber near the top, two red at the very top.
+function ledColour(i){
+  if (i >= LED_ROWS - 2) return '#E5533B';
+  if (i >= LED_ROWS - 5) return '#F0862F';
+  return '#33E1A0';
+}
+
+const VU_FACE = `<svg viewBox="0 0 120 76" aria-hidden="true">
+  <defs>
+    <radialGradient id="lamp" cx="50%" cy="88%" r="72%">
+      <stop offset="0%" stop-color="#F0862F" stop-opacity=".30"/>
+      <stop offset="100%" stop-color="#F0862F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="120" height="76" fill="#0A0B0D"/>
+  <rect width="120" height="76" fill="url(#lamp)"/>
+  <path d="M16 62 A46 46 0 0 1 104 62" fill="none" stroke="#6B5334" stroke-width="1"/>
+  <path d="M83 30 A46 46 0 0 1 104 62" fill="none" stroke="#E5533B" stroke-width="1.6"/>
+  <g stroke="#7A6242" stroke-width="1">
+    <line x1="17" y1="58" x2="21" y2="55"/><line x1="31" y1="39" x2="34" y2="43"/>
+    <line x1="60" y1="31" x2="60" y2="36"/><line x1="89" y1="39" x2="86" y2="43"/>
+    <line x1="103" y1="58" x2="99" y2="55"/>
+  </g>
+  <text x="60" y="24" font-size="7" fill="#8A6B45" text-anchor="middle" letter-spacing="2"
+        class="face-print">VU</text>
+  <g class="needle" style="transform-origin:60px 63px;transform:rotate(-50deg);
+       transition:transform .26s cubic-bezier(.22,.9,.3,1)">
+    <line x1="60" y1="63" x2="60" y2="34" stroke="#FFD9A8" stroke-width="1.4"/>
+    <circle cx="60" cy="63" r="3" fill="#2A2018"/>
+  </g>
+</svg>`;
+
+function buildMeters(){
+  for (const side of ['l', 'r']){
+    $('vu-' + side).innerHTML = VU_FACE;
+    $('led-' + side).innerHTML = '<i></i>'.repeat(LED_ROWS);
+  }
+}
+
+const meterState = {l: 0, r: 0};
+function paintMeters(left, right){
+  for (const [side, target] of [['l', left], ['r', right]]){
+    // Rise at once, fall slowly. Same ballistics on the needle and the ladder, so
+    // they never disagree about what the signal is doing.
+    meterState[side] = target > meterState[side]
+      ? target : meterState[side] * 0.80 + target * 0.20;
+    const v = Math.max(0, Math.min(1, meterState[side]));
+    const needle = $('vu-' + side).querySelector('.needle');
+    if (needle) needle.style.transform = 'rotate(' + (-50 + v * 100) + 'deg)';
+    const lit = Math.round(v * LED_ROWS);
+    [...$('led-' + side).children].forEach((led, i) => {
+      const on = i < lit;
+      led.style.background = on ? ledColour(i) : '#1A1E20';
+      led.style.boxShadow = on ? '0 0 4px ' + ledColour(i) : 'none';
+    });
+  }
+}
+buildMeters();
 
 /* ══ signal chain ════════════════════════════════════════════════════ */
 const spec = $('spec');
@@ -374,9 +801,10 @@ async function poll(){
   $('beats').textContent = s.beats;
   $('renders').textContent = s.renders;
   $('lit').textContent = s.lit;
-  $('outState').textContent = s.output === 'hue' ? (s.area || 'streaming') : 'off';
-  $('driving').textContent = s.driving ? ('· ' + s.driving) : '';
-  $('src-vban').textContent = s.receiving ? (s.format || 'receiving') : 'idle';
+  $('outState').textContent = s.output === 'hue' ? ('streaming · ' + (s.area || '')) : 'output off';
+  $('driving').textContent = s.driving ? ('Right now: ' + s.driving + '.') : '';
+  $('src-vban').textContent = s.receiving
+    ? ((s.format || 'receiving') + ' · ' + s.packets + ' pkt') : 'idle';
   const ss = s.sendspin;
   $('src-sendspin').textContent = !ss ? 'off'
     : ss.connected ? ((ss.streaming ? 'playing · ' : 'connected · ') + (ss.server || 'server'))
@@ -402,11 +830,13 @@ async function poll(){
     : dl.error ? dl.error
     : 'announced as "' + dl.name + '"';
   if (!dlnaTouched) $('dlnaDevice').checked = !!dl;
+  paintMeters(s.level_l || 0, s.level_r || 0);
   const sp = s.spectrum || [];
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
   if (prev && s.t > prev.t){
     const dt = s.t - prev.t;
-    $('rate').textContent = ((s.bytes - prev.bytes) / 1024 / dt).toFixed(0) + ' KB/s';
+    $('rate').textContent = ((s.bytes - prev.bytes) / 1024 / dt).toFixed(1) + ' KB/s · '
+                          + ((s.packets - prev.packets) / dt).toFixed(0) + ' pkt/s';
     $('rps').textContent = ((s.renders - prev.renders) / dt).toFixed(0);
   }
   prev = s;
@@ -417,26 +847,6 @@ async function poll(){
    loop. The strip under each tile keeps the last two seconds of that light,
    so a flash you would otherwise miss stays readable. */
 const TRAIL_S = 2, TRAIL_HZ = 20, TRAIL_N = TRAIL_S * TRAIL_HZ;
-const LED_COUNT = 8;
-// Green through amber, two red at the top and never more.
-const LED_COLOURS = ['#8FBF2E','#8FBF2E','#A8CC2F','#C6E33C','#D8C133','#E2A032','#D8452F','#D8452F'];
-// The meter face never changes, so it is markup: an arc, ticks, a red zone in the
-// last fifth, and a needle on a pivot.
-const VU_SVG = `<svg class="vu" viewBox="0 0 100 52" aria-hidden="true">
-  <path d="M14 46 A38 38 0 0 1 86 46" fill="none" stroke="#8A857A" stroke-width="1"/>
-  <path d="M69 20 A38 38 0 0 1 86 46" fill="none" stroke="#C0402C" stroke-width="1.6"/>
-  <g stroke="#6A665D" stroke-width="1">
-    <line x1="15" y1="43" x2="18" y2="40"/><line x1="27" y1="27" x2="29" y2="31"/>
-    <line x1="50" y1="21" x2="50" y2="25"/><line x1="73" y1="27" x2="71" y2="31"/>
-    <line x1="85" y1="43" x2="82" y2="40"/>
-  </g>
-  <text x="50" y="14" font-size="7" fill="#7A756A" text-anchor="middle" letter-spacing="1.5">VU</text>
-  <g class="needle" style="transform-origin:50px 47px;transform:rotate(-52deg);
-       transition:transform .28s cubic-bezier(.22,.9,.3,1)">
-    <line x1="50" y1="47" x2="50" y2="24" stroke="#2A2824" stroke-width="1.3"/>
-    <circle cx="50" cy="47" r="2.6" fill="#3A3833"/>
-  </g>
-</svg>`;
 let tiles = new Map();       // channel id -> {face, ctx, lvl, hist}
 let frames = 0, fpsMark = 0;
 
@@ -445,25 +855,22 @@ function buildWall(lights){
   wall.innerHTML = '';
   tiles = new Map();
   if (!lights.length){
-    wall.innerHTML = '<p class="empty">No lights yet.</p>';
+    wall.innerHTML = '<p class="empty">No lights yet — pair a bridge and turn the output on.</p>';
     return;
   }
   for (const l of lights){
-    const t = document.createElement('div'); t.className = 'deck';
-    t.innerHTML = '<div class="meter">' + VU_SVG + '</div>'
-      + '<div class="bay"><div class="win"></div><canvas height="9"></canvas></div>'
-      + '<div class="leds">' + '<i></i>'.repeat(LED_COUNT) + '</div>'
-      + '<div class="nm"></div>';
+    const t = document.createElement('div'); t.className = 'tile';
+    t.innerHTML = '<div class="face"></div><canvas height="20"></canvas>'
+                + '<div class="foot"><div class="nm"></div><div class="lvl"><i></i></div></div>';
     t.querySelector('.nm').textContent = l.name;
     wall.appendChild(t);
     const cv = t.querySelector('canvas');
     cv.width = TRAIL_N;                       // one column per sample; CSS stretches it
     tiles.set(l.id, {
-      win: t.querySelector('.win'),
-      needle: t.querySelector('.needle'),
-      leds: [...t.querySelectorAll('.leds i')],
+      face: t.querySelector('.face'),
       ctx: cv.getContext('2d'),
-      hist: [], hold: [0, 0, 0], vu: 0
+      lvl: t.querySelector('.lvl i'),
+      hist: [], hold: [0, 0, 0]
     });
   }
 }
@@ -482,30 +889,15 @@ function onFrame(list){
     const css = 'rgb(' + r + ',' + g + ',' + b + ')';
     t.hold = [Math.max(r, t.hold[0] * HOLD_DECAY), Math.max(g, t.hold[1] * HOLD_DECAY),
               Math.max(b, t.hold[2] * HOLD_DECAY)];
-    const held = t.hold.map(Math.round);
-    // The window glows with the colour rather than being painted with it, the way a
-    // lamp behind smoked glass looks.
-    t.win.style.background = 'rgb(' + held.join(',') + ')';
-    t.win.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,.55), 0 0 10px rgba('
-      + held.join(',') + ',.35)';
-    const level = Math.max(r, g, b) / 255;
-    // Rise fast, fall slow: a needle has mass, and that is the whole point of a VU.
-    t.vu = level > t.vu ? level : t.vu * 0.86 + level * 0.14;
-    if (t.needle) t.needle.style.transform = 'rotate(' + (-52 + t.vu * 104) + 'deg)';
-    const lit = Math.round(t.vu * LED_COUNT);
-    t.leds.forEach((led, i) => {
-      const on = i < lit;
-      led.style.background = on ? LED_COLOURS[i] : '#5E6262';
-      led.style.boxShadow = on ? '0 0 5px ' + LED_COLOURS[i]
-                               : 'inset 0 1px 1px rgba(0,0,0,.5)';
-    });
+    t.face.style.background = 'rgb(' + t.hold.map(Math.round).join(',') + ')';
+    t.lvl.style.width = Math.round(Math.max(r, g, b) * 100 / 255) + '%';
     t.hist.push(css);
     if (t.hist.length > TRAIL_N) t.hist.shift();
     if (REDUCED) continue;                    // colour still updates; the trail stops moving
     const c = t.ctx;
-    c.clearRect(0, 0, TRAIL_N, 9);
+    c.clearRect(0, 0, TRAIL_N, 20);
     const off = TRAIL_N - t.hist.length;
-    for (let i = 0; i < t.hist.length; i++){ c.fillStyle = t.hist[i]; c.fillRect(off + i, 0, 1, 9); }
+    for (let i = 0; i < t.hist.length; i++){ c.fillStyle = t.hist[i]; c.fillRect(off + i, 0, 1, 20); }
   }
 }
 
@@ -522,9 +914,11 @@ function openPreview(){
 
 setInterval(() => {
   const now = performance.now();
-  if (fpsMark){ $('fps').textContent = (frames * 1000 / (now - fpsMark)).toFixed(0) + ' fps'; }
+  if (fpsMark){ $('fps').textContent =
+      (frames * 1000 / (now - fpsMark)).toFixed(0).padStart(2, '0') + ' FPS'; }
   fpsMark = now; frames = 0;
-  $('wallNote').textContent = tiles.size ? '' : 'Turn the output on.';
+  $('wallNote').textContent = tiles.size
+    ? '' : 'Turn the output on to watch the frames.';
 }, 1000);
 
 /* ══ settings, generated from the provider's own entries ═════════════ */
@@ -570,7 +964,7 @@ function renderSchema(){
     if (!e.applicable) continue;
     if (e.type === 'divider'){
       const h = document.createElement('p');
-      h.className = 'lbl'; h.style.margin = '14px 0 7px'; h.style.display = 'block';
+      h.className = 'legend'; h.style.margin = '22px 0 10px';
       h.textContent = e.label; host.appendChild(h); continue;
     }
     if (e.type === 'label'){
@@ -783,60 +1177,6 @@ $('dlnaDevice').onchange = async () => {
   await apply({dlna_enabled: $('dlnaDevice').checked});
 };
 
-/* Hints. On by default, because the first hour is when they help; the choice is
-   remembered, because after that they are in the way. Any element with
-   data-hint="Title|Body" gets one, including the generated settings rows, which take
-   theirs from the provider's own descriptions. */
-const hintBox = $('hint');
-let hintsOn = localStorage.getItem('tth-hints') !== 'off';
-
-function paintHintButton(){
-  $('hintBtn').setAttribute('aria-pressed', String(hintsOn));
-  $('hintBtn').title = hintsOn ? 'Hints on' : 'Hints off';
-}
-
-function showHint(el){
-  if (!hintsOn) return;
-  const raw = el.getAttribute('data-hint');
-  if (!raw) return;
-  const cut = raw.indexOf('|');
-  const title = cut > 0 ? raw.slice(0, cut) : '';
-  const body = cut > 0 ? raw.slice(cut + 1) : raw;
-  hintBox.textContent = '';
-  if (title){
-    const b = document.createElement('b'); b.textContent = title; hintBox.appendChild(b);
-  }
-  hintBox.appendChild(document.createTextNode(body));
-  hintBox.classList.add('on');
-  const r = el.getBoundingClientRect();
-  const w = hintBox.offsetWidth, h = hintBox.offsetHeight;
-  // Keep it on screen: flip above when there is no room below, never past an edge.
-  let top = r.bottom + 8;
-  if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 8);
-  hintBox.style.top = top + 'px';
-  hintBox.style.left = Math.min(Math.max(8, r.left), innerWidth - w - 8) + 'px';
-}
-
-function hideHint(){ hintBox.classList.remove('on'); }
-
-document.addEventListener('mouseover', e => {
-  const el = e.target.closest('[data-hint]');
-  if (el) showHint(el); else hideHint();
-});
-document.addEventListener('focusin', e => {
-  const el = e.target.closest('[data-hint]');
-  if (el) showHint(el);
-});
-addEventListener('scroll', hideHint, true);
-
-$('hintBtn').onclick = () => {
-  hintsOn = !hintsOn;
-  localStorage.setItem('tth-hints', hintsOn ? 'on' : 'off');
-  paintHintButton();
-  if (!hintsOn) hideHint();
-};
-paintHintButton();
-
 $('showAdvanced').onchange = renderSchema;
 async function apply(patch){
   await fetch(API + 'api/settings', {method:'POST', headers:{'Content-Type':'application/json'},
@@ -848,7 +1188,7 @@ let curOutput = 'none';
 function reflectOutput(on){
   curOutput = on ? 'hue' : 'none';
   $('outBtn').textContent = on ? 'Turn off' : 'Turn on';
-  $('outBtn').className = on ? '' : 'on';
+  $('outBtn').className = on ? '' : 'primary';
 }
 $('outBtn').onclick = async () => {
   const turningOn = curOutput !== 'hue';
@@ -932,15 +1272,20 @@ $('latency').onchange = () => {
 };
 
 /* ══ senders ═════════════════════════════════════════════════════════ */
+const RELEASES = 'https://github.com/silasmariusz/TuneThatHue/releases';
 async function loadDownloads(){
-  // Every logo already links to the releases page. When this build carries the file
-  // itself, point at that instead, so a box with no internet can still hand it over.
   let have = [];
   try { have = await (await fetch(API + 'api/downloads')).json(); } catch(e){ /* offline box */ }
-  for (const d of have){
-    const a = $('dl-' + d.id);
-    if (a) a.href = API + 'download/' + d.id;
+  const byId = new Map(have.map(d => [d.id, d]));
+  for (const id of ['soundrecorder', 'winamp', 'foobar']){
+    const a = $('dl-' + id), d = byId.get(id);
+    if (!d) continue;
+    a.href = API + 'download/' + id;
+    a.removeAttribute('aria-disabled');
+    a.textContent = 'Download · ' + (d.size / 1048576).toFixed(1) + ' MB';
   }
+  $('dlNote').innerHTML = have.length === 3 ? ''
+    : 'Anything marked “not in this build” is on the <a href="' + RELEASES + '">releases page</a>.';
 }
 
 loadConfig();

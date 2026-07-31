@@ -6,6 +6,7 @@ Keeping every platform behind one command means a bug gets fixed once, and anyth
 tray can do can also be done from a terminal or a script:
 
     tunethathue start | stop | restart | status | panel | install | uninstall
+    tunethathue codecs | getffmpeg
 
 Each platform has its own idea of what a service is - a Windows service, a launchd job,
 a systemd unit - so `install` writes the right one and `start` talks to it. When no
@@ -332,9 +333,155 @@ def uninstall_service() -> None:
     print("service removed")
 
 
+# -- the decoder --------------------------------------------------------------------
+
+# What has to work for the inputs to accept what senders actually send.
+REQUIRED_CODECS = ("flac", "mp3", "aac", "vorbis", "opus", "alac", "wmav2", "pcm_s16le")
+
+
+def ffmpeg_path() -> str | None:
+    """Find a decoder: ours first, then the system's, then anything on PATH."""
+    arch = platform.machine()
+    for candidate in (
+        ROOT / "runtime" / f"ffmpeg-{arch}" / "ffmpeg",
+        ROOT / "runtime" / f"ffmpeg-{arch}" / "ffmpeg.exe",
+        Path("/usr/bin/ffmpeg"),
+        Path("/usr/local/medialibrary/bin/ffmpeg"),
+    ):
+        if candidate.is_file():
+            return str(candidate)
+    return shutil.which("ffmpeg")
+
+
+def check_codecs(path: str | None = None) -> int:
+    """
+    Say which of the codecs we need this ffmpeg can decode.
+
+    Worth doing rather than assuming: the one shipped with a NAS is often built without
+    AAC, and finding that out when a track will not play is worse than finding it out
+    now. Returns 0 when everything we need is there.
+    """
+    path = path or ffmpeg_path()
+    if not path:
+        print("no ffmpeg found. Only uncompressed audio will play.")
+        print("run:  tunethathue getffmpeg")
+        return 1
+    print(f"ffmpeg: {path}")
+    out = subprocess.run([path, "-hide_banner", "-decoders"],
+                         capture_output=True, check=False).stdout.decode("utf-8", "replace")
+    have = {line.split()[1] for line in out.splitlines()
+            if line.startswith(" A") and len(line.split()) > 1}
+    missing = [c for c in REQUIRED_CODECS if c not in have]
+    for codec in REQUIRED_CODECS:
+        print(f"  {'ok ' if codec in have else 'MISSING'}  {codec}")
+    if missing:
+        print(f"\n{len(missing)} missing. Music in those formats will not play.")
+        print("run:  tunethathue getffmpeg")
+        return 1
+    print("\nall present.")
+    return 0
+
+
+def get_ffmpeg() -> None:
+    """
+    Point the box at a decoder: download one, or use one that is already here.
+
+    Downloading is offered rather than assumed. Plenty of people already have an ffmpeg
+    they trust, and on a metered connection nobody wants a surprise download.
+    """
+    current = ffmpeg_path()
+    print(f"current: {current or 'none'}")
+    print("\n  1  download a build for this machine")
+    print("  2  use one I already have (give me the path)")
+    print("  3  leave it alone")
+    choice = input("choice [1/2/3]: ").strip() or "3"
+
+    if choice == "2":
+        given = Path(input("path to ffmpeg: ").strip().strip('"'))
+        if not given.is_file():
+            print("no file there")
+            return
+        _install_ffmpeg(given)
+        check_codecs()
+        return
+
+    if choice != "1":
+        return
+
+    system, arch = platform.system(), platform.machine()
+    url = _ffmpeg_url(system, arch)
+    if not url:
+        print(f"no download known for {system}/{arch}.")
+        print("Build one with qnap/build_ffmpeg.sh, or install your system's package.")
+        return
+    print(f"downloading {url}")
+    print("This is an LGPL build: audio decoders, no video, no patent-encumbered encoders.")
+    if input("continue? [y/N] ").strip().lower() != "y":
+        return
+    _download_ffmpeg(url)
+    check_codecs()
+
+
+def _ffmpeg_url(system: str, arch: str) -> str:
+    """Where a build for this machine comes from. Empty when we do not know of one."""
+    if system == "Windows":
+        return "https://github.com/GyanD/codexffmpeg/releases/latest/download/ffmpeg-release-essentials.zip"
+    if system == "Darwin":
+        return "https://evermeet.cx/ffmpeg/getrelease/zip"
+    if system == "Linux":
+        return {
+            "x86_64": "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz",
+            "aarch64": "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz",
+            "armv7l": "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-armhf-static.tar.xz",
+        }.get(arch, "")
+    return ""
+
+
+def _download_ffmpeg(url: str) -> None:
+    import tarfile
+    import tempfile
+    import urllib.request
+    import zipfile
+
+    target = ROOT / "runtime" / f"ffmpeg-{platform.machine()}"
+    target.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        archive = Path(tmp) / "ffmpeg-download"
+        urllib.request.urlretrieve(url, archive)
+        unpacked = Path(tmp) / "out"
+        unpacked.mkdir()
+        if zipfile.is_zipfile(archive):
+            zipfile.ZipFile(archive).extractall(unpacked)
+        else:
+            with tarfile.open(archive) as tar:
+                tar.extractall(unpacked, filter="data")
+        # These archives all bury the binary a few directories down, and the layout
+        # differs per publisher, so look for it rather than guessing a path.
+        found = next((p for p in unpacked.rglob("ffmpeg*")
+                      if p.is_file() and p.name in ("ffmpeg", "ffmpeg.exe")), None)
+        if found is None:
+            print("the archive had no ffmpeg in it")
+            return
+        _install_ffmpeg(found)
+
+
+def _install_ffmpeg(source: Path) -> None:
+    target_dir = ROOT / "runtime" / f"ffmpeg-{platform.machine()}"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / ("ffmpeg.exe" if platform.system() == "Windows" else "ffmpeg")
+    shutil.copyfile(source, target)
+    target.chmod(0o755)
+    if platform.system() == "Darwin":
+        # Gatekeeper quarantines anything that came from a browser or a download.
+        subprocess.run(["xattr", "-d", "com.apple.quarantine", str(target)],
+                       capture_output=True, check=False)
+    print(f"installed: {target}")
+
+
 COMMANDS = {
     "start": start, "stop": stop, "restart": restart, "panel": panel,
     "install": install_service, "uninstall": uninstall_service,
+    "getffmpeg": get_ffmpeg,
 }
 
 
@@ -342,9 +489,11 @@ def main(argv: list[str]) -> int:
     command = argv[1] if len(argv) > 1 else "status"
     if command == "status":
         return status()
+    if command == "codecs":
+        return check_codecs()
     handler = COMMANDS.get(command)
     if handler is None:
-        print(f"usage: tunethathue [{' | '.join(['status', *COMMANDS])}]")
+        print(f"usage: tunethathue [{' | '.join(['status', 'codecs', *COMMANDS])}]")
         return 2
     handler()
     return 0
