@@ -93,7 +93,7 @@ Everything is on the [releases page](https://github.com/silasmariusz/TuneThatHue
 
 On every platform it installs as a service that starts by itself and keeps running: a
 Windows service, a launchd agent, a systemd user unit, a QNAP package with a watchdog.
-The panel is then on **http://127.0.0.1:8080** (`http://<nas>/TuneThatHue/` on a NAS),
+The panel is then on **`http://127.0.0.1:8080`** (`http://<nas>/TuneThatHue/` on a NAS),
 and `tunethathue status` works from a terminal.
 
 ![Settings, generated from the Music Assistant provider's own sources](docs/img/settings.webp)
@@ -151,10 +151,25 @@ docker run -d --name tunethathue --network host \
   -v tunethathue:/config silasmariusz/tunethathue:latest
 ```
 
-`--network host` is not laziness: every way this box is found on the network - mDNS for
-Sendspin, SSDP for DLNA, a broadcast for Squeezebox - needs multicast to reach the LAN,
-and none of it survives a bridge network. `amd64` and `arm64` only, for the NumPy reason
-above.
+**`--network host` is required. Bridge mode does not work**, and it fails in the way most
+likely to waste an evening: the container starts, the panel opens, and then nothing ever
+finds it — which reads as a broken program rather than a network setting. Three of the
+four inputs are discovered by multicast or broadcast (mDNS for Sendspin, SSDP for DLNA, a
+UDP broadcast for Squeezebox) and none of that crosses a Docker bridge. Publishing ports
+does not help, because the discovery never reaches the container to begin with. Start it
+on a bridge anyway and it says so in its own log.
+
+If you want it isolated with an address of its own, use a `macvlan` network — that puts it
+on the LAN properly, so multicast works:
+
+```sh
+docker network create -d macvlan --subnet=192.168.1.0/24 \
+  --gateway=192.168.1.1 -o parent=eth0 lan
+docker run -d --name tunethathue --network lan --ip 192.168.1.50 \
+  -v tunethathue:/config silasmariusz/tunethathue:latest
+```
+
+`amd64` and `arm64` only, for the NumPy reason above.
 
 ## The senders
 
