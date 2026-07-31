@@ -1,0 +1,76 @@
+; TuneThatHue daemon installer for Windows.
+;
+; Installs the daemon, its Python runtime, the bundled ffmpeg and the tray icon, then
+; registers a Windows service so it starts at boot without anyone logging in. The tray
+; is a separate autostart entry, because a service has no desktop to draw on.
+;
+; Build:  ISCC.exe installers\tth-daemon.iss
+
+#define AppName     "TuneThatHue"
+#define AppVersion  "0.6.0"
+#define Publisher   "Silas Mariusz Grzybacz"
+#define AppUrl      "https://github.com/silasmariusz/TuneThatHue"
+#define Root        ".."
+
+[Setup]
+AppId={{8C5A1E42-9D3B-4F17-A2E6-TUNETHATHUE01}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppPublisher={#Publisher}
+AppPublisherURL={#AppUrl}
+DefaultDirName={autopf}\{#AppName}
+DefaultGroupName={#AppName}
+OutputDir={#Root}\installers\Output
+OutputBaseFilename={#AppName}-daemon-{#AppVersion}-setup
+Compression=lzma2/max
+SolidCompression=yes
+WizardStyle=modern
+; A Windows service has to be created by an administrator.
+PrivilegesRequired=admin
+ArchitecturesInstallIn64BitMode=x64compatible
+SetupIconFile={#Root}\resources\tth.ico
+UninstallDisplayIcon={app}\resources\tth.ico
+DisableProgramGroupPage=yes
+
+[Languages]
+Name: "en"; MessagesFile: "compiler:Default.isl"
+
+[Tasks]
+Name: "service"; Description: "Run in the background as a Windows service (starts at boot)"; GroupDescription: "How it runs:"
+Name: "tray";    Description: "Show the tray icon at sign-in"; GroupDescription: "How it runs:"
+
+[Files]
+Source: "{#Root}\python\*";     DestDir: "{app}\python";     Flags: ignoreversion recursesubdirs
+Source: "{#Root}\effects\*";    DestDir: "{app}\effects";    Flags: ignoreversion recursesubdirs
+Source: "{#Root}\resources\*";  DestDir: "{app}\resources";  Flags: ignoreversion recursesubdirs
+Source: "{#Root}\config\*";     DestDir: "{app}\config";     Flags: ignoreversion recursesubdirs
+Source: "{#Root}\install\*";    DestDir: "{app}\install";    Flags: ignoreversion recursesubdirs
+; The Python runtime and the decoder, assembled before building this installer by
+; installers\prepare-windows.ps1. Both are optional at build time so the script can be
+; compiled on a machine that has not assembled them yet.
+Source: "{#Root}\runtime\python-win\*";     DestDir: "{app}\runtime\python"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
+Source: "{#Root}\runtime\ffmpeg-AMD64\*";   DestDir: "{app}\runtime\ffmpeg-AMD64"; Flags: ignoreversion skipifsourcedoesntexist
+
+[Icons]
+Name: "{group}\{#AppName} panel"; Filename: "{app}\runtime\python\pythonw.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" panel"; IconFilename: "{app}\resources\tth.ico"
+Name: "{group}\{#AppName} tray";  Filename: "{app}\runtime\python\pythonw.exe"; Parameters: """{app}\install\tunethathue_tray.py"""; IconFilename: "{app}\resources\tth.ico"
+
+[Run]
+; Register the service through the same control command the tray and the terminal use,
+; so there is one definition of what "installed" means.
+Filename: "{app}\runtime\python\python.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" install"; Tasks: service; StatusMsg: "Registering the service..."; Flags: runhidden
+Filename: "{app}\runtime\python\pythonw.exe"; Parameters: """{app}\install\tunethathue_tray.py"""; Tasks: tray; Flags: nowait postinstall skipifsilent runasoriginaluser; Description: "Start the tray icon now"
+Filename: "{app}\runtime\python\pythonw.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" panel"; Flags: nowait postinstall skipifsilent runasoriginaluser; Description: "Open the panel"
+
+[UninstallRun]
+Filename: "{app}\runtime\python\python.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" uninstall"; Flags: runhidden; RunOnceId: "removeservice"
+
+[Registry]
+; The tray at sign-in. Under HKCU so it belongs to the person who installed it.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#AppName}Tray"; ValueData: """{app}\runtime\python\pythonw.exe"" ""{app}\install\tunethathue_tray.py"""; Tasks: tray; Flags: uninsdeletevalue
+
+[Code]
+function InitializeSetup(): Boolean;
+begin
+  Result := True;
+end;
