@@ -1612,6 +1612,10 @@ async function loadDownloads(){
   // internet can still hand it over.
   let have = [];
   try { have = await (await fetch(API + 'api/downloads')).json(); } catch(e){ /* offline box */ }
+  // Behind the QNAP app-proxy a missing route answers with the NAS's own page rather
+  // than a 404, so this can come back as something that is not a list. The footer is
+  // not worth taking the whole panel down for.
+  if (!Array.isArray(have)) have = [];
   const marks = {soundrecorder: 'Windows', winamp: 'Winamp', foobar: 'foobar2000'};
   for (const d of have){
     const title = marks[d.id];
@@ -1620,6 +1624,9 @@ async function loadDownloads(){
   }
 }
 
+// This one first: it brings the settings, the rooms, the palettes and the light wall.
+// Without it the page comes up looking finished and holding nothing.
+loadConfig();
 loadDownloads();
 openPreview();
 poll();

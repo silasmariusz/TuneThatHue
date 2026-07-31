@@ -18,6 +18,8 @@ from __future__ import annotations
 import ast
 import json
 import re
+import shutil
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -74,6 +76,20 @@ wanted = set(re.findall(r"\$\('([\w-]+)'\)", html))
 made = set(re.findall(r"\.id\s*=\s*'([\w-]+)'", html))
 missing = sorted(wanted - ids - made)
 check("every $('...') has an element", not missing, ", ".join(missing))
+
+# The static checks above cannot tell whether the script survives being run. Node can,
+# against a stand-in for the browser. Skipped rather than failed when node is absent, so
+# this stays runnable on a box that has no Node at all.
+smoke = ROOT / "tools" / "panel_smoke.js"
+if shutil.which("node") and smoke.is_file():
+    done = subprocess.run(["node", str(smoke), str(ROOT / "resources" / "webui.html")],
+                          capture_output=True, text=True)
+    check("panel runs", done.returncode == 0,
+          (done.stdout + done.stderr).strip().splitlines()[0] if done.returncode else "")
+    if done.returncode == 0:
+        print(f"        {done.stdout.strip()}")
+else:
+    print("  --    panel runs  - skipped, no node here")
 
 print("manifests")
 for manifest in sorted(ROOT.rglob("plugin.json")):
