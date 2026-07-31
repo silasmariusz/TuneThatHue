@@ -37,6 +37,7 @@ from typing import Any, Callable
 import aiohttp
 from aiohttp import web
 
+from decoder import DecodeError, decode_url, find_ffmpeg
 from wav_feed import NotWav, feed_wav
 
 SSDP_ADDR = "239.255.255.250"
@@ -93,6 +94,9 @@ class DlnaRenderer:
         self._ssdp: asyncio.DatagramTransport | None = None
         self._alive_task: asyncio.Task[None] | None = None
         self._stream_task: asyncio.Task[None] | None = None
+        # Cancelled streams live here until they finish cleaning up, so the event loop
+        # keeps a reference and the teardown is never garbage-collected half done.
+        self._reaping: set[asyncio.Task[None]] = set()
         self._ip = _local_ip()
 
     # -- lifecycle -------------------------------------------------------------------
@@ -339,27 +343,45 @@ class DlnaRenderer:
             self.bytes_in += len(pcm)
             self._on_chunk(pcm, rate, channels)
 
+        ffmpeg = find_ffmpeg()
         try:
+            if ffmpeg is not None:
+                # Let ffmpeg fetch it. Besides decoding whatever the sender chose, that
+                # gives us a seekable source - an MP4 keeps its index at the END, so it
+                # cannot be read through a one-way pipe at all.
+                self._set(playing=True, format="decoding")
+                await decode_url(
+                    uri, deliver, ffmpeg=ffmpeg,
+                    on_start=lambda: self._set(format="48000 Hz / 2ch / decoded"),
+                )
+                return
             async with aiohttp.ClientSession() as session, session.get(uri) as resp:
                 resp.raise_for_status()
                 self._set(playing=True)
                 await feed_wav(resp.content.read, deliver, on_format=note)
         except asyncio.CancelledError:
             raise
-        except NotWav as err:
-            self._set(error=f"{err} - set the output codec to wav")
-            print(f"[dlna] {err}; set the sending player's output codec to wav")
+        except (NotWav, DecodeError) as err:
+            self._set(error=str(err))
+            print(f"[dlna] {err}")
         except Exception as err:  # noqa: BLE001 - the sender closing is normal
             self._set(error=str(err))
         finally:
             self._set(playing=False, format="")
 
     async def _stop_stream(self) -> None:
+        """
+        Cancel the stream without waiting for it to finish tearing down.
+
+        This runs inside a SOAP call, and a control point wants an answer now - it will
+        time out and decide the device is broken rather than wait for a subprocess to
+        be reaped.
+        """
         task, self._stream_task = self._stream_task, None
         if task is not None:
             task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+            self._reaping.add(task)
+            task.add_done_callback(self._reaping.discard)
         self._set(playing=False)
 
     # -- housekeeping --------------------------------------------------------------------

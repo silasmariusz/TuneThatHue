@@ -9,12 +9,19 @@ frames. Doing it once means a fix to the header parsing fixes every input at onc
 
 from __future__ import annotations
 
+import asyncio
 import struct
+import time
 from typing import Awaitable, Callable
 
 # 20 ms at a time, which is what the feature extractor is happiest with and what the
 # other inputs deliver.
 BLOCK_MS = 20
+# How far ahead of real time we are willing to run. A live stream never gets near this;
+# a FILE does - a URL handed to us by a control point is read at disk speed, so thirty
+# seconds of music would land in the engine in one second, the beat tracker would see
+# nonsense and the lights would fire a burst and stop. Pace it to the clock instead.
+LEAD_S = 0.5
 
 
 class NotWav(Exception):
@@ -64,6 +71,8 @@ async def feed_wav(
     frame = channels * 2
     block = max(frame, (rate * BLOCK_MS // 1000) * frame)
     tail = b""
+    delivered = 0
+    started = time.monotonic()
     while True:
         data = await read(block)
         if not data:
@@ -73,8 +82,13 @@ async def feed_wav(
         # Never hand out a partial frame: the extractor would read one sample of the
         # left channel as if it were the right and the stereo image would rotate.
         tail = data[usable:]
-        if usable:
-            on_chunk(data[:usable], rate, channels)
+        if not usable:
+            continue
+        on_chunk(data[:usable], rate, channels)
+        delivered += usable // frame
+        ahead = delivered / rate - (time.monotonic() - started)
+        if ahead > LEAD_S:
+            await asyncio.sleep(ahead - LEAD_S)
 
 
 async def _exact(read: Callable[[int], Awaitable[bytes]], count: int) -> bytes:

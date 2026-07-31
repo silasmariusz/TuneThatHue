@@ -33,6 +33,7 @@ import time
 import uuid
 from typing import Any, Callable
 
+from decoder import DecodeError, decode_stream, find_ffmpeg
 from wav_feed import NotWav, feed_wav
 
 DISCOVERY_PORT = 3483
@@ -83,6 +84,7 @@ class SlimprotoPlayer:
 
         self._task: asyncio.Task[None] | None = None
         self._stream_task: asyncio.Task[None] | None = None
+        self._reaping: set[asyncio.Task[None]] = set()
         self._writer: asyncio.StreamWriter | None = None
         self._mac = _mac_bytes()
 
@@ -247,7 +249,13 @@ class SlimprotoPlayer:
                 return
 
     async def _read_pcm(self, reader: asyncio.StreamReader) -> None:
-        """Hand the stream to the shared WAV reader; it knows the format and the frames."""
+        """
+        Read the stream, whatever format the server chose.
+
+        Uncompressed goes straight through - no subprocess for the common case. Anything
+        else is handed to ffmpeg, so flac, mp3 and aac all just work instead of asking
+        whoever installed this to go and change a setting.
+        """
         def note(rate: int, channels: int, bits: int) -> None:
             self._set(format=f"{rate} Hz / {channels}ch / {bits}-bit", error="")
             print(f"[slimproto] stream: wav {rate} Hz / {channels}ch / {bits}-bit")
@@ -256,18 +264,42 @@ class SlimprotoPlayer:
             self.bytes_in += len(pcm)
             self._on_chunk(pcm, rate, channels)
 
+        head = await reader.read(12)
+        if not head:
+            return
+        if head[:4] == b"RIFF":
+            async def read_rest(n: int) -> bytes:
+                nonlocal head
+                if head:
+                    out, head = head, b""
+                    return out
+                return await reader.read(n)
+
+            await feed_wav(read_rest, deliver, on_format=note)
+            return
+
+        ffmpeg = find_ffmpeg()
+        if ffmpeg is None:
+            self._set(error="compressed audio needs ffmpeg, which is not installed")
+            print("[slimproto] stream is compressed and no ffmpeg was found")
+            return
+        self._set(format="decoding", error="")
         try:
-            await feed_wav(reader.read, deliver, on_format=note)
-        except NotWav as err:
-            self._set(error=f"{err} - set this player's output codec to wav")
-            print(f"[slimproto] {err}; set the player's output codec to wav")
+            await decode_stream(
+                reader.read, deliver, ffmpeg=ffmpeg, prefix=head,
+                on_start=lambda: self._set(format="48000 Hz / 2ch / decoded"),
+            )
+        except DecodeError as err:
+            self._set(error=str(err))
+            print(f"[slimproto] {err}")
 
     async def _stop_stream(self) -> None:
+        """Cancel the stream and let it tear down on its own - the server is waiting."""
         task, self._stream_task = self._stream_task, None
         if task is not None:
             task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+            self._reaping.add(task)
+            task.add_done_callback(self._reaping.discard)
         self._set(playing=False)
 
     # -- talking back ------------------------------------------------------------------

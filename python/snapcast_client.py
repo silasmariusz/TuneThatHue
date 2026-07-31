@@ -30,6 +30,8 @@ import time
 import uuid
 from typing import Any, Callable
 
+from decoder import DecodeError, decode_stream, find_ffmpeg
+
 # Message types (server -> client unless noted).
 MSG_CODEC_HEADER = 1
 MSG_WIRE_CHUNK = 2
@@ -44,7 +46,10 @@ TIME_SYNC_INTERVAL_S = 5.0
 RECONNECT_DELAY_S = 5.0
 # A codec we cannot read is a configuration mistake, not a transient fault; say it once
 # rather than every time a chunk arrives.
-SUPPORTED_CODECS = ("pcm",)
+# pcm needs no decoder at all; the rest go through ffmpeg, fed the codec header the
+# server sent followed by every chunk, which is exactly the byte stream an encoder
+# produced in the first place.
+NATIVE_CODECS = ("pcm",)
 
 
 def _string(text: str) -> bytes:
@@ -97,6 +102,9 @@ class SnapcastClient:
         self.bit_depth = 16
         self.chunks = 0
         self.error = ""
+        self._ffmpeg = find_ffmpeg()
+        self._queue: asyncio.Queue[bytes] | None = None
+        self._decode_task: asyncio.Task[None] | None = None
 
     # -- lifecycle ----------------------------------------------------------------
 
@@ -112,6 +120,7 @@ class SnapcastClient:
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
+        self._stop_decoder()
         self._close_writer()
         self._set(connected=False, codec="", chunks=0)
 
@@ -147,6 +156,7 @@ class SnapcastClient:
             time_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await time_task
+            self._stop_decoder()
             print("[snapcast] disconnected")
 
     def _dispatch(self, msg_type: int, payload: bytes) -> None:
@@ -174,7 +184,7 @@ class SnapcastClient:
         codec = payload[4 : 4 + name_len].decode(errors="replace")
         (blob_len,) = struct.unpack_from("<I", payload, 4 + name_len)
         blob = payload[8 + name_len : 8 + name_len + blob_len]
-        supported = codec in SUPPORTED_CODECS
+        supported = codec in NATIVE_CODECS or self._ffmpeg is not None
         rate, channels, bits = self.sample_rate, self.channels, self.bit_depth
         if supported and len(blob) >= 36 and blob[:4] == b"RIFF":
             channels, rate, bits = struct.unpack_from("<HI", blob, 22) + (
@@ -187,11 +197,17 @@ class SnapcastClient:
             channels=channels,
             bit_depth=bits,
         )
-        if supported:
+        if codec in NATIVE_CODECS:
             print(f"[snapcast] stream: {codec} {rate} Hz / {channels}ch / {bits}-bit")
+        elif supported:
+            # Everything the server can send is an encoder's output, so hand ffmpeg the
+            # codec header it just gave us and then every chunk after it - that is the
+            # byte stream the encoder produced.
+            print(f"[snapcast] stream: {codec}, decoding")
+            self._start_decoder(blob)
         else:
             print(
-                f"[snapcast] stream is '{codec}', which this client cannot read - "
+                f"[snapcast] stream is '{codec}' and no ffmpeg was found - "
                 f"set the snapserver transport codec to pcm"
             )
 
@@ -199,12 +215,53 @@ class SnapcastClient:
         """A chunk is a timestamp and then the audio; with pcm that audio is samples."""
         if not self.codec_supported or len(payload) <= 12:
             return
-        pcm = payload[12:]
+        audio = payload[12:]
         self.chunks += 1
-        # 16-bit is what the analyzer's extractor expects; anything else would need
-        # converting, and snapserver's pcm is 16-bit in every configuration we support.
-        if self.bit_depth == 16:
-            self._on_chunk(pcm, self.sample_rate, self.channels)
+        if self.codec in NATIVE_CODECS:
+            # 16-bit is what the extractor expects, and snapserver's pcm is 16-bit in
+            # every configuration we support.
+            if self.bit_depth == 16:
+                self._on_chunk(audio, self.sample_rate, self.channels)
+            return
+        queue = self._queue
+        if queue is None:
+            return
+        if queue.full():
+            # The decoder has fallen behind. Dropping the oldest keeps us near live
+            # rather than building a delay the lights would show.
+            with contextlib.suppress(asyncio.QueueEmpty):
+                queue.get_nowait()
+        with contextlib.suppress(asyncio.QueueFull):
+            queue.put_nowait(audio)
+
+    def _start_decoder(self, header: bytes) -> None:
+        """Run ffmpeg over the encoded chunks for as long as this stream lasts."""
+        self._stop_decoder()
+        queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=250)   # ~5 s at 20 ms
+        self._queue = queue
+
+        async def read(_n: int) -> bytes:
+            return await queue.get()
+
+        async def run() -> None:
+            try:
+                await decode_stream(
+                    read, self._on_chunk, ffmpeg=self._ffmpeg or "", hint=self.codec,
+                    prefix=header,
+                )
+            except asyncio.CancelledError:
+                raise
+            except DecodeError as err:
+                self._set(error=str(err))
+                print(f"[snapcast] {err}")
+
+        self._decode_task = asyncio.create_task(run())
+
+    def _stop_decoder(self) -> None:
+        task, self._decode_task = self._decode_task, None
+        self._queue = None
+        if task is not None:
+            task.cancel()
 
     # -- housekeeping ---------------------------------------------------------------
 
