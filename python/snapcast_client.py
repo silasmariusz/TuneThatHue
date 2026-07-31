@@ -50,6 +50,11 @@ RECONNECT_DELAY_S = 5.0
 # server sent followed by every chunk, which is exactly the byte stream an encoder
 # produced in the first place.
 NATIVE_CODECS = ("pcm",)
+# Snapcast's opus mode sends RAW Opus packets with no container - flac chunks concatenate
+# into a valid flac stream and ogg chunks carry their own pages, but raw opus packets
+# cannot be demuxed by anything without being re-framed first. Say so rather than sitting
+# there decoding nothing.
+UNDECODABLE_CODECS = ("opus",)
 
 
 def _string(text: str) -> bytes:
@@ -184,7 +189,9 @@ class SnapcastClient:
         codec = payload[4 : 4 + name_len].decode(errors="replace")
         (blob_len,) = struct.unpack_from("<I", payload, 4 + name_len)
         blob = payload[8 + name_len : 8 + name_len + blob_len]
-        supported = codec in NATIVE_CODECS or self._ffmpeg is not None
+        supported = codec not in UNDECODABLE_CODECS and (
+            codec in NATIVE_CODECS or self._ffmpeg is not None
+        )
         rate, channels, bits = self.sample_rate, self.channels, self.bit_depth
         if supported and len(blob) >= 36 and blob[:4] == b"RIFF":
             channels, rate, bits = struct.unpack_from("<HI", blob, 22) + (
@@ -205,7 +212,13 @@ class SnapcastClient:
             # byte stream the encoder produced.
             print(f"[snapcast] stream: {codec}, decoding")
             self._start_decoder(blob)
+        elif codec in UNDECODABLE_CODECS:
+            self._set(error=f"snapcast sends {codec} without a container, which cannot be "
+                            f"decoded - use flac, ogg or pcm")
+            print(f"[snapcast] '{codec}' has no container on this transport; "
+                  f"set the server to flac, ogg or pcm")
         else:
+            self._set(error=f"'{codec}' needs ffmpeg, which was not found")
             print(
                 f"[snapcast] stream is '{codec}' and no ffmpeg was found - "
                 f"set the snapserver transport codec to pcm"

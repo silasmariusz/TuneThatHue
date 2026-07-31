@@ -89,6 +89,48 @@ so every run is comparable.
 5. **Regression.** WAV still plays with the decoder disabled, and the light wall still
    moves - checked by eye, not by counter.
 
+## Results
+
+Built and measured on the test NAS, from the packaged daemon, driven by the real other
+end in every case. A run counts only if the beat tracker locks to the source's known
+tempo - that is what proves the samples are music and not noise.
+
+**The ffmpeg builds** are smaller than expected: x86_64 4.1 MB, aarch64 3.3 MB,
+armv7 2.4 MB - audio decoders only, static, LGPL, no external libraries. Against an
+80 MB package that is nothing, and the cross-builds that were supposed to be the risk
+took minutes.
+
+**Over DLNA, all ten formats play** - FLAC, MP3, AAC in ADTS, AAC in MP4, Ogg Vorbis,
+Opus, ALAC, WMA, AC3 and WAV - each about 200 spectra per ten seconds and the tracker
+locked at 119.7-119.8 BPM on a 120 BPM source.
+
+**Over Squeezebox**: FLAC, MP3, AAC, Opus and WAV all lock at 119.7-120.2.
+
+**Over Snapcast**: pcm, flac and ogg all lock.
+
+### The two things that cannot work, and why
+
+- **MP4/M4A through a one-way stream.** An MP4 keeps its index at the *end* of the file,
+  so nothing can play it without seeking back - not us, not anything. Over DLNA it works,
+  because there we hand ffmpeg the URL and it can range-request; over Squeezebox, where
+  the server pushes a stream at us, it cannot. Reported in those words rather than as a
+  demuxer error.
+- **Opus over Snapcast.** Snapcast sends raw Opus packets with no container at all. FLAC
+  chunks concatenate into a valid FLAC stream and Ogg chunks carry their own pages, but
+  raw Opus packets would have to be re-framed first. Reported, with the three codecs that
+  do work named.
+
+### Two bugs the matrix found
+
+- **Audio was delivered at disk speed.** A control point that hands us a file URL is read
+  as fast as the disk allows, so thirty seconds of music reached the engine in one second:
+  the beat tracker saw nonsense and the lights fired a burst and stopped. Now paced to the
+  clock, which costs a live stream nothing because it never runs ahead.
+- **Every Stop took two seconds**, because the teardown read ffmpeg's stderr while ffmpeg
+  was still alive - waiting for an EOF that only arrives when it exits. Long enough for a
+  UPnP control point to give up and call the device broken, which is why every second
+  codec in the first matrix appeared to fail.
+
 ## Estimate
 
 | | |

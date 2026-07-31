@@ -97,6 +97,12 @@ async def decode_stream(
         "-hide_banner",
         "-loglevel", "error",
         "-nostdin",
+        # A live stream arrives in 20 ms pieces, and ffmpeg's default is to swallow up
+        # to 5 MB before it decides what it is looking at - which on a compressed
+        # stream is minutes of silence. Probe a little and start.
+        "-probesize", "32768",
+        "-analyzeduration", "0",
+        "-fflags", "+nobuffer",
         "-i", "pipe:0",
         "-vn",                              # a stream can carry cover art; ignore it
         # WAV rather than raw s16le: the minimal build carries the wav muxer, and it
@@ -106,6 +112,9 @@ async def decode_stream(
         "-acodec", "pcm_s16le",
         "-ac", str(OUT_CHANNELS),
         "-ar", str(OUT_RATE),
+        # Push each packet out as it is ready rather than filling a buffer first; the
+        # lights are supposed to follow the music, not trail it.
+        "-flush_packets", "1",
         "pipe:1",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
@@ -163,7 +172,16 @@ async def decode_stream(
             await proc.wait()
 
     if not counted["bytes"]:
-        reason = err.decode(errors="replace").strip().splitlines()
+        text = err.decode(errors="replace")
+        if "mov,mp4,m4a" in text:
+            # An MP4 keeps its index at the END of the file, so a one-way stream of it
+            # can never be read - by us or by anything else. Say that, rather than
+            # quoting a demuxer error at someone.
+            raise DecodeError(
+                "this is an MP4/M4A, which cannot be played from a stream because its "
+                "index sits at the end of the file - ask the server for flac, mp3 or wav"
+            )
+        reason = text.strip().splitlines()
         detail = reason[-1] if reason else "no audio came out"
         raise DecodeError(f"{hint or 'stream'}: {detail}"[:200])
 

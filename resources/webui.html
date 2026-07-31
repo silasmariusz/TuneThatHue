@@ -218,24 +218,22 @@
       <button id="snapBtn">Join</button>
       <span class="mono" id="src-snapcast" style="font-size:13px;color:var(--legend)">off</span>
     </div>
-    <p class="note">Joins a Snapcast group and takes the group's audio. Set the snapserver's
-      transport codec to <strong>pcm</strong> — this client reads raw samples and cannot decode
-      flac.</p>
+    <p class="note">Joins a Snapcast group and takes the group's audio. Any transport codec works
+      except <strong>opus</strong>, which Snapcast sends without a container.</p>
     <div class="row">
       <label for="slimDevice">As a Squeezebox</label>
       <label class="toggle" style="flex:none"><input type="checkbox" id="slimDevice"> Appear as a player</label>
       <span class="mono" id="src-slimproto" style="font-size:13px;color:var(--legend)">off</span>
     </div>
     <p class="note">Finds a Logitech Media Server or Music Assistant by itself and appears in it as
-      a player, ready to be put in a sync group. Set that player's output codec to
-      <strong>wav</strong> — it reads uncompressed samples and cannot decode flac or mp3.</p>
+      a player, ready to be put in a sync group. Any output codec works.</p>
     <div class="row">
       <label for="dlnaDevice">As a DLNA speaker</label>
       <label class="toggle" style="flex:none"><input type="checkbox" id="dlnaDevice"> Appear as a renderer</label>
       <span class="mono" id="src-dlna" style="font-size:13px;color:var(--legend)">off</span>
     </div>
     <p class="note">Shows up wherever a phone, a hi-fi app or Music Assistant looks for a network
-      speaker. Same rule: the sender's output codec has to be <strong>wav</strong>.</p>
+      speaker. Send it anything — flac, mp3, aac, ogg, opus, alac, wma or wav.</p>
   </section>
 
   <!-- ── BRIDGE ─────────────────────────────────────────────────── -->

@@ -1,23 +1,21 @@
 # hue-box configuration. Copy to hue-box.toml and fill in your values.
 # The [snapcast]
-# Join a Snapcast group. Leave host empty to stay off. The snapserver must be set to
-# the "pcm" transport codec - this client reads raw samples and cannot decode flac.
+# Join a Snapcast group. Leave host empty to stay off. Any transport codec works except
+# opus, which Snapcast sends without a container and nothing can decode.
 enabled = false
 host = ""
 name = "TuneThatHue"
 
 [slimproto]
 # Appear as a Squeezebox player. The box finds the server itself with a broadcast, so
-# host can stay empty. Set that player's output codec to "wav" on the server side -
-# this player reads uncompressed samples and cannot decode flac or mp3.
+# host can stay empty. Any output codec works.
 enabled = false
 host = ""
 name = "TuneThatHue"
 
 [dlna]
 # Appear as a UPnP/DLNA media renderer, so anything that can push to a network speaker
-# can push to the lights. Set the sending player's output codec to "wav" - the renderer
-# plays what it is handed and cannot decode.
+# can push to the lights. Send it any format.
 enabled = false
 name = "TuneThatHue"
 port = 8930
