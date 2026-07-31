@@ -41,9 +41,24 @@
   --deck-c:#AEB6BD;         /* C · grey   · engine    */
   --deck-d:#F0862F;         /* D · orange · bridge    */
 
+  /* Printing has exactly two colours, and which one is used follows from what it is
+     printed on. Dark ink on aluminium, light ink on a dark plate. Getting this wrong is
+     what made half the settings labels unreadable. */
+  --print-dark:#26292C;     /* on aluminium */
+  --print-dark-2:#5A6167;   /* on aluminium, secondary */
+  --print-light:#D6DCE1;    /* on a dark plate */
+  --print-light-2:#868F97;  /* on a dark plate, secondary */
+
+  /* Three lit meanings and no more. A key is dark until it is doing something; the
+     colour then says which kind of something. Flat fills, not glossy ones - a Traktor
+     key is printed, not varnished. */
+  --on-listen:#3E8FC4;      /* on the network as a player, waiting */
+  --on-link:#2AA372;        /* linked to something */
+  --on-out:#D9741C;         /* light going out */
+
   --live:#33E1A0;           /* signal-present LED. never decoration */
   --hot:#FFB020;            /* warnings only */
-  --accent:#F0862F;         /* the one interactive accent (primary keys, focus) */
+  --accent:#D9741C;         /* focus rings and the one primary key */
 
   /* type — system stacks only: the box has no internet, we ship no fonts */
   --f-display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Liberation Sans Narrow","Arial Narrow",system-ui,sans-serif;
@@ -136,6 +151,38 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
     linear-gradient(180deg,var(--alu-hi),var(--alu) 14%,var(--alu) 86%,var(--alu-lo));
   box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(0,0,0,.18)}
 
+
+/* ── the instrument panels ────────────────────────────────────────────────
+   Each reading gets its own bezel. A panel is the aluminium face on its own -
+   no dark title rail above it, because the title belongs on the face, printed,
+   the way it is on a real one. */
+.panel{border-radius:6px;border:1px solid #000;padding:11px 13px 13px;min-width:0;
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.14) 0 1px, rgba(255,255,255,0) 1px 4px),
+    linear-gradient(180deg,var(--alu-hi),var(--alu) 14%,var(--alu) 86%,var(--alu-lo));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(0,0,0,.2),
+             0 8px 20px rgba(0,0,0,.4)}
+.pnl-head{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+.pnl-head .legend{color:var(--print-dark)}
+.pnl-head .sub{margin-left:auto;font-family:var(--f-mono);font-size:10.5px;
+  font-variant-numeric:tabular-nums;color:var(--print-dark-2);letter-spacing:.04em}
+.panel .trio .link+.link{margin-top:0}
+@media(max-width:719px){.panel .trio{gap:12px}}
+
+/* one switch shape for every yes/no in the panel, so a setting that is on looks the
+   same whether it is a source, an output, or a checkbox from the provider's own list */
+.sw{display:inline-flex;align-items:center;gap:0;height:24px;padding:2px;border-radius:3px;
+  background:#14171A;border:1px solid #000;cursor:pointer;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.7)}
+.sw span{display:grid;place-items:center;height:100%;padding:0 11px;border-radius:2px;
+  font:600 9px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;
+  color:#6E767D;transition:background .08s linear,color .08s linear}
+.sw[aria-pressed=false] span:first-child,
+.sw[aria-pressed=true] span:last-child{background:#2E3338;color:#C6CCD1;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.sw[aria-pressed=true] span:last-child{background:var(--on-out);color:#231503}
+.sw:hover span{color:#98A1A8}
+
 /* ── dark glass screens, recessed into the metal ── */
 .screen{background:var(--screen);border:1px solid var(--screen-edge);border-radius:5px;
         box-shadow:inset 0 2px 8px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.04),
@@ -167,6 +214,8 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
 /* ══ SIGNAL CHAIN — four decks in sequence ═══════════════════════════ */
 /* ══ signal chain: audio across the top, meters, then three counters ═══════ */
 .chain{display:grid;grid-template-columns:1fr;gap:9px}
+/* the panels are siblings in the page flow now, not rows inside one plate */
+main>.panel+.panel{margin-top:0}
 .trio{display:grid;grid-template-columns:1fr;gap:9px}
 @media(min-width:720px){.trio{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lcd.wide{height:44px}
@@ -190,20 +239,32 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
   box-shadow:inset 0 2px 6px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.45)}
 .ledcol i{flex:1;min-height:3px;border-radius:1px;background:#1A1E20}
 
-/* the "?" that carries what used to be a paragraph */
-.q{width:15px;height:15px;padding:0;margin-left:6px;border-radius:50%;
-  font:700 10px/1 var(--f-body);background:#C3C7CA;color:#3A4046;border:1px solid #9AA0A4;
-  cursor:help;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+/* One "?" per module, in its header, and nowhere else. Individual controls do not
+   need their own: with [i] switched on, hovering any of them shows its hint, which is
+   what that switch is for. */
+.q{width:15px;height:15px;min-width:0;padding:0;border-radius:50%;
+  font:700 10px/1 var(--f-body);background:#3A4046;color:#98A1A8;border:1px solid #14171A;
+  cursor:help;box-shadow:none}
 .q:hover{background:var(--accent);color:#2A1405;border-color:#8A4A12}
-.rail .q{background:#3A4046;color:var(--rail-dim);border-color:#000}
-.rail .q:hover{background:var(--accent);color:#2A1405}
+.rail .q{margin-left:8px}
 .link h3 .sub{margin-left:auto;font-size:10.5px}
 
 /* only the signal chain is metal; every other module is Traktor's dark */
-.plate.dark{background:linear-gradient(180deg,#23272B,#1B1E22);color:var(--read);
+.plate.dark{background:linear-gradient(180deg,#23272B,#1B1E22);color:var(--print-light);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-.plate.dark .legend,.plate.dark label,.plate.dark .note{color:var(--rail-dim)}
-.plate.dark .row-label,.plate.dark .fieldname{color:var(--rail-dim)}
+/* Everything printed on a dark plate takes the light ink. Listing the classes one by
+   one is how the settings labels ended up printed in the aluminium ink and vanished. */
+.plate.dark .legend,
+.plate.dark label,
+.plate.dark .note,
+.plate.dark .unit,
+.plate.dark .mtr-cap,
+.plate.dark .led,
+.plate.dark .row-label,
+.plate.dark .fieldname,
+.plate.dark h3,
+.plate.dark .sub{color:var(--print-light-2)}
+.plate.dark .note strong,.plate.dark .big{color:var(--print-light)}
 
 .meters{display:grid;grid-template-columns:repeat(4,auto);gap:8px;justify-content:center;
   align-items:stretch}
@@ -380,10 +441,10 @@ a.brand:hover{color:var(--read)}
 .eyebrow{font-family:var(--f-display);font-size:9.5px;font-weight:600;
       letter-spacing:.22em;text-transform:uppercase;color:#5C646C}
 .brandrow{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:7px;color:var(--rail-dim);
+.brand{display:flex;align-items:center;gap:7px;color:var(--print-light-2);
       font-family:var(--f-display);font-size:10.5px;letter-spacing:.1em;
       text-transform:uppercase;transition:color .15s}
-.brand svg{width:20px;height:20px;flex:none}
+/* the footer carries image files now, sized by .brand img below */
 .brand:hover{color:#E8ECEF}
 .proto{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:3px;
       border:1px solid #2B3036;color:var(--rail-dim);
@@ -415,35 +476,46 @@ a.brand:hover{color:var(--read)}
        amber  light is going out
    Pressing a lit key turns that thing off. There is no separate label repeating what
    the key is already showing. */
-.key{display:inline-flex;align-items:center;gap:7px;
-  min-width:52px;padding:5px 11px;border-radius:2px;cursor:pointer;
+/* A key holds still. Its height is fixed, its width is fixed, and pressing it changes
+   only the shading - no border, no size, no shift. A key whose label changes with its
+   state (Pair / Press / Paired) keeps one width for every label, or the row it sits in
+   moves every time the state does. */
+.key{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  height:28px;min-width:104px;padding:0 12px;border-radius:2px;cursor:pointer;
   font:600 10px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;
-  color:#8A9298;background:linear-gradient(180deg,#3A4046,#272B30);border:1px solid #000;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 rgba(255,255,255,.35)}
-.key:hover{color:#C6CCD1}
-.key:active{box-shadow:inset 0 2px 5px rgba(0,0,0,.55)}
-.key svg{width:13px;height:13px;flex:none;opacity:.85}
-.key[aria-pressed=true] svg{opacity:1}
+  color:#98A1A8;background:#2E3338;border:1px solid #14171A;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  transition:background .08s linear,color .08s linear}
+.key:hover{background:#363C42;color:#C6CCD1}
+.key:active{background:#212528;box-shadow:inset 0 2px 5px rgba(0,0,0,.5)}
+.key svg{width:13px;height:13px;flex:none}
+/* the label is what changes; give it one width so the key never resizes */
+.key .lb{min-width:5.2em;text-align:center}
 
-/* blue - listening */
-.key[aria-pressed=true]{color:#06202F;
-  background:linear-gradient(180deg,#5FBCEC,#2E82BC);border-color:#1E5C88;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 0 8px rgba(60,154,217,.45)}
-.key[aria-pressed=true]:hover{color:#06202F}
-/* green - linked */
-.key.k-link[aria-pressed=true]{color:#04231A;
-  background:linear-gradient(180deg,#5EE2AE,#26A97A);border-color:#177A57;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 0 8px rgba(51,225,160,.45)}
-/* amber - light going out */
-.key.k-out[aria-pressed=true]{color:#231503;
-  background:linear-gradient(180deg,#F7A945,#DE7A1D);border-color:#9E5410;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 0 10px rgba(240,134,47,.45)}
-/* waiting on something outside our control - the bridge button, a scan */
-.key.k-wait{color:#231503;background:linear-gradient(180deg,#F7C845,#DEA61D);
-  border-color:#9E7410;animation:keywait 1s steps(1) infinite}
-@keyframes keywait{50%{background:linear-gradient(180deg,#6A5A2E,#3A3320);color:#C9B278}}
-.key.k-bad{color:#2A0A0A;background:linear-gradient(180deg,#F07C6E,#C9402C);
-  border-color:#8A2A1C}
+/* Real logos, used as the files they are. Only the colour is ours: greyscale and dimmed
+   so a row of marks from five different brands reads as one printed strip, then full
+   brightness on hover. Their aspect ratios differ wildly, so height is fixed and width
+   follows - which is how a logo strip works and why square glyphs looked wrong. */
+.brand img{height:17px;width:auto;max-width:104px;display:block;
+  filter:grayscale(1) brightness(1.7) opacity(.55);transition:filter .12s linear}
+.brand:hover img{filter:grayscale(1) brightness(2.2) opacity(.95)}
+/* Snapcast, Squeezebox, Sendspin, Linux: no logo was supplied, so the name is set as a
+   wordmark rather than a picture invented for it. */
+.brand.word{font:600 10px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--print-light-2);text-decoration:none;padding:3px 0}
+.brand.word:hover{color:var(--print-light)}
+
+.key[aria-pressed=true]{background:var(--on-listen);border-color:#20536F;color:#06202F}
+.key[aria-pressed=true]:hover{background:#4A9CD0;color:#06202F}
+.key.k-link[aria-pressed=true]{background:var(--on-link);border-color:#17603F;color:#04231A}
+.key.k-link[aria-pressed=true]:hover{background:#31B57F;color:#04231A}
+.key.k-out[aria-pressed=true]{background:var(--on-out);border-color:#8A470E;color:#231503}
+.key.k-out[aria-pressed=true]:hover{background:#E8821F;color:#231503}
+/* waiting on something we do not control: the bridge's own button being pressed */
+.key.k-wait{background:#B98A1B;border-color:#7A5A0E;color:#231503;
+  animation:keywait 1s steps(1) infinite}
+@keyframes keywait{50%{background:#3A3320;color:#B9A470}}
+.key.k-bad{background:#B23A28;border-color:#7A2418;color:#F6E2DE}
 @media(prefers-reduced-motion:reduce){.key.k-wait{animation:none}}
 
 /* an IPv4 field that only takes an IPv4: four octets, each 0-255, machined into one
@@ -481,77 +553,8 @@ a.brand:hover{color:var(--read)}
 <!-- brand glyphs, drawn once, reused in senders + footer -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="sym-winamp" viewBox="0 0 32 32">
-      <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" stroke-width="2"/>
-      <path fill="currentColor" d="M19.6 6.5 9.5 18.2h4.9L11.9 25.5 22.5 13.4h-5.1z"/>
-    </symbol>
-    <symbol id="sym-foobar" viewBox="0 0 512 512">
-      <path fill="currentColor" d="M256 473.5S221 445 186 408c-27.5-29-54-64.5-68-92-31.5-62.5-13-137 59-257l54 74s12-2 25-2.1c13 .1 25 2.1 25 2.1l54-74c72 120 90.5 194.5 59 257-14 27.5-40.5 63-68 92-35 37-70 65.5-70 65.5Z"/>
-      <path class="knock" fill="var(--chassis-2)" d="M149 212c31.5 8 57.5 38.5 71 67 15 32.5 9 62-26 50.5-39.5-14-58.5-45-67.5-69-5-13-14.5-58 22.5-48.5Z"/>
-      <path class="knock" fill="var(--chassis-2)" d="M363 212c-31.5 8-57.5 38.5-71 67-15 32.5-9 62 26 50.5 39.5-14 58.5-45 67.5-69 5-13 14.5-58-22.5-48.5Z"/>
-    </symbol>
-    <symbol id="sym-aimp" viewBox="0 0 256 256">
-      <circle cx="128" cy="128" r="118" fill="none" stroke="currentColor" stroke-width="16"/>
-      <path fill="currentColor" d="M60,170 L155,170 L142,150 L98,150 L127,102 L170,170 L196,170 L127,55z"/>
-    </symbol>
-    <symbol id="sym-windows" viewBox="0 0 32 32">
-      <path fill="currentColor" d="M4 6.8 14.4 5.4v9.8H4zM16 5.2 28 3.5v11.7H16zM4 17.2h10.4v9.6L4 25.2zM16 17.2h12v11.3l-12-1.7z"/>
-    </symbol>
-    <symbol id="sym-macos" viewBox="0 0 32 32">
-      <path fill="currentColor" d="M21.7 17.1c0-3 2.5-4.5 2.6-4.6-1.4-2.1-3.6-2.4-4.4-2.4-1.9-.2-3.7 1.1-4.6 1.1-1 0-2.4-1.1-4-1.1-2 0-3.9 1.2-5 3-2.1 3.7-.5 9.1 1.5 12.1 1 1.5 2.2 3.1 3.8 3 1.5-.1 2.1-1 4-1s2.4 1 4 1 2.7-1.5 3.7-2.9c1.2-1.7 1.7-3.3 1.7-3.4-.1 0-3.3-1.3-3.3-4.8ZM18.6 7.9c.8-1 1.4-2.5 1.2-3.9-1.2 0-2.7.8-3.6 1.9-.8.9-1.5 2.4-1.3 3.8 1.4.1 2.8-.7 3.7-1.8Z"/>
-    </symbol>
-    <symbol id="sym-capture" viewBox="0 0 32 32">
-      <path fill="currentColor" d="M6 12v8h5l7 6V6l-7 6H6z"/>
-      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            d="M21.5 12.5a5 5 0 0 1 0 7M25 9.5a10 10 0 0 1 0 13"/>
-    </symbol>
     <symbol id="sym-play" viewBox="0 0 32 32">
       <path d="M11 7.5 25 16 11 24.5Z" fill="currentColor"/>
-    </symbol>
-    <symbol id="sym-vban" viewBox="0 0 32 32">
-      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            d="M4 16h3l3-7 4 14 4-11 3 8 2-4h5"/>
-    </symbol>
-    <symbol id="sym-wled" viewBox="0 0 32 32">
-      <rect x="3" y="12" width="26" height="8" rx="2" fill="none" stroke="currentColor"
-            stroke-width="2"/>
-      <circle cx="9" cy="16" r="1.8" fill="currentColor"/>
-      <circle cx="16" cy="16" r="1.8" fill="currentColor"/>
-      <circle cx="23" cy="16" r="1.8" fill="currentColor"/>
-    </symbol>
-    <symbol id="sym-snapcast" viewBox="0 0 32 32">
-      <rect x="6" y="7" width="20" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-      <circle cx="16" cy="17" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/>
-      <circle cx="16" cy="11" r="1.6" fill="currentColor"/>
-    </symbol>
-    <symbol id="sym-dlna" viewBox="0 0 32 32">
-      <circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
-      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            d="M7.5 7.5a12 12 0 0 0 0 17M24.5 7.5a12 12 0 0 1 0 17"/>
-    </symbol>
-    <symbol id="sym-squeezebox" viewBox="0 0 32 32">
-      <rect x="4" y="9" width="24" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-      <rect x="7.5" y="12.5" width="11" height="7" rx="1" fill="currentColor"/>
-      <circle cx="24" cy="16" r="2" fill="currentColor"/>
-    </symbol>
-    <symbol id="sym-sendspin" viewBox="0 0 32 32">
-      <circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-width="2"/>
-      <circle cx="16" cy="16" r="3" fill="currentColor"/>
-      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            d="M16 3.5a12.5 12.5 0 0 1 11 6.5"/>
-    </symbol>
-    <symbol id="sym-qnap" viewBox="0 0 32 32">
-      <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="3"/>
-      <path fill="currentColor" d="M18 19h7.5l3 6H21z"/>
-    </symbol>
-    <symbol id="sym-linux" viewBox="0 0 32 32">
-      <path fill="currentColor" d="M16 3c-3.6 0-5.4 2.8-5.4 6.4 0 2.4.4 3.6-.6 5.4-1.2 2.1-3.4 4.6-3.4 7.3 0 1.6 1 2.4 2.4 2.4 1 0 1.6.6 2.2 1.6.8 1.3 2.5 2.4 4.8 2.4s4-1.1 4.8-2.4c.6-1 1.2-1.6 2.2-1.6 1.4 0 2.4-.8 2.4-2.4 0-2.7-2.2-5.2-3.4-7.3-1-1.8-.6-3-.6-5.4C21.4 5.8 19.6 3 16 3Z"/>
-      <circle cx="13.2" cy="10" r="1.6" fill="var(--chassis-2)"/>
-      <circle cx="18.8" cy="10" r="1.6" fill="var(--chassis-2)"/>
-    </symbol>
-    <symbol id="sym-rpi" viewBox="0 0 32 32">
-      <path fill="currentColor" d="M16 8c2.6 0 4.7 1.3 5.8 3.2 2.3.4 3.9 2.2 3.9 4.5 0 1.4-.6 2.7-1.6 3.6.2 2.6-2 5-5.2 5.5-.7 1-1.7 1.6-2.9 1.6s-2.2-.6-2.9-1.6c-3.2-.5-5.4-2.9-5.2-5.5-1-.9-1.6-2.2-1.6-3.6 0-2.3 1.6-4.1 3.9-4.5C11.3 9.3 13.4 8 16 8Z"/>
-      <path fill="currentColor" d="M13.4 3.6c1.2.3 2 1.3 2.3 2.4.4-1.1 1.2-2.1 2.4-2.4-.1 1.3-.8 2.4-1.8 3h-1.1c-1-.6-1.7-1.7-1.8-3Z"/>
     </symbol>
   </defs>
 </svg>
@@ -593,53 +596,45 @@ a.brand:hover{color:var(--read)}
     </div>
   </section>
 
-  <!-- ── SIGNAL CHAIN — four decks in sequence ─────────────────────── -->
-  <section class="module">
-    <div class="rail"><h2 class="legend">Signal chain</h2></div>
-    <div class="plate">
-      <div class="chain">
-        <div class="link">
-          <h3><b class="cap cap-a">A</b>Audio in
-            <button class="q" data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second. The rate underneath is what is arriving on the wire.">?</button>
-            <span class="sub" id="rate">—</span>
-          </h3>
-          <div class="screen lcd wide"><div id="spec"></div></div>
-        </div>
+  <!-- Three instruments, three panels. They were one panel under one heading, which
+       made a diagram of something that is really three separate readings. -->
+  <section class="panel"
+    data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second. The rate on the right is what is arriving on the wire.">
+    <div class="pnl-head"><span class="legend">Audio in</span><span class="sub" id="rate">&mdash;</span></div>
+    <div class="screen lcd wide"><div id="spec"></div></div>
+  </section>
 
-        <div class="meters">
-          <div class="mtr">
-            <div class="vuwrap" id="vu-l"></div><span class="mtr-cap">L</span>
-          </div>
-          <div class="ledcol" id="led-l"></div>
-          <div class="ledcol mirror" id="led-r"></div>
-          <div class="mtr mirror">
-            <div class="vuwrap" id="vu-r"></div><span class="mtr-cap">R</span>
-          </div>
-        </div>
+  <section class="panel"
+    data-hint="Level|Peak per channel, straight off the audio. The needles show what is coming in; the ladders beside them hold a peak a moment longer so a short one is still visible.">
+    <div class="meters">
+      <div class="mtr">
+        <div class="vuwrap" id="vu-l"></div><span class="mtr-cap">L</span>
+      </div>
+      <div class="ledcol" id="led-l"></div>
+      <div class="ledcol mirror" id="led-r"></div>
+      <div class="mtr mirror">
+        <div class="vuwrap" id="vu-r"></div><span class="mtr-cap">R</span>
+      </div>
+    </div>
+  </section>
 
-        <div class="trio">
-          <div class="link">
-            <h3><b class="cap cap-b">B</b>Beat
-              <button class="q" data-hint="Beat|Tempo read from the audio. Every effect fires on this grid, so if the number is wrong the lights will be too.">?</button>
-              <span class="sub"><span id="beats">0</span> beats</span>
-            </h3>
-            <div class="screen lcd"><div class="big"><span id="bpm">—</span><span class="unit">BPM</span></div></div>
-          </div>
-          <div class="link">
-            <h3><b class="cap cap-c">C</b>Engine
-              <button class="q" data-hint="Engine|Frames rendered since the daemon started, and the rate it is managing now. Thirty a second is the target.">?</button>
-              <span class="sub" id="rps">—</span>
-            </h3>
-            <div class="screen lcd"><div class="big"><span id="renders">0</span></div></div>
-          </div>
-          <div class="link">
-            <h3><b class="cap cap-d">D</b>Bridge
-              <button class="q" data-hint="Bridge|Frames that carried light, and the area they went to. Zero while the output is off.">?</button>
-              <span class="sub" id="outState">off</span>
-            </h3>
-            <div class="screen lcd"><div class="big"><span id="lit">0</span><span class="unit">lit</span></div></div>
-          </div>
-        </div>
+  <section class="panel">
+    <div class="trio">
+      <div class="link"
+        data-hint="Beat|Tempo read from the audio. Every effect fires on this grid, so if the number is wrong the lights will be too.">
+        <div class="pnl-head"><span class="legend">Beat</span>
+          <span class="sub"><span id="beats">0</span> beats</span></div>
+        <div class="screen lcd"><div class="big"><span id="bpm">&mdash;</span><span class="unit">BPM</span></div></div>
+      </div>
+      <div class="link"
+        data-hint="Engine|Frames rendered since the daemon started, and the rate it is managing now. Thirty a second is the target.">
+        <div class="pnl-head"><span class="legend">Engine</span><span class="sub" id="rps">&mdash;</span></div>
+        <div class="screen lcd"><div class="big"><span id="renders">0</span></div></div>
+      </div>
+      <div class="link"
+        data-hint="Bridge|Frames that carried light, and the room they went to. Zero while Sync is off.">
+        <div class="pnl-head"><span class="legend">Bridge</span><span class="sub" id="outState">off</span></div>
+        <div class="screen lcd"><div class="big"><span id="lit">0</span><span class="unit">lit</span></div></div>
       </div>
     </div>
   </section>
@@ -647,22 +642,15 @@ a.brand:hover{color:var(--read)}
   <div class="duo">
     <!-- ── SOURCES ─────────────────────────────────────────────────── -->
     <section class="module">
-      <div class="rail"><h2 class="legend">Sources</h2></div>
+      <div class="rail"><h2 class="legend">Sources</h2><button class="q" data-hint="Sources|A lit key means we are on the network as that kind of player, waiting to be picked. Leave as many on as you like: one drives the lights at a time, and another takes over a couple of seconds after it goes quiet.">?</button></div>
       <div class="plate dark">
         <div class="row">
-          <button class="key" id="ssDevice" aria-pressed="false">
-            <svg aria-hidden="true"><use href="#sym-sendspin"/></svg>Sendspin</button>
-          <button class="key" id="slimDevice" aria-pressed="false">
-            <svg aria-hidden="true"><use href="#sym-squeezebox"/></svg>Squeezebox</button>
-          <button class="key" id="dlnaDevice" aria-pressed="false">
-            <svg aria-hidden="true"><use href="#sym-dlna"/></svg>DLNA</button>
-          <button class="q" data-hint="Sources|A lit key means we are on the network as that kind of player,
-            waiting to be picked. Leave as many on as you like: one drives the lights at a time, and another
-            takes over a couple of seconds after it goes quiet.">?</button>
+          <button class="key" id="ssDevice" aria-pressed="false">Sendspin</button>
+          <button class="key" id="slimDevice" aria-pressed="false">Squeezebox</button>
+          <button class="key" id="dlnaDevice" aria-pressed="false">DLNA</button>
         </div>
         <div class="row">
-          <button class="key" id="snapBtn" aria-pressed="false">
-            <svg aria-hidden="true"><use href="#sym-snapcast"/></svg>Snapcast</button>
+          <button class="key" id="snapBtn" aria-pressed="false">Snapcast</button>
           <div class="ipv4" id="snapGroup">
             <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, first number">
             <b>.</b>
@@ -672,16 +660,11 @@ a.brand:hover{color:var(--read)}
             <b>.</b>
             <input type="text" inputmode="numeric" maxlength="3" aria-label="fourth number">
           </div>
-          <button class="q" data-hint="Snapcast|Snapcast works the other way round: we go to the server rather
-            than wait to be found, so it needs the server's address.">?</button>
           <span class="grow"></span>
           <span class="led l-beat" id="ledVban"><i></i>VBAN</span>
-          <button class="q" data-hint="VBAN|Always listening on UDP 6980. Lights up when a player plug-in is
-            sending. Nothing to switch on.">?</button>
         </div>
         <div class="row">
-          <button class="key k-out" id="wledBtn" aria-pressed="false">
-            <svg aria-hidden="true"><use href="#sym-wled"/></svg>WLED</button>
+          <button class="key k-out" id="wledBtn" aria-pressed="false">WLED</button>
           <div class="ipv4" id="wledGroup">
             <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, first number">
             <b>.</b>
@@ -694,8 +677,6 @@ a.brand:hover{color:var(--read)}
           <input type="number" id="wledPixels" min="1" max="1500" step="1" value="60"
                  aria-label="how many LEDs" style="width:5.5em">
           <span class="unit">leds</span>
-          <button class="q" data-hint="WLED|An LED strip lit from the same frames as the bridge. The strip is cut
-            into as many pieces as the room has lamps, so a chase across the room runs along it.">?</button>
         </div>
       </div>
     </section>
@@ -703,7 +684,7 @@ a.brand:hover{color:var(--read)}
     <div class="stack">
       <!-- ── BRIDGE ────────────────────────────────────────────────── -->
       <section class="module">
-        <div class="rail"><h2 class="legend">Hue bridge</h2></div>
+        <div class="rail"><h2 class="legend">Hue bridge</h2><button class="q" data-hint="Hue bridge|Where the light goes. Pair once, pick the room, then Sync. Pair is green while we hold the bridge&#39;s credentials, and pressing it green gives them back. Leave the address empty to find the bridge on the network.">?</button></div>
         <div class="plate dark">
           <div class="row">
             <div class="ipv4" id="hostGroup">
@@ -716,27 +697,20 @@ a.brand:hover{color:var(--read)}
               <input type="text" inputmode="numeric" maxlength="3" aria-label="fourth number">
             </div>
             <button class="key k-link" id="pairBtn" aria-pressed="false">Pair</button>
-            <button class="q" data-hint="Pair|Lit green once the bridge has let us in. Leave the address empty
-              to find it on the network. Press it while it is green to forget the bridge.">?</button>
             <select id="area" class="grow" aria-label="room"></select>
             <button class="key k-out" id="outBtn" aria-pressed="false">
               <svg aria-hidden="true"><use href="#sym-play"/></svg>Sync</button>
-            <button class="q" data-hint="Sync|Amber while the lights are following the music. The room is
-              chosen next to it.">?</button>
           </div>
         </div>
       </section>
 
       <!-- ── CALIBRATION ───────────────────────────────────────────── -->
       <section class="module">
-        <div class="rail"><h2 class="legend">Latency calibration</h2></div>
+        <div class="rail"><h2 class="legend">Latency calibration</h2><button class="q" data-hint="Latency calibration|Sound reaches the lights later than it reaches your ears. Play the click on the machine that captures the audio, and raise the delay until the flash lands on it. The lamps show what the engine is hearing: beat and bar from the tempo grid, then the sections it reacts to.">?</button></div>
         <div class="plate dark">
           <div class="row">
             <button class="key k-out" id="metroBtn" aria-pressed="false">
               <svg aria-hidden="true"><use href="#sym-play"/></svg>Click</button>
-            <button class="q" data-hint="Click|Play this on the machine that captures the audio. It goes out as
-              sound, comes back through the capture, and flashes the lights. Raise the delay until the flash
-              lands on the click.">?</button>
             <span class="oled" id="oledBpm">---.- BPM</span>
             <span class="oled" id="oledBeat">-/4</span>
             <span class="grow"></span>
@@ -747,9 +721,6 @@ a.brand:hover{color:var(--read)}
               <span class="led l-drop" id="ledDrop"><i></i>Drop</span>
               <span class="led l-break" id="ledBreak"><i></i>Break</span>
             </div>
-            <button class="q" data-hint="Lamps|What the engine is hearing right now. Beat and bar come from the
-              tempo grid; rise, drop and break are the sections it reacts to. If these do not light, the effects
-              have nothing to work with.">?</button>
           </div>
           <div class="row">
             <label for="latency">Delay</label>
@@ -764,9 +735,10 @@ a.brand:hover{color:var(--read)}
   <!-- ── SETTINGS (generated from the provider) ────────────────────── -->
   <section class="module">
     <div class="rail">
-      <h2 class="legend">Settings</h2>
+      <h2 class="legend">Settings</h2><button class="q" data-hint="Settings|Generated from the Music Assistant provider&#39;s own sources, so every setting here means exactly what it means there.">?</button>
       <span class="sp"></span>
-      <label class="toggle"><input type="checkbox" id="showAdvanced"> Advanced</label>
+      <button class="sw" id="showAdvanced" aria-pressed="false"
+        data-hint="Advanced|The rest of the provider's settings. Everything above is what most setups need; this is the fine tuning behind it."><span>Basic</span><span>All</span></button>
     </div>
     <div class="plate dark">
       <p class="note" style="margin:0 0 10px">Generated from the Music Assistant provider's own sources, so
@@ -782,42 +754,49 @@ a.brand:hover{color:var(--read)}
       <div class="brandset">
         <span class="eyebrow">Player plug-ins</span>
         <div class="brandrow">
-          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="Winamp"><svg aria-hidden="true"><use href="#sym-winamp"/></svg>Winamp</a>
-          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="foobar2000"><svg aria-hidden="true"><use href="#sym-foobar"/></svg>foobar2000</a>
-          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="AIMP"><svg aria-hidden="true"><use href="#sym-aimp"/></svg>AIMP</a>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="Winamp"
+             ><img data-logo="winamp.svg" alt="Winamp"></a>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="foobar2000"
+             ><img data-logo="foobar2000.svg" alt="foobar2000"></a>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="AIMP"
+             ><img data-logo="aimp.svg" alt="AIMP"></a>
         </div>
       </div>
       <div class="brandset">
         <span class="eyebrow">Sound capture</span>
         <div class="brandrow">
-          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="Windows"><svg aria-hidden="true"><use href="#sym-windows"/></svg>Windows</a>
-          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="macOS"><svg aria-hidden="true"><use href="#sym-macos"/></svg>macOS</a>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="Windows"
+             ><img data-logo="windows.svg" alt="Windows"></a>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="macOS"
+             ><img data-logo="macos.svg" alt="macOS"></a>
         </div>
       </div>
       <div class="brandset">
         <span class="eyebrow">Protocols</span>
         <div class="brandrow">
-          <a class="brand" href="https://github.com/badaix/snapcast" target="_blank" rel="noopener"
-             title="Snapcast"><svg aria-hidden="true"><use href="#sym-snapcast"/></svg>Snapcast</a>
-          <a class="brand" href="https://www.dlna.org" target="_blank" rel="noopener"
-             title="DLNA"><svg aria-hidden="true"><use href="#sym-dlna"/></svg>DLNA</a>
-          <a class="brand" href="https://github.com/Logitech/slimserver" target="_blank" rel="noopener"
-             title="Squeezebox"><svg aria-hidden="true"><use href="#sym-squeezebox"/></svg>Squeezebox</a>
-          <a class="brand" href="https://github.com/Sendspin/spec" target="_blank" rel="noopener"
-             title="Sendspin"><svg aria-hidden="true"><use href="#sym-sendspin"/></svg>Sendspin</a>
+          <a class="brand" href="https://www.dlna.org" target="_blank" rel="noopener" title="DLNA"
+             ><img data-logo="dlna.svg" alt="DLNA"></a>
+          <a class="brand word" href="https://github.com/badaix/snapcast" target="_blank"
+             rel="noopener">Snapcast</a>
+          <a class="brand word" href="https://github.com/Logitech/slimserver" target="_blank"
+             rel="noopener">Squeezebox</a>
+          <a class="brand word" href="https://github.com/Sendspin/spec" target="_blank"
+             rel="noopener">Sendspin</a>
+          <a class="brand word" href="https://kno.wled.ge" target="_blank" rel="noopener">WLED</a>
         </div>
       </div>
       <div class="brandset">
         <span class="eyebrow">Runs on</span>
         <div class="brandrow">
-          <a class="brand" href="https://www.qnap.com" target="_blank" rel="noopener"
-             title="QNAP NAS"><svg aria-hidden="true"><use href="#sym-qnap"/></svg>QNAP</a>
+          <a class="brand" href="https://www.qnap.com" target="_blank" rel="noopener" title="QNAP NAS"
+             ><img data-logo="qnap.svg" alt="QNAP"></a>
           <a class="brand" href="https://www.raspberrypi.com" target="_blank" rel="noopener"
-             title="Raspberry Pi"><svg aria-hidden="true"><use href="#sym-rpi"/></svg>Raspberry Pi</a>
-          <a class="brand" href="https://ubuntu.com" target="_blank" rel="noopener"
-             title="Linux"><svg aria-hidden="true"><use href="#sym-linux"/></svg>Linux</a>
+             title="Raspberry Pi"><img data-logo="raspberrypi.svg" alt="Raspberry Pi"></a>
+          <a class="brand word" href="https://ubuntu.com" target="_blank" rel="noopener">Linux</a>
+          <a class="brand word" href="https://www.docker.com" target="_blank" rel="noopener">Docker</a>
         </div>
       </div>
+    </div>
     </div>
     <p class="ftr-copy">
       TuneThatHue &copy; 2025–2026 Silas Mariusz Grzybacz · <a href="https://devspark.pl">devspark.pl</a><br>
@@ -1225,7 +1204,7 @@ function renderSchema(){
   const host = $('schemaHost');
   host.innerHTML = '';
   latencyMirror = null;
-  const adv = $('showAdvanced').checked;
+  const adv = keyOn('showAdvanced');
   for (const e of SCHEMA){
     if (e.hidden || (e.advanced && !adv)) continue;
     // Some copy addresses Music Assistant's own screen ("click the (?) button"),
@@ -1271,20 +1250,22 @@ function buildLightPicker(e){
     p.textContent = 'Turn the output on to see this area’s lights.';
     box.appendChild(p);
   }
+  // Which lights take part: a key each, lit when the light is in. Same switch as
+  // everywhere else, so "on" looks like "on" wherever it appears.
   for (const l of LIGHTS){
-    const wrap = document.createElement('label');
-    wrap.style.cssText = 'flex:none;display:flex;align-items:center;gap:6px;font-size:14px';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.checked = chosen.has(l.id);
-    cb.onchange = () => {
-      cb.checked ? chosen.add(l.id) : chosen.delete(l.id);
+    const key = document.createElement('button');
+    key.type = 'button'; key.className = 'key';
+    key.setAttribute('aria-pressed', String(chosen.has(l.id)));
+    key.textContent = l.name;
+    key.onclick = () => {
+      const on = key.getAttribute('aria-pressed') !== 'true';
+      key.setAttribute('aria-pressed', String(on));
+      on ? chosen.add(l.id) : chosen.delete(l.id);
       const ids = [...chosen].sort((a, b) => a - b);
       VALUES[e.key] = ids;
       apply({[e.key]: ids});
     };
-    wrap.appendChild(cb);
-    wrap.appendChild(document.createTextNode(l.name));
-    box.appendChild(wrap);
+    box.appendChild(key);
   }
   row.appendChild(box);
   return row;
@@ -1374,10 +1355,21 @@ function buildRow(e){
   const cur = VALUES[e.key] !== undefined ? VALUES[e.key] : e.default;
   let el;
   if (e.type === 'boolean'){
-    el = document.createElement('input'); el.type = 'checkbox'; el.checked = !!cur;
-    el.onchange = () => {
-      VALUES[e.key] = el.checked;
-      apply({[e.key]: el.checked});
+    // A switch, not a tick box. Every other yes/no on this panel is a switch, and a
+    // setting that came from the provider is not a different kind of thing.
+    el = document.createElement('button');
+    el.type = 'button'; el.className = 'sw';
+    el.setAttribute('aria-pressed', String(!!cur));
+    for (const word of ['Off', 'On']){
+      const part = document.createElement('span'); part.textContent = word;
+      el.appendChild(part);
+    }
+    if (e.description) el.setAttribute('data-hint', e.label + '|' + e.description);
+    el.onclick = () => {
+      const on = el.getAttribute('aria-pressed') !== 'true';
+      el.setAttribute('aria-pressed', String(on));
+      VALUES[e.key] = on;
+      apply({[e.key]: on});
       if (e.key === 'palette_rotate'){
         const b = $('paletteBoard'); if (b) syncBoard(b);
       }
@@ -1477,7 +1469,11 @@ $('dlnaDevice').onclick = async () => {
   await apply({dlna_enabled: want});
 };
 
-$('showAdvanced').onchange = renderSchema;
+$('showAdvanced').onclick = () => {
+  const on = $('showAdvanced').getAttribute('aria-pressed') !== 'true';
+  $('showAdvanced').setAttribute('aria-pressed', String(on));
+  renderSchema();
+};
 async function apply(patch){
   await fetch(API + 'api/settings', {method:'POST', headers:{'Content-Type':'application/json'},
                                      body: JSON.stringify(patch)});
@@ -1627,6 +1623,13 @@ async function loadDownloads(){
 // This one first: it brings the settings, the rooms, the palettes and the light wall.
 // Without it the page comes up looking finished and holding nothing.
 loadConfig();
+// The logo files are served next to the page, but the page may be under a prefix
+// (the QNAP app-proxy serves it at /TuneThatHue), so the paths are set from the same
+// API prefix everything else uses rather than written into the markup.
+for (const img of document.querySelectorAll('img[data-logo]')){
+  img.src = API + 'logos/' + img.dataset.logo;
+}
+
 loadDownloads();
 openPreview();
 poll();
