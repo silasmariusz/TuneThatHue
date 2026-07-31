@@ -226,6 +226,9 @@ class Phase2Daemon:
         self.area_name = ""
         # The area's real lights (id + name), for the VFX light picker.
         self.lights: list[dict] = []
+        # Optional second input: a Sendspin server that found us over mDNS and sends
+        # already-extracted features. Set up in main() when [sendspin] device is on.
+        self.sendspin: Any = None
         # Preview subscribers. The panel watches the exact frames the bridge gets, so
         # the tee sits after render and is capped well under the render rate - a browser
         # cannot use 30 fps and the queue must never become the slow path.
@@ -434,11 +437,27 @@ class Phase2Daemon:
             except Exception:  # noqa: BLE001 - dropping a preview frame is fine
                 pass
 
+    def render_clock_us(self) -> int:
+        """
+        The moment to render for.
+
+        Normally our own clock plus the light-latency lead. While a Sendspin server is
+        attached its frames are stamped in ITS clock, so we have to ask the library to
+        convert - rendering local time against server timestamps puts every effect at
+        the wrong instant.
+        """
+        target = self.now_us() + self.render_ahead_us
+        if self.sendspin is not None:
+            server = self.sendspin.server_time_us(target)
+            if server is not None:
+                return server
+        return target
+
     async def render_loop(self) -> None:
         period = 1.0 / RENDER_RATE_HZ
         while True:
             await asyncio.sleep(period)
-            cmds = self.analyzer.render(self.now_us() + self.render_ahead_us)
+            cmds = self.analyzer.render(self.render_clock_us())
             self.stats.renders += 1
             if any(c.red or c.green or c.blue for c in cmds):
                 self.stats.lit += 1
@@ -716,9 +735,25 @@ async def main() -> None:
     )
     print(f"[vban] listening on UDP {args.port} - start Winamp with the TuneThatHue DSP plugin")
 
+    # Second input, off unless asked for: announce ourselves on the network so a
+    # Sendspin server (Music Assistant) finds the box and sends it audio features. The
+    # two inputs coexist - whichever is sending drives the lights.
+    if daemon.cfg.get_value("sendspin_device"):
+        from sendspin_device import SendspinDevice  # noqa: PLC0415 - optional input
+
+        name = str(daemon.cfg.get_value("sendspin_device_name") or "TuneThatHue")
+        daemon.sendspin = SendspinDevice(daemon.analyzer, name)
+        try:
+            await daemon.sendspin.start()
+        except Exception as err:  # noqa: BLE001 - a busy port must not stop the daemon
+            print(f"[sendspin] could not start device mode: {err}")
+            daemon.sendspin = None
+
     try:
         await asyncio.gather(daemon.render_loop(), daemon.stats_loop())
     finally:
+        if daemon.sendspin is not None:
+            await daemon.sendspin.stop()
         transport.close()
         if webui_runner is not None:
             await webui_runner.cleanup()

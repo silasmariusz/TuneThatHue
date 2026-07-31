@@ -11,6 +11,12 @@ area = ""                      # entertainment area name or id ("" = first area)
 [sendspin]
 url = "ws://192.168.1.10:8927/sendspin"  # Music Assistant server
 latency_ms = 200               # render this far ahead to cancel Hue+DTLS lag
+# Announce the box on the network as a Sendspin device. A Sendspin server (Music
+# Assistant) then discovers it and sends audio features - no VBAN sender needed, and
+# the box can be grouped with other players. Works alongside VBAN; whichever is
+# sending drives the lights.
+device = false
+device_name = "TuneThatHue"
 
 [effects]
 mode = "club"                  # smooth / ambient / flashing / energetic / club / pulse

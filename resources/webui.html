@@ -192,6 +192,27 @@
     </div>
   </section>
 
+  <!-- ── SOURCES ────────────────────────────────────────────────── -->
+  <section>
+    <p class="legend">Sources</p>
+    <p class="note" style="margin:0 0 12px">Where the audio comes from. Both can run at once —
+      whichever is sending drives the lights.</p>
+    <div class="row">
+      <label>Sender (VBAN)</label>
+      <span class="mono" id="src-vban" style="font-size:13px;color:var(--legend)">idle</span>
+      <span class="grow"></span>
+      <span class="mono" style="font-size:12px;color:var(--legend)">UDP 6980</span>
+    </div>
+    <div class="row">
+      <label for="ssDevice">On the network</label>
+      <label class="toggle" style="flex:none"><input type="checkbox" id="ssDevice"> Announce this box</label>
+      <span class="mono" id="src-sendspin" style="font-size:13px;color:var(--legend)">off</span>
+    </div>
+    <p class="note">Announced, a Sendspin server such as Music Assistant finds the box by itself and
+      sends it the audio it has already analysed — no sender to install, and the box can join a
+      group of speakers.</p>
+  </section>
+
   <!-- ── BRIDGE ─────────────────────────────────────────────────── -->
   <section>
     <p class="legend">Hue bridge</p>
@@ -288,6 +309,9 @@ const spec = $('spec');
 for (let i = 0; i < 17; i++) spec.appendChild(document.createElement('i'));
 const bars = [...spec.children];
 let prev = null;
+// Once the user clicks the switch, stop letting the poll overwrite it: the daemon takes
+// a moment to bind the port and the box would tick itself back off in between.
+let ssTouched = false;
 
 function lamp(el, on, warn){
   el.className = 'lamp' + (on ? ' on' : '') + (warn ? ' warn' : '');
@@ -306,6 +330,13 @@ async function poll(){
   $('renders').textContent = s.renders;
   $('lit').textContent = s.lit;
   $('outState').textContent = s.output === 'hue' ? ('streaming · ' + (s.area || '')) : 'output off';
+  $('src-vban').textContent = s.receiving
+    ? ((s.format || 'receiving') + ' · ' + s.packets + ' pkt') : 'idle';
+  const ss = s.sendspin;
+  $('src-sendspin').textContent = !ss ? 'off'
+    : ss.connected ? ((ss.streaming ? 'playing · ' : 'connected · ') + (ss.server || 'server'))
+    : 'announced as "' + ss.name + '" — waiting for a server';
+  if (!ssTouched) $('ssDevice').checked = !!ss;
   const sp = s.spectrum || [];
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
   if (prev && s.t > prev.t){
@@ -623,6 +654,11 @@ function buildRow(e){
   row.appendChild(el);
   return row;
 }
+
+$('ssDevice').onchange = async () => {
+  ssTouched = true;
+  await apply({sendspin_device: $('ssDevice').checked});
+};
 
 $('showAdvanced').onchange = renderSchema;
 async function apply(patch){

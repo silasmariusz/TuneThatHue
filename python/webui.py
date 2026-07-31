@@ -93,6 +93,9 @@ def _persist_section(config_path: Path, section: str, changes: dict[str, Any]) -
 # shorter spelling it always had.
 _SETTING_MAP: dict[str, tuple[str, str]] = {
     "hue_latency_ms": ("sendspin", "latency_ms"),
+    # Our own settings, not the provider's: the network-device input.
+    "sendspin_device": ("sendspin", "device"),
+    "sendspin_device_name": ("sendspin", "device_name"),
     "palette_rotate": ("effects.rotation", "enabled"),
     "palette_rotate_list": ("effects.rotation", "list"),
     "palette_rotate_beats": ("effects.rotation", "beats"),
@@ -154,6 +157,32 @@ def _toml_line(key: str, value: Any) -> str:
     return f'{key} = "{value}"'
 
 
+async def _apply_sendspin_device(daemon: "tth_phase2.Phase2Daemon") -> None:
+    """
+    Start, stop or rename the network-device input to match the config.
+
+    Turning it on has to take effect now rather than at the next restart, because the
+    whole point is that the box appears on the network while you are looking for it.
+    """
+    wanted = bool(daemon.cfg.get_value("sendspin_device"))
+    name = str(daemon.cfg.get_value("sendspin_device_name") or "TuneThatHue")
+    running = daemon.sendspin
+    if running is not None and (not wanted or running.name != name):
+        await running.stop()
+        daemon.sendspin = None
+        running = None
+    if wanted and running is None:
+        from sendspin_device import SendspinDevice  # noqa: PLC0415 - optional input
+
+        device = SendspinDevice(daemon.analyzer, name)
+        try:
+            await device.start()
+        except Exception as err:  # noqa: BLE001 - report it, do not take the daemon down
+            print(f"[sendspin] could not start device mode: {err}")
+            return
+        daemon.sendspin = device
+
+
 def _bridge_paired(config_path: Path) -> tuple[bool, str, str]:
     """Return (paired, host, area) from the toml without exposing secrets."""
     try:
@@ -211,6 +240,9 @@ def create_app(
                 "streaming": daemon.session is not None,
                 "area": daemon.area_name,
                 "receiving": receiving,
+                # The second input, when it is running: who is connected and whether
+                # anything is playing to us.
+                "sendspin": daemon.sendspin.status() if daemon.sendspin is not None else None,
             }
         )
 
@@ -319,6 +351,8 @@ def create_app(
             _persist_section(config_path, section, changes)
 
         daemon.apply_config()
+        if "sendspin_device" in data or "sendspin_device_name" in data:
+            await _apply_sendspin_device(daemon)
         return web.json_response(
             {"ok": True, "applied": sorted(k for k in data if k not in unknown), "ignored": unknown}
         )
