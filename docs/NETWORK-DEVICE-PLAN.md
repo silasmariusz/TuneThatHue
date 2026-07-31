@@ -65,9 +65,19 @@ likely to already be running next to a NAS, and it is not tied to Music Assistan
 and `Time` messages). The server groups clients itself, so joining a group is done on the
 server side and needs nothing from us beyond being connected.
 
-**Open question to settle before building:** whether the server has to be told to use the
-`pcm` codec, or whether a client may ask. If it cannot, this stage needs a FLAC decoder and
-drops down the list.
+**Settled by reading Music Assistant's provider:** the transport codec is a server-wide
+setting offering `flac` (default), `ogg`, `opus` and **`pcm`**, and the client does not get
+to choose. So this stage works with `pcm` selected, and a FLAC decoder is what it would
+take to work on the default. Real snapclients handle `pcm` fine, so switching costs the
+rest of the house nothing.
+
+**Wire format** (from Snapcast's `binary_protocol.md`): every message is a 26-byte base
+header - `type` u16, `id` u16, `refersTo` u16, `sent` sec/usec i32, `received` sec/usec
+i32, `size` u32 - followed by the payload. Types: 1 `CodecHeader`, 2 `WireChunk`,
+3 `ServerSettings`, 4 `Time`, 5 `Hello`, 7 `ClientInfo`, 8 `Error`. `Hello` is JSON with
+`ClientName`, `HostName`, `ID`, `MAC`, `Version`, `OS`, `Arch`, `Instance` and
+`SnapStreamProtocolVersion`. `WireChunk` is a timestamp plus raw payload - with the `pcm`
+codec that payload is the samples themselves.
 
 ## 3. Squeezelite / slimproto player
 
@@ -75,16 +85,31 @@ drops down the list.
 Music Assistant's own Squeezelite provider. Discovery is a UDP broadcast on **3483**, which
 the server answers, so the box finds the server rather than the other way round.
 
-**Shape.** The player announces itself with `HELO`, then obeys `strm` commands: the server
-tells it what to fetch, the player pulls the stream over HTTP and plays it. Music Assistant
-can be asked for PCM/WAV, so again no decoder — but the format negotiation has to be got
-right, and unlike Snapcast the player is expected to report buffer state back.
+**Settled by reading `aioslimproto`, the library Music Assistant runs:**
+
+- *Discovery.* The player broadcasts to UDP 3483 a datagram starting with `e` followed by
+  TLVs - 4-byte tag, 1-byte length, value - asking for `NAME`, `IPAD`, `JSON`, `VERS`,
+  `UUID`. The server answers with `E` and the same tags filled in, which hands us its
+  address and JSON-RPC port. (A legacy `d` form exists and gets a fixed `D` reply; not
+  worth implementing.)
+- *Framing.* Over TCP 3483 every frame is a 4-byte operation name, a big-endian u32
+  length, then the payload.
+- *Hello.* `HELO` carries a device-id byte, a revision byte, a 6-byte MAC and then the
+  capability string. The server answers `vers`, asks for the player name with `setd`, and
+  then drives playback with `strm`.
+- *Format.* Music Assistant's shared output-codec setting offers `flac`, `mp3`, `aac` and
+  **`wav`** - so, as with Snapcast, pick `wav` and there is nothing to decode.
+
+Unlike Snapcast the player is expected to report buffer state back (`STAT`), so this stage
+carries the most protocol surface of the four.
 
 ## 4. DLNA / UPnP renderer
 
 **Why last.** Discovery (SSDP) is trivial and the control protocol is plain SOAP, but the
 renderer is handed a URL and is expected to fetch and play it, so the format is whatever
-the server offers. That means a decoder unless the source can be pinned to WAV.
+the server offers. The same `wav` output-codec setting applies here, so it can be decoder
+free too - but a renderer is a device other things on the network will try to talk to, and
+answering badly is worse than not answering, so it goes last.
 
 **Shape.** Answer M-SEARCH for `urn:schemas-upnp-org:device:MediaRenderer:1`, serve a
 device description, implement `AVTransport` (SetAVTransportURI / Play / Stop) and a
