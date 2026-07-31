@@ -22,6 +22,7 @@ than firing the lights at random.
 
 from __future__ import annotations
 
+from collections import deque
 from types import SimpleNamespace
 
 import numpy as np
@@ -80,6 +81,26 @@ _COAST_BARS = 16
 # A re-based grid resumes emission no closer than this (in periods) to the last
 # emitted beat, so the near-twin of an already-fired beat cannot fire again.
 _RESUME_GUARD = 0.5
+# Metrically related tempo candidates checked against the raw ACF winner. A
+# dotted-eighth delay makes 4/3 of the true tempo score almost as well as the
+# tempo itself (and integer lags split the peak of any fractional period), so
+# the winner is re-decided among these ratios on interpolated comb scores.
+_METRICAL_RATIOS = ((1, 2), (2, 1), (3, 4), (4, 3), (2, 3), (3, 2))
+# Bonus multiplier for the candidate that matches the tempo the track has
+# already established (kept across breakdowns; only reset() clears it).
+_CONTINUITY_BONUS = 1.3
+_CONTINUITY_WINDOW = 0.05
+# Lock hysteresis: enter at _LOCK_THRESHOLD, drop only below _LOCK_EXIT, with a
+# slower confidence decay - soft-kick material hovers around the entry level.
+_LOCK_EXIT = 3.0
+_CONFIDENCE_DECAY = 0.85
+# While the established grid is still alive, a hard latch whose tempo is within
+# _FAMILY_SNAP_TOL of EXACTLY anchor*ratio is read as a pattern of the same
+# music (delay taps, double-time hats) and snapped back to the base tempo. The
+# tolerance is tight on purpose: a dotted-eighth delay hits 4/3 dead on, while
+# a genuine track change (124 -> 90 is 3.2% off 3/4) must never be captured.
+_FAMILY_SNAP_RATIOS = (4 / 3, 3 / 2, 2.0, 3.0)
+_FAMILY_SNAP_TOL = 0.02
 
 
 class BeatTracker:
@@ -122,6 +143,11 @@ class BeatTracker:
         self._period: float | None = None   # beat period, in ODF frames
         self._phase: float = 0.0            # frame index of a beat, mod period
         self._confidence: float = 0.0
+        self._lock_state: bool = False      # hysteresis: enter 3.8, exit 3.0
+        # Recent accepted periods; the continuity anchor is their MEDIAN, so a
+        # short wrong-tempo excursion (a kickless melodic section) cannot drag
+        # the anchor away from the tempo the track has actually established.
+        self._tempo_history: deque[float] = deque(maxlen=240)
         self._bar_offset: int = 0           # which beat of 4 is the downbeat
         self._beat_index: int | None = None # next beat to emit, in beats since phase
         self._frames_at_last_estimate = -10**9
@@ -149,7 +175,7 @@ class BeatTracker:
     @property
     def locked(self) -> bool:
         """True while a beat grid is being tracked confidently."""
-        return self._period is not None and self._confidence >= _LOCK_THRESHOLD
+        return self._period is not None and self._lock_state
 
     @property
     def coasting(self) -> bool:
@@ -239,6 +265,7 @@ class BeatTracker:
         odf = src - src.mean()
         if not np.any(odf):
             self._confidence = 0.0
+            self._lock_state = False
             return
 
         # Autocorrelation via FFT (cheap, and we only need positive lags).
@@ -247,6 +274,7 @@ class BeatTracker:
         acf = np.fft.irfft(spec * np.conj(spec), size)[:n]
         if acf[0] <= 0:
             self._confidence = 0.0
+            self._lock_state = False
             return
         acf /= acf[0]
 
@@ -283,20 +311,54 @@ class BeatTracker:
             if denom != 0:
                 period += 0.5 * (a - c) / denom
 
+        # Re-decide among metrically related periods on interpolated scores: the
+        # raw winner is often the delay-tap tempo (4/3) or a half/double octave
+        # (integer lags split the peak of a fractional true period).
+        period = self._pick_metrical_candidate(period, acf, n, min_lag, max_lag)
+
         if strength < _LOCK_THRESHOLD:
             # Nothing convincing - decay confidence but keep extrapolating the
             # old grid for a while, so a quiet bar does not kill the pulse.
-            self._confidence *= 0.7
+            self._confidence *= _CONFIDENCE_DECAY
+            if self._confidence < _LOCK_EXIT:
+                self._lock_state = False
             self._notify("est", accepted=False, reason="weak", conf=strength)
             return
 
         # Only re-latch when clearly better, or when the tempo barely moved
-        # (that case is a refinement of the same grid, not a new one).
-        if self._period is not None and self._confidence >= _LOCK_THRESHOLD:
+        # (that case is a refinement of the same grid, not a new one). The guard
+        # also covers a COASTING grid: a kickless melodic section must not
+        # replace a living grid with its own pattern tempo at borderline
+        # confidence - the coast exists precisely to ride out such sections.
+        grid_alive = self._lock_state or self._frames_done <= self._coast_until
+        if self._period is not None and grid_alive and self._confidence > 0:
             drift = abs(period - self._period) / self._period
-            if drift > 0.04 and strength < self._confidence * _RELATCH_MARGIN:
+            if drift > 0.04 and strength < max(self._confidence, _LOCK_EXIT) * _RELATCH_MARGIN:
+                # Contradicting evidence: keep the grid for now, but erode the
+                # trust in it so a REAL tempo change wins within a few seconds
+                # instead of being rejected forever against a frozen confidence.
+                self._confidence *= _CONFIDENCE_DECAY
                 self._notify("est", accepted=False, reason="relatch", conf=strength)
                 return
+
+        # A hard latch at an exact metrical multiple of the established tempo,
+        # while that grid is still alive, is the track's own pattern (delay
+        # taps at 4/3, double-time hats at 2) - keep the base tempo instead.
+        # Snapping is only allowed TOWARD the more probable dance tempo, so a
+        # transient wrong anchor (an intro pulsing at 2/3 tempo) can never
+        # capture the honest estimates that would correct it.
+        anchor = self._anchor_period()
+        if anchor is not None and grid_alive:
+            for ratio in _FAMILY_SNAP_RATIOS:
+                if abs(period / anchor - ratio) <= _FAMILY_SNAP_TOL * ratio:
+                    base = period / ratio
+                elif abs(anchor / period - ratio) <= _FAMILY_SNAP_TOL * ratio:
+                    base = period * ratio
+                else:
+                    continue
+                if self._tempo_prior(base) > self._tempo_prior(period):
+                    period = base
+                break
 
         # A drift within _REFINE_MAX_DRIFT of a still-coasting grid is a
         # refinement of the SAME grid; anything else replaces it wholesale.
@@ -315,6 +377,8 @@ class BeatTracker:
             self._bar_candidate = None
             self._bar_candidate_count = 0
         self._confidence = strength
+        self._lock_state = True
+        self._tempo_history.append(self._period)
         self._update_phase(prev_period)
         self._coast_until = self._frames_done + _COAST_BARS * 4 * self._period
         self._notify(
@@ -327,6 +391,57 @@ class BeatTracker:
             period_frames=self._period,
             downbeat_frame=self._downbeat_frame,
         )
+
+    def _tempo_prior(self, period: float) -> float:
+        """The dance-tempo prior for a period given in ODF frames."""
+        bpm = 60.0 * self.odf_rate / period
+        return float(np.exp(-0.5 * (np.log2(bpm / _PRIOR_BPM) / _PRIOR_OCTAVES) ** 2))
+
+    def _anchor_period(self) -> float | None:
+        """The tempo this track has established: median of recent accepted periods."""
+        history = self._tempo_history
+        if len(history) >= 8:
+            return sorted(history)[len(history) // 2]
+        if history:
+            return history[-1]
+        return None
+
+    def _pick_metrical_candidate(
+        self, lag0: float, acf: np.ndarray, n: int, min_lag: int, max_lag: int
+    ) -> float:
+        """
+        Choose the beat period among ``lag0`` and its metrical relatives.
+
+        Each candidate is scored with the comb over the ACF at INTERPOLATED
+        (float) lags - integer lags split the peak of a fractional period, which
+        is how 150 BPM used to read as 75 - weighted by the dance-tempo prior,
+        with a bonus for the tempo this track has already established.
+        """
+        candidates = [lag0]
+        for num, den in _METRICAL_RATIOS:
+            lc = lag0 * num / den
+            if min_lag <= lc <= max_lag:
+                candidates.append(lc)
+        if len(candidates) == 1:
+            return lag0
+        anchor = self._anchor_period()
+        best_lag, best_score = lag0, -1e18
+        for lc in candidates:
+            comb = 0.0
+            for mult in (1, 2, 3, 4):
+                x = lc * mult
+                i = int(x)
+                if i + 1 >= n:
+                    break
+                frac = x - i
+                comb += (float(acf[i]) * (1.0 - frac) + float(acf[i + 1]) * frac) / mult
+            bpm_c = 60.0 * self.odf_rate / lc
+            s = comb * float(np.exp(-0.5 * (np.log2(bpm_c / _PRIOR_BPM) / _PRIOR_OCTAVES) ** 2))
+            if anchor is not None and abs(lc - anchor) / anchor <= _CONTINUITY_WINDOW:
+                s *= _CONTINUITY_BONUS
+            if s > best_score:
+                best_score, best_lag = s, lc
+        return best_lag
 
     def _update_phase(self, prev_period: float | None = None) -> None:
         """

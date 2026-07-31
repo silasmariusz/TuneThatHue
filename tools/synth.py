@@ -45,6 +45,28 @@ def ramp_beat_times(bpm0: float, bpm1: float, seconds: float, offset: float = 0.
     return out
 
 
+def wow_beat_times(
+    bpm: float,
+    seconds: float,
+    depth: float = 0.015,
+    rate_hz: float = 0.5,
+    offset: float = 0.1,
+) -> list[float]:
+    """
+    Beat times for a "floating" vinyl rip: sinusoidal tempo modulation.
+
+    ``depth`` is the peak tempo deviation (0.015 = +/-1.5%), ``rate_hz`` the
+    wow frequency (belt drift / warped record is around 0.3-1 Hz).
+    """
+    out: list[float] = []
+    t = offset
+    while t < seconds:
+        out.append(t)
+        inst = bpm * (1.0 + depth * np.sin(2 * np.pi * rate_hz * t))
+        t += 60.0 / inst
+    return out
+
+
 def gap_beat_times(
     bpm: float, bars_before: int, bars_gap: int, bars_after: int, offset: float = 0.1
 ) -> tuple[list[float], list[bool], float]:
@@ -132,6 +154,41 @@ def render(
         pink /= max(1e-9, np.max(np.abs(pink)))
         audio += pink * KICK_AMP * (10.0 ** (noise_db / 20.0))
 
+    peak = np.max(np.abs(audio))
+    if peak > 0.99:
+        audio *= 0.99 / peak
+    return (audio * 32767.0).astype(np.int16)
+
+
+def render_delay_trap(
+    times: list[float],
+    downbeats: list[bool],
+    seconds: float,
+    sample_rate: int = 48000,
+    seed: int = 77,
+) -> np.ndarray:
+    """
+    Soft kick + prominent dotted-eighth delay pings (the melodic-house trap).
+
+    The pings repeat every 3/4 of a beat, which makes 4/3 of the true tempo
+    score almost as well as the tempo itself in an autocorrelation tracker.
+    """
+    audio = render(times, downbeats, seconds, sample_rate).astype(np.float64) / 32767.0
+    audio *= 0.5  # soften the kick like a melodic-house mix
+    ping_len = int(0.030 * sample_rate)
+    tt = np.arange(ping_len) / sample_rate
+    ping = np.sin(2 * np.pi * 900.0 * tt) * np.exp(-tt / 0.010) * 0.55
+    n = audio.size
+    if len(times) >= 2:
+        step = (times[1] - times[0]) * 0.75
+        t = times[0]
+        while t < seconds:
+            start = int(t * sample_rate)
+            if start >= n:
+                break
+            seg = ping[: n - start]
+            audio[start : start + seg.size] += seg
+            t += step
     peak = np.max(np.abs(audio))
     if peak > 0.99:
         audio *= 0.99 / peak

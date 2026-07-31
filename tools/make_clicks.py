@@ -97,6 +97,23 @@ def main() -> None:
     )
     print(f"  gap_136.wav  ({len(times)} audible / {len(full)} grid beats)")
 
+    times = synth.const_beat_times(123, sec)
+    downs = synth.default_downbeats(times)
+    pcm = synth.render_delay_trap(times, downs, sec, sr)
+    write_wav(out / "delaytrap_123.wav", pcm, sr)
+    (out / "delaytrap_123.truth.json").write_text(
+        json.dumps(
+            {
+                "bpm": 123,
+                "sample_rate": sr,
+                "beats_us": synth.to_us(times),
+                "downbeats_us": synth.to_us([t for t, d in zip(times, downs) if d]),
+            }
+        ),
+        encoding="utf-8",
+    )
+    print(f"  delaytrap_123.wav  ({len(times)} beats)")
+
     pcm = synth.noise_only(30.0, sr)
     write_wav(out / "noise_only.wav", pcm, sr)
     (out / "noise_only.truth.json").write_text(

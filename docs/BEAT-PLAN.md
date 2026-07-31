@@ -152,6 +152,43 @@ Live verification (DEV NAS 10.100.200.11, installed `TuneThatHue_0.9.3.qpkg`, si
 would have pushed ~460), `beat_in_bar` cycling 1..4 with `bar_phase` consistent with it in every
 sample, lights rendering throughout.
 
+### Round 2 (2026-08-01) — the melodic-house report from the field
+
+The user played `12B, 123 - Ben Bohmer & Spencer Brown - Phases` and the grid misbehaved. Bench
+on the file showed why: lock coverage 27 % (soft kick, long ambient sections) and latches onto
+**165.4 = 123 x 4/3** (dotted-eighth delay pings; the kickless low band makes the tracker fall
+back to full-band flux where the pings are the only periodicity) plus 137 (the intro arpeggio's
+own pulse). The whole `MP3_selected_B_2023` folder showed the same class (Fatum -> 164,
+Modeplex -> 152, Yotto -> 97 as final BPM).
+
+Fixes (all measured, `runs/v094-*`):
+
+- metrical candidates: the raw ACF winner is re-decided among x2, x1/2, x4/3, x3/4, x3/2, x2/3
+  on INTERPOLATED comb scores (integer lags split fractional-period peaks - that is why 150 BPM
+  read as 75) with the dance prior and a continuity bonus toward the track's established tempo;
+- the continuity anchor is the MEDIAN of recent accepted periods (a wrong excursion cannot drag it);
+- family snap: while the grid is alive, a hard latch at an exact (+/-2 %) metrical ratio of the
+  anchor is converted to the base tempo - but only TOWARD the more probable dance tempo, so a
+  wrong early anchor (an intro pulsing at 2/3 tempo) cannot capture the honest estimates
+  (that asymmetry is what fixed Phases without breaking Jose Amnesia);
+- lock hysteresis (enter 3.8 / exit 3.0, decay 0.85) and confidence erosion on rejected
+  re-latches (a real tempo change now wins within seconds instead of never);
+- new synthetics + tests: `delaytrap_123` (the 4/3 ping trap), tempo change mid-stream
+  124 -> 90 (mixed playlists), vinyl wow +/-1.5 % @ 0.5 Hz (floating rips) - all green, and the
+  150/174/185 octave xfails became ordinary passing tests.
+
+Corpus results, final code: synthetics 15/15 tempo ok (F 0.98); trance 25/26 (the one miss is a
+beatless ambient track); **B_2023 18/18**; house+inne+Eelke and the `sprawdzic_wazne` DJ sets:
+zero duplicates, plausible tempos throughout (techno mixes 124-130, ISOS 133.8). Phases' delay
+section now spends 0.5 s on 165 before snapping to 124.1 for the rest of the section.
+
+Live on the dev NAS (0.9.4, user's own playback over VBAN): bpm pinned at 129.2, beats
+incrementing at exactly the expected rate, counter and bar phase consistent in every sample.
+
+Found while testing live: two simultaneous VBAN senders at different sample rates make
+`_ensure_extractor` rebuild (and reset the tracker) on every alternation - the daemon needs
+source arbitration (lock to one sender until it goes quiet). Filed as the next robustness item.
+
 Still open (deliberate): octave-prior picks half tempo at 150/185 BPM on clicks (xfail'd,
 tracked as I6); trance-corpus lock coverage 65 % counts `locked` only — emission continues
 through coasting, so perceived coverage is higher; on real music the "1" still moves

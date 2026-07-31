@@ -40,7 +40,7 @@ def test_continuity_across_relatches() -> None:
         assert 0.8 * nominal < b - a < 1.2 * nominal, f"IBI tear: {b - a} vs nominal {nominal:.0f}"
 
 
-@pytest.mark.parametrize("bpm", [90, 110, 125, 136])
+@pytest.mark.parametrize("bpm", [90, 110, 125, 136, 150, 174, 185])
 def test_tempo_accuracy(bpm: float) -> None:
     _, events, tracker = tu.run_tracker(steady(bpm))
     assert tracker.bpm == pytest.approx(bpm, rel=0.04)
@@ -49,11 +49,49 @@ def test_tempo_accuracy(bpm: float) -> None:
     assert median == pytest.approx(bpm, rel=0.04)
 
 
-@pytest.mark.xfail(reason="octave prior still picks half tempo at the range edges (I6 tuning)")
-@pytest.mark.parametrize("bpm", [150, 174])
-def test_tempo_accuracy_fast(bpm: float) -> None:
-    _, _, tracker = tu.run_tracker(steady(bpm))
-    assert tracker.bpm == pytest.approx(bpm, rel=0.04)
+def test_delay_trap_does_not_pull_tempo() -> None:
+    """Dotted-eighth delay pings (3/4-beat spacing) must not read as 4/3 tempo."""
+    seconds = 90.0
+    times = synth.const_beat_times(123, seconds)
+    pcm = synth.render_delay_trap(times, synth.default_downbeats(times), seconds)
+    _, events, tracker = tu.run_tracker(pcm)
+    accepted = [e["bpm"] for e in events if e.get("accepted")]
+    assert accepted, "never locked on the delay-trap signal"
+    median = sorted(accepted)[len(accepted) // 2]
+    assert median == pytest.approx(123, rel=0.04), f"median bpm {median}"
+    wrong = [b for b in accepted if abs(b - 164) < 8 or abs(b - 137) < 5]
+    assert len(wrong) / len(accepted) < 0.1, f"{len(wrong)}/{len(accepted)} estimates on a trap tempo"
+
+
+def test_vinyl_wow_follows_the_float() -> None:
+    """A floating vinyl rip (sinusoidal +/-1.5% wow) must stay on the beat."""
+    times = synth.wow_beat_times(100, 90.0, depth=0.015, rate_hz=0.5)
+    pcm = synth.render(times, synth.default_downbeats(times), 90.0)
+    beats, _, tracker = tu.run_tracker(pcm)
+    assert tracker.bpm == pytest.approx(100, rel=0.05)
+    est = tu.post_warmup(beats)
+    truth = [int(t * SEC) for t in times if t * SEC >= tu.WARMUP_US]
+    import beat_metrics as bm
+
+    scores = bm.f_measure(est, truth)
+    assert scores["f"] > 0.9, f"wow tracking degraded: {scores}"
+
+
+def test_tempo_change_in_stream() -> None:
+    """A real tempo change mid-stream (mixed playlist) must re-latch quickly."""
+    a = synth.const_beat_times(124, 60.0)
+    b = [60.0 + t for t in synth.const_beat_times(90, 60.0)]
+    pcm_a = synth.render(a, synth.default_downbeats(a), 60.0)
+    pcm_b = synth.render([t - 60.0 for t in b], synth.default_downbeats(b), 60.0)
+    import numpy as np
+
+    beats, events, tracker = tu.run_tracker(np.concatenate([pcm_a, pcm_b]))
+    assert tracker.bpm == pytest.approx(90, rel=0.04), f"end bpm {tracker.bpm}"
+    # The switch must land within 20 s of the change (guards must not wedge it).
+    late = [e for e in events if e.get("accepted") and e["frame"] / 93.75 > 80.0]
+    assert late, "no accepted estimates after the change"
+    for e in late:
+        assert e["bpm"] == pytest.approx(90, rel=0.05), f"still wrong at t={e['frame'] / 93.75:.0f}s"
 
 
 def test_downbeat_stability() -> None:
