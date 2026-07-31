@@ -59,15 +59,20 @@ Name: "{group}\{#AppName} tray";  Filename: "{app}\runtime\python\pythonw.exe"; 
 ; Register the service through the same control command the tray and the terminal use,
 ; so there is one definition of what "installed" means.
 Filename: "{app}\runtime\python\python.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" install"; Tasks: service; StatusMsg: "Registering the service..."; Flags: runhidden
+; Autostart is registered by the control command rather than by an [Registry] entry,
+; and deliberately as the original user. Setup runs elevated, so an HKCU write here
+; would land in the hive of whoever approved the prompt - on a machine where somebody
+; types an admin password, that is not the person who will be using this.
+Filename: "{app}\runtime\python\python.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" autostart"; Tasks: tray; Flags: runhidden runasoriginaluser; StatusMsg: "Setting the tray to start at sign-in..."
 Filename: "{app}\runtime\python\pythonw.exe"; Parameters: """{app}\install\tunethathue_tray.py"""; Tasks: tray; Flags: nowait postinstall skipifsilent runasoriginaluser; Description: "Start the tray icon now"
 Filename: "{app}\runtime\python\pythonw.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" panel"; Flags: nowait postinstall skipifsilent runasoriginaluser; Description: "Open the panel"
 
 [UninstallRun]
+; No runasoriginaluser here - the uninstall section does not take it. Normally the
+; uninstaller runs as the same person, so this clears the entry; when it does not, the
+; tray removes its own entry the next time it starts and finds nothing to run.
+Filename: "{app}\runtime\python\python.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" noautostart"; Flags: runhidden; RunOnceId: "removeautostart"
 Filename: "{app}\runtime\python\python.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" uninstall"; Flags: runhidden; RunOnceId: "removeservice"
-
-[Registry]
-; The tray at sign-in. Under HKCU so it belongs to the person who installed it.
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#AppName}Tray"; ValueData: """{app}\runtime\python\pythonw.exe"" ""{app}\install\tunethathue_tray.py"""; Tasks: tray; Flags: uninsdeletevalue
 
 [Code]
 function InitializeSetup(): Boolean;

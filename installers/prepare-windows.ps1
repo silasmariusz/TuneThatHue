@@ -10,7 +10,9 @@
         .\installers\prepare-windows.ps1 -SkipBuild assemble only
 #>
 param(
-    [string]$PythonVersion = "3.13.1",
+    # 3.14 and no lower. The effects engine is carried byte-for-byte from Music Assistant
+    # and uses PEP 758 syntax, which earlier versions cannot even parse.
+    [string]$PythonVersion = "3.14.0",
     [switch]$SkipBuild
 )
 
@@ -56,14 +58,32 @@ if ($LASTEXITCODE -ne 0) { throw "pip failed" }
 
 Write-Host "==> ffmpeg" -ForegroundColor Cyan
 $FfmpegDir = Join-Path $Root "runtime\ffmpeg-AMD64"
-if (Test-Path (Join-Path $FfmpegDir "ffmpeg.exe")) {
+$FfmpegExe = Join-Path $FfmpegDir "ffmpeg.exe"
+if (Test-Path $FfmpegExe) {
     Write-Host "    already here"
 } else {
-    Write-Host "    MISSING - put a Windows ffmpeg.exe in runtime\ffmpeg-AMD64\"
-    Write-Host "    Without it only uncompressed audio plays. An LGPL build from"
-    Write-Host "    https://www.gyan.dev/ffmpeg/builds/ (the 'shared' LGPL one) is fine,"
-    Write-Host "    or build one with the same flags as qnap\build_ffmpeg.sh."
+    # LGPL, not the "full" builds. Those are compiled --enable-gpl, and shipping one
+    # inside this installer would pull the whole package under the GPL.
+    $url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip"
+    Write-Host "    downloading an LGPL build"
+    $zip = Join-Path $env:TEMP "ffmpeg-lgpl.zip"
+    $out = Join-Path $env:TEMP "ffmpeg-lgpl"
+    Invoke-WebRequest -Uri $url -OutFile $zip
+    Remove-Item $out -Recurse -Force -ErrorAction SilentlyContinue
+    Expand-Archive -Path $zip -DestinationPath $out
+    New-Item -ItemType Directory -Force -Path $FfmpegDir | Out-Null
+    $found = Get-ChildItem $out -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1
+    if (-not $found) { throw "no ffmpeg.exe in the archive" }
+    Copy-Item $found.FullName $FfmpegExe -Force
+    Remove-Item $zip, $out -Recurse -Force
 }
+
+# Decoding is most of what this thing does, so check the codecs are there before
+# wrapping the binary in an installer, rather than finding out on someone's desktop.
+Write-Host "    checking codecs"
+$env:TTH_FFMPEG = $FfmpegExe
+& (Join-Path $Runtime "python.exe") (Join-Path $Root "install\tunethathue_ctl.py") codecs
+if ($LASTEXITCODE -ne 0) { throw "the bundled ffmpeg is missing codecs" }
 
 if ($SkipBuild) { Write-Host "assembled; skipping the build"; exit 0 }
 

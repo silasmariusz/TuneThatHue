@@ -38,6 +38,11 @@ from types import SimpleNamespace
 
 BASE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BASE / "effects"))
+# Normally Python puts the script's own folder on the import path for us. The embeddable
+# build that the Windows installer ships does not: its ._pth file replaces the path
+# outright, so the daemon could not import its own modules and died before it could even
+# write to the log. Saying it plainly costs one line and works on every platform.
+sys.path.insert(0, str(BASE / "python"))
 # The pystub (LightColorCommand/LightChannel only) is a FALLBACK for the
 # stdlib-only M3 build. When the real hue_entertainment lib is installed
 # (Phase 2a: bridge pairing + DTLS output) we must prefer it, so only fall
@@ -791,7 +796,17 @@ async def main() -> None:
     ap.add_argument("--pair", action="store_true", help="pair with a Hue bridge and exit")
     ap.add_argument("--host", help="Hue bridge IP for --pair (else mDNS auto-discovery)")
     ap.add_argument("--webui-port", type=int, default=8080, help="browser panel port (0 = off)")
+    ap.add_argument("--log", type=Path, help="write output to this file instead of the "
+                                            "console, for when nothing is watching it")
     args = ap.parse_args()
+
+    if args.log:
+        # Windows starts this from Task Scheduler, where there is no console to print to
+        # and no journal to read afterwards. Linux and macOS get their logs from systemd
+        # and launchd; this is how Windows gets the same thing.
+        args.log.parent.mkdir(parents=True, exist_ok=True)
+        stream = args.log.open("a", buffering=1, encoding="utf-8", errors="replace")
+        sys.stdout = sys.stderr = stream
 
     if args.pair:
         await pair_bridge(args.host, args.config)

@@ -63,6 +63,14 @@ def _daemon_answers() -> bool:
 
 
 def main() -> int:
+    # If the daemon is gone, this is a leftover sign-in entry from an uninstall that ran
+    # under a different account than the one signing in. Take the entry out and go away
+    # quietly, rather than failing at every sign-in forever.
+    if not ctl.DAEMON.is_file():
+        ctl.autostart_off()
+        print("TuneThatHue is not installed here; removed the sign-in entry")
+        return 0
+
     try:
         import pystray
     except ImportError:

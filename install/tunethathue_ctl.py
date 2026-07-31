@@ -39,7 +39,7 @@ DAEMON = ROOT / "python" / "tth_phase2.py"
 # -- where things live -------------------------------------------------------------
 
 
-def python_exe() -> str:
+def python_exe(windowed: bool = False) -> str:
     """
     The interpreter to run the daemon with.
 
@@ -47,6 +47,9 @@ def python_exe() -> str:
     packages. A bare portable interpreter has the right version and none of the
     dependencies, and picking it first is how the service ended up restarting forever
     on ModuleNotFoundError.
+
+    :param windowed: prefer pythonw.exe, so a background thing does not open a console
+        window every time Windows starts it.
     """
     for candidate in (
         ROOT / "venv" / "bin" / "python",
@@ -55,6 +58,10 @@ def python_exe() -> str:
         ROOT / "runtime" / "python" / "python.exe",
     ):
         if candidate.is_file():
+            if windowed:
+                quiet = candidate.with_name(candidate.name.replace("python", "pythonw"))
+                if quiet.is_file():
+                    return str(quiet)
             return str(candidate)
     return sys.executable
 
@@ -168,7 +175,7 @@ def _kill(pid: int) -> None:
 def _service_installed() -> bool:
     system = platform.system()
     if system == "Windows":
-        return _run(["sc", "query", SERVICE_NAME]) == 0
+        return _run(["schtasks", "/Query", "/TN", DISPLAY_NAME]) == 0
     if system == "Darwin":
         return (Path.home() / "Library" / "LaunchAgents"
                 / f"pl.devspark.{SERVICE_NAME}.plist").is_file()
@@ -185,9 +192,10 @@ def _service(action: str) -> bool:
         return False
     system = platform.system()
     if system == "Windows":
-        verb = {"start": "start", "stop": "stop"}.get(action)
+        verb = {"start": "/Run", "stop": "/End"}.get(action)
         if verb:
-            subprocess.run(["sc", verb, SERVICE_NAME], capture_output=True, check=False)
+            subprocess.run(["schtasks", verb, "/TN", DISPLAY_NAME],
+                           capture_output=True, check=False)
         return True
     if system == "Darwin":
         plist = Path.home() / "Library" / "LaunchAgents" / f"pl.devspark.{SERVICE_NAME}.plist"
@@ -215,10 +223,14 @@ def start() -> None:
 
 
 def stop() -> None:
-    if _service("stop"):
+    stopped_service = _service("stop")
+    # Even with a service installed, the daemon may have been started by hand - and on
+    # Windows ending the scheduled task does nothing to a copy started that way. So look
+    # for a loose one either way and finish the job.
+    pid = _running_pid()
+    if stopped_service and pid is None:
         print("stopped (service)")
         return
-    pid = _running_pid()
     if pid is None:
         print("not running")
         return
@@ -255,6 +267,98 @@ def panel() -> None:
     import webbrowser
 
     webbrowser.open(f"http://127.0.0.1:{panel_port()}/")
+
+
+def _windows_user() -> str:
+    """The account the task runs as, with its domain, the way Task Scheduler wants it."""
+    domain = os.environ.get("USERDOMAIN", "")
+    user = os.environ.get("USERNAME", "")
+    return f"{domain}\\{user}" if domain else user
+
+
+def _install_windows_task() -> None:
+    """
+    Start the daemon at sign-in through Task Scheduler.
+
+    Not a Windows service, and that is deliberate. A real service has to answer the
+    service control manager within thirty seconds - a handshake a Python process does
+    not make - so registering `python.exe` with `sc create` produces a service that
+    Windows kills at every start with error 1053. That is what it did.
+
+    Sign-in rather than boot, and as the person rather than as SYSTEM, because that is
+    what makes the daemon, the tray and the panel agree about where settings live: as
+    SYSTEM the config would sit in a system profile nobody can reach. Nothing here needs
+    privileges - it plays no audio and opens no privileged port - so it should not have
+    any. A machine that has to run with nobody signed in wants the container or the NAS
+    package instead.
+    """
+    log = state_dir() / "daemon.log"
+    command = python_exe(windowed=True)
+    arguments = (f'-u "{DAEMON}" --config "{config_path()}" --log "{log}"')
+    user = _windows_user()
+
+    # The order of the elements inside <Settings> is fixed by the schema; Task Scheduler
+    # rejects the file outright if they are shuffled.
+    task_xml = f"""<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>{DISPLAY_NAME}: sync Philips Hue lights to whatever is playing</Description>
+    <URI>\\{DISPLAY_NAME}</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>{user}</UserId>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>{user}</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>6</Priority>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>10</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>{command}</Command>
+      <Arguments>{arguments}</Arguments>
+      <WorkingDirectory>{ROOT}</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
+"""
+    # schtasks reads the definition as UTF-16, and silently fails on anything else.
+    xml_file = state_dir() / "task.xml"
+    xml_file.write_text(task_xml, encoding="utf-16")
+
+    subprocess.run(["schtasks", "/Create", "/TN", DISPLAY_NAME, "/XML", str(xml_file),
+                    "/F"], check=False)
+    subprocess.run(["schtasks", "/Run", "/TN", DISPLAY_NAME], capture_output=True,
+                   check=False)
+    print(f"installed: scheduled task '{DISPLAY_NAME}', starting at sign-in for {user}")
 
 
 def install_service() -> None:
@@ -308,17 +412,7 @@ def install_service() -> None:
         return
 
     if system == "Windows":
-        # sc.exe wants one flat command line, and the quoting has to survive it.
-        binpath = f'"{python_exe()}" -u "{DAEMON}" --config "{config_path()}"'
-        subprocess.run(
-            ["sc", "create", SERVICE_NAME, "binPath=", binpath, "start=", "auto",
-             "DisplayName=", DISPLAY_NAME],
-            check=False,
-        )
-        subprocess.run(["sc", "description", SERVICE_NAME,
-                        "Sync Philips Hue lights to whatever is playing"], check=False)
-        subprocess.run(["sc", "start", SERVICE_NAME], check=False)
-        print("installed: Windows service")
+        _install_windows_task()
         return
 
     print(f"no service support for {system}")
@@ -335,8 +429,13 @@ def uninstall_service() -> None:
         subprocess.run(["launchctl", "unload", "-w", str(plist)], check=False)
         plist.unlink(missing_ok=True)
     elif system == "Windows":
+        subprocess.run(["schtasks", "/End", "/TN", DISPLAY_NAME],
+                       capture_output=True, check=False)
+        subprocess.run(["schtasks", "/Delete", "/TN", DISPLAY_NAME, "/F"],
+                       capture_output=True, check=False)
+        # An older build may have left the service that never worked behind.
         subprocess.run(["sc", "stop", SERVICE_NAME], capture_output=True, check=False)
-        subprocess.run(["sc", "delete", SERVICE_NAME], check=False)
+        subprocess.run(["sc", "delete", SERVICE_NAME], capture_output=True, check=False)
     print("service removed")
 
 
@@ -485,10 +584,51 @@ def _install_ffmpeg(source: Path) -> None:
     print(f"installed: {target}")
 
 
+AUTOSTART_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+AUTOSTART_NAME = "TuneThatHueTray"
+
+
+def autostart_on() -> None:
+    """
+    Start the tray icon when this person signs in.
+
+    Done here rather than from the installer on purpose. The installer runs elevated, so
+    anything it writes to the current user's registry belongs to whichever account
+    approved the prompt - which on a machine where somebody types an admin password is
+    not the person who will actually be using this. Running as the signed-in user puts
+    the entry in the right hive.
+    """
+    if platform.system() != "Windows":
+        print("autostart is a Windows thing; elsewhere the service handles it")
+        return
+    import winreg
+
+    target = f'"{python_exe(windowed=True)}" "{HERE / "tunethathue_tray.py"}"'
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, AUTOSTART_KEY) as key:
+        winreg.SetValueEx(key, AUTOSTART_NAME, 0, winreg.REG_SZ, target)
+    print(f"tray starts at sign-in for {os.environ.get('USERNAME', 'this user')}")
+
+
+def autostart_off() -> None:
+    """Stop starting the tray at sign-in."""
+    if platform.system() != "Windows":
+        return
+    import winreg
+
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_KEY, 0,
+                            winreg.KEY_SET_VALUE) as key:
+            winreg.DeleteValue(key, AUTOSTART_NAME)
+        print("tray no longer starts at sign-in")
+    except FileNotFoundError:
+        pass
+
+
 COMMANDS = {
     "start": start, "stop": stop, "restart": restart, "panel": panel,
     "install": install_service, "uninstall": uninstall_service,
     "getffmpeg": get_ffmpeg,
+    "autostart": autostart_on, "noautostart": autostart_off,
 }
 
 

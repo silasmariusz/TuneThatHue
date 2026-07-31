@@ -55,3 +55,8 @@ installers/Output/
 *.p12
 # The app icon IS committed (installers and the .rc need it) - do not ignore *.ico.
 qnap/icons/preview.png
+
+# Assembled by installers/prepare-windows.ps1: a downloaded CPython and a downloaded
+# ffmpeg. Build output, not source - the script fetches both.
+runtime/python-win/
+runtime/ffmpeg-*/
