@@ -1,0 +1,9 @@
+venv/
+installers/
+qnap/
+docs/
+runtime/
+.git/
+*.qpkg
+*.exe
+__pycache__/

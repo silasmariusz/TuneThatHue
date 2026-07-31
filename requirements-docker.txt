@@ -1,0 +1,7 @@
+# What the daemon imports. Pinned loosely on purpose: these are the versions the
+# protocols were tested against, and a patch release of any of them is welcome.
+aiohttp>=3.12
+zeroconf>=0.140
+aiosendspin>=6.1
+hue-entertainment>=0.1.2
+numpy>=2.0
