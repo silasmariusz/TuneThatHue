@@ -43,6 +43,20 @@
   .lamp.on{color:var(--read)}
   .lamp.on::before{background:var(--live);box-shadow:0 0 6px var(--live)}
   .lamp.blue.on::before{background:var(--blue);box-shadow:0 0 6px var(--blue)}
+  /* Traktor's info switch. Hints off is a legitimate way to work once you know the box */
+  .ibtn{width:20px;height:20px;padding:0;border-radius:50%;font:700 11px/1 var(--f-body);
+    background:linear-gradient(180deg,#3E4141,#2E3131);color:var(--legend);
+    border:1px solid var(--rule-dark);cursor:pointer}
+  .ibtn[aria-pressed=true]{background:linear-gradient(180deg,#4AA8E4,#2E82BC);color:#06202F;
+    border-color:#2A6E9E;box-shadow:0 0 6px rgba(60,154,217,.5)}
+  [data-hint]{cursor:help}
+  #hint{position:fixed;z-index:50;max-width:280px;pointer-events:none;opacity:0;
+    transition:opacity .12s;background:linear-gradient(180deg,#33383A,#252A2B);
+    border:1px solid #10191C;border-radius:3px;padding:7px 9px;font-size:11.5px;line-height:1.4;
+    color:var(--read);box-shadow:0 6px 18px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
+  #hint.on{opacity:1}
+  #hint b{display:block;font-family:var(--f-cond);font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--blue);margin-bottom:3px;font-weight:600}
 
   main{max-width:1080px;margin:0 auto;padding:12px;display:grid;gap:12px}
   .card{background:linear-gradient(180deg,#313434,var(--panel));border:1px solid var(--rule-dark);
@@ -182,13 +196,15 @@
     <span class="lamp blue" id="l-conn">panel</span>
     <span class="lamp" id="l-rx">audio</span>
     <span class="lamp" id="l-out">output</span>
+    <button class="ibtn" id="hintBtn" aria-pressed="true" title="Hints on">i</button>
   </div>
 </header>
 
+<div id="hint" role="tooltip"></div>
 <main>
   <section class="card">
     <div class="head">
-      <p class="lbl">Lights <span id="areaName" class="mono" style="letter-spacing:0;text-transform:none"></span></p>
+      <p class="lbl" data-hint="Lights|The frames actually being sent to the bridge. The needle holds its peak for a moment so a single flash stays visible; the strip below it is the last two seconds, unheld.">Lights <span id="areaName" class="mono" style="letter-spacing:0;text-transform:none"></span></p>
       <span class="mono" style="font-size:10px;color:var(--legend)" id="fps">—</span>
     </div>
     <div id="wall"></div>
@@ -198,12 +214,12 @@
   <section class="card">
     <div class="chain">
       <div class="link">
-        <span class="lbl">Audio</span>
+        <span class="lbl" data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second.">Audio</span>
         <div id="spec"></div>
         <div class="sub" id="rate">—</div>
       </div>
       <div class="link">
-        <span class="lbl">Beat</span>
+        <span class="lbl" data-hint="Beat|Tempo read from the audio. Effects fire on this grid, so if the number is wrong the lights will be too.">Beat</span>
         <div class="big"><span id="bpm">—</span><span class="unit">BPM</span></div>
         <div class="sub"><span id="beats">0</span> beats</div>
       </div>
@@ -221,30 +237,30 @@
   </section>
 
   <section class="card">
-    <p class="lbl">Sources <span id="driving" class="state" style="text-transform:none;letter-spacing:0"></span></p>
+    <p class="lbl" data-hint="Sources|Leave as many on as you like. One drives the lights at a time; another takes over a couple of seconds after it goes quiet.">Sources <span id="driving" class="state" style="text-transform:none;letter-spacing:0"></span></p>
     <div class="row">
-      <label>Sender</label>
+      <label data-hint="Sender|A plug-in for Winamp, foobar2000 or AIMP, or the Sound Capture app, sending audio here on UDP 6980. Nothing to discover: you give the sender this machine's address.">Sender</label>
       <span class="state" id="src-vban">idle</span>
       <span class="grow"></span><span class="state">UDP 6980</span>
     </div>
     <div class="row">
-      <label for="ssDevice">On the network</label>
+      <label for="ssDevice" data-hint="Sendspin|The box announces itself and a Sendspin server such as Music Assistant finds it, then sends the audio it has already analysed. No sender to install, and it can join a group of players.">On the network</label>
       <label class="toggle" style="flex:none"><input type="checkbox" id="ssDevice"> Announce</label>
       <span class="state" id="src-sendspin">off</span>
     </div>
     <div class="row">
-      <label for="snapHost">Snapcast</label>
+      <label for="snapHost" data-hint="Snapcast|Give it a snapserver address and it joins as a client, then follows whatever group it is put in. Every transport codec works except opus, which Snapcast sends without a container.">Snapcast</label>
       <input type="text" id="snapHost" placeholder="server address">
       <button id="snapBtn">Join</button>
       <span class="state" id="src-snapcast">off</span>
     </div>
     <div class="row">
-      <label for="slimDevice">Squeezebox</label>
+      <label for="slimDevice" data-hint="Squeezebox|Finds a Logitech Media Server or Music Assistant by broadcast and appears there as a player, ready for a sync group. Plays flac, mp3, aac, opus and wav.">Squeezebox</label>
       <label class="toggle" style="flex:none"><input type="checkbox" id="slimDevice"> Appear as a player</label>
       <span class="state" id="src-slimproto">off</span>
     </div>
     <div class="row">
-      <label for="dlnaDevice">DLNA</label>
+      <label for="dlnaDevice" data-hint="DLNA|Shows up wherever a phone, a hi-fi app or Music Assistant looks for a network speaker. Send it anything: flac, mp3, aac, ogg, opus, alac, wma or wav.">DLNA</label>
       <label class="toggle" style="flex:none"><input type="checkbox" id="dlnaDevice"> Appear as a speaker</label>
       <span class="state" id="src-dlna">off</span>
     </div>
@@ -253,7 +269,7 @@
   <section class="card">
     <p class="lbl">Bridge</p>
     <div class="row">
-      <label for="host">Address</label>
+      <label for="host" data-hint="Bridge address|Leave it blank to search the network. After pressing Pair you have 30 seconds to press the round button on the bridge.">Address</label>
       <input type="text" id="host" placeholder="10.0.0.x">
       <button id="pairBtn">Pair</button>
       <span class="state" id="pairedState">not paired</span>
@@ -263,7 +279,7 @@
       <select id="area" class="grow"></select>
       <button id="outBtn" class="on">Turn on</button>
     </div>
-    <p class="note" id="pairMsg">Leave the address blank to search. Press the bridge button within 30 s.</p>
+    <p class="note" id="pairMsg"></p>
     <p class="note" id="outMsg"></p>
   </section>
 
@@ -276,9 +292,7 @@
   </section>
 
   <section class="card">
-    <p class="lbl">Latency</p>
-    <p class="note" style="margin:0 0 8px">Open this page on the machine that captures the audio.
-      Raise the delay until the flash lands on the click.</p>
+    <p class="lbl" data-hint="Latency|Light travels faster than sound. Open this page on the machine that CAPTURES the audio, start the click, and raise the delay until the flash lands on it.">Latency</p>
     <div class="row">
       <label>Metronome</label>
       <button id="metroBtn">Start</button>
@@ -293,7 +307,7 @@
   </section>
 
   <section class="card">
-    <p class="lbl">Senders</p>
+    <p class="lbl" data-hint="Senders|Something has to send audio here. Pick whichever matches how you listen - each link goes to its download.">Senders</p>
     <div class="logos">
       <a class="logo" id="dl-soundrecorder" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
         <img src="logos/windows.svg" alt=""><span>Windows</span></a>
@@ -575,7 +589,7 @@ function labelFor(e, width, cls){
   lab.textContent = e.label;
   if (cls) lab.className = cls;
   if (width) lab.style.flex = '0 0 ' + width;
-  if (e.description) lab.title = e.description;
+  if (e.description) lab.setAttribute('data-hint', e.label + '|' + e.description);
   return lab;
 }
 
@@ -768,6 +782,60 @@ $('dlnaDevice').onchange = async () => {
   dlnaTouched = true;
   await apply({dlna_enabled: $('dlnaDevice').checked});
 };
+
+/* Hints. On by default, because the first hour is when they help; the choice is
+   remembered, because after that they are in the way. Any element with
+   data-hint="Title|Body" gets one, including the generated settings rows, which take
+   theirs from the provider's own descriptions. */
+const hintBox = $('hint');
+let hintsOn = localStorage.getItem('tth-hints') !== 'off';
+
+function paintHintButton(){
+  $('hintBtn').setAttribute('aria-pressed', String(hintsOn));
+  $('hintBtn').title = hintsOn ? 'Hints on' : 'Hints off';
+}
+
+function showHint(el){
+  if (!hintsOn) return;
+  const raw = el.getAttribute('data-hint');
+  if (!raw) return;
+  const cut = raw.indexOf('|');
+  const title = cut > 0 ? raw.slice(0, cut) : '';
+  const body = cut > 0 ? raw.slice(cut + 1) : raw;
+  hintBox.textContent = '';
+  if (title){
+    const b = document.createElement('b'); b.textContent = title; hintBox.appendChild(b);
+  }
+  hintBox.appendChild(document.createTextNode(body));
+  hintBox.classList.add('on');
+  const r = el.getBoundingClientRect();
+  const w = hintBox.offsetWidth, h = hintBox.offsetHeight;
+  // Keep it on screen: flip above when there is no room below, never past an edge.
+  let top = r.bottom + 8;
+  if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 8);
+  hintBox.style.top = top + 'px';
+  hintBox.style.left = Math.min(Math.max(8, r.left), innerWidth - w - 8) + 'px';
+}
+
+function hideHint(){ hintBox.classList.remove('on'); }
+
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-hint]');
+  if (el) showHint(el); else hideHint();
+});
+document.addEventListener('focusin', e => {
+  const el = e.target.closest('[data-hint]');
+  if (el) showHint(el);
+});
+addEventListener('scroll', hideHint, true);
+
+$('hintBtn').onclick = () => {
+  hintsOn = !hintsOn;
+  localStorage.setItem('tth-hints', hintsOn ? 'on' : 'off');
+  paintHintButton();
+  if (!hintsOn) hideHint();
+};
+paintHintButton();
 
 $('showAdvanced').onchange = renderSchema;
 async function apply(patch){
