@@ -14,10 +14,10 @@
    ═══════════════════════════════════════════════════════════════════════ */
 :root{
   /* chassis — the Traktor housing everything is bolted into */
-  --chassis:#141619;        /* page background */
-  --chassis-2:#1B1E22;      /* header / footer strips */
-  --rail-hi:#34393F;        /* module title rail, top of gradient */
-  --rail-lo:#23272B;        /* module title rail, bottom of gradient */
+  --chassis:#141416;        /* page background - neutral, not blue-grey */
+  --chassis-2:#1B1B1D;      /* header / footer strips */
+  --rail-hi:#2C2C2F;        /* module title rail, top */
+  --rail-lo:#232326;        /* module title rail, bottom */
   --rail-ink:#C9CED4;       /* text printed on rails */
   --rail-dim:#7D858D;       /* secondary text on rails / footer */
 
@@ -49,16 +49,24 @@
   --print-light:#D6DCE1;    /* on a dark plate */
   --print-light-2:#868F97;  /* on a dark plate, secondary */
 
-  /* Three lit meanings and no more. A key is dark until it is doing something; the
-     colour then says which kind of something. Flat fills, not glossy ones - a Traktor
-     key is printed, not varnished. */
-  --on-listen:#3E8FC4;      /* on the network as a player, waiting */
-  --on-link:#2AA372;        /* linked to something */
-  --on-out:#D9741C;         /* light going out */
+  /* Read off the Traktor Pro 4 screenshot rather than mixed by eye, which is how the
+     last set came out muted enough that the amber read as brown. Traktor's accents are
+     bright and fully saturated, and they sit on flat fills with a one-pixel edge - no
+     gradient, no glow, almost no shadow.
 
-  --live:#33E1A0;           /* signal-present LED. never decoration */
-  --hot:#FFB020;            /* warnings only */
-  --accent:#D9741C;         /* focus rings and the one primary key */
+     Three lit meanings and no more. A key is dark until it is doing something; the
+     colour then says which kind of something. */
+  --on-listen:#2196F3;      /* Traktor's SYNC blue - on the network, waiting */
+  --on-link:#C3E635;        /* Traktor's lime - linked, armed, playing */
+  --on-out:#F5811F;         /* Traktor's orange - light going out */
+  --on-listen-hi:#42A9F5;
+  --on-link-hi:#D2F04E;
+  --on-out-hi:#FF9433;
+
+  --live:#C3E635;           /* signal present. the same lime, because it means the same */
+  --hot:#F5811F;            /* warnings */
+  --bad:#E03C2A;            /* failures only */
+  --accent:#F5811F;         /* focus rings and the one primary key */
 
   /* type — system stacks only: the box has no internet, we ship no fonts */
   --f-display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Liberation Sans Narrow","Arial Narrow",system-ui,sans-serif;
@@ -136,7 +144,7 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
 
 /* ══ MODULE — one rack unit: dark rail + aluminum plate ══════════════ */
 .module{border-radius:8px;overflow:hidden;border:1px solid #000;min-width:0;
-        box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 10px 24px rgba(0,0,0,.45)}
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
 .rail{display:flex;align-items:center;gap:12px;padding:7px 14px;
       background:linear-gradient(var(--rail-hi),var(--rail-lo));
       border-bottom:1px solid #000;
@@ -160,8 +168,7 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
   background:
     repeating-linear-gradient(180deg, rgba(255,255,255,.14) 0 1px, rgba(255,255,255,0) 1px 4px),
     linear-gradient(180deg,var(--alu-hi),var(--alu) 14%,var(--alu) 86%,var(--alu-lo));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(0,0,0,.2),
-             0 8px 20px rgba(0,0,0,.4)}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(0,0,0,.18)}
 .pnl-head{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
 .pnl-head .legend{color:var(--print-dark)}
 .pnl-head .sub{margin-left:auto;font-family:var(--f-mono);font-size:10.5px;
@@ -181,7 +188,36 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
 .sw[aria-pressed=true] span:last-child{background:#2E3338;color:#C6CCD1;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
 .sw[aria-pressed=true] span:last-child{background:var(--on-out);color:#231503}
+.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .sw:hover span{color:#98A1A8}
+
+
+/* ── the readout deck: four readings around the needles ───────────────────
+   Laid out like the face of a hi-fi component: everything on one baseline, the
+   columns the same width, the needles in the middle where the eye lands first. */
+.deck{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}
+.dcol{display:grid;grid-template-rows:1fr 1fr;gap:10px;min-width:0}
+.cell{display:flex;flex-direction:column;gap:5px;min-width:0}
+.cell .screen{flex:1;display:grid;place-items:center}
+.cap{display:flex;align-items:baseline;gap:8px;font-family:var(--f-display);font-size:10px;
+  font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--print-dark)}
+.capval{margin-left:auto;font-family:var(--f-mono);font-size:10px;font-weight:400;
+  letter-spacing:.04em;color:var(--print-dark-2)}
+@media(max-width:860px){
+  .deck{grid-template-columns:1fr;gap:10px}
+  .dcol{grid-template-rows:auto auto}
+  .meters{order:-1}
+}
+
+/* ── nothing coming in ────────────────────────────────────────────────────
+   A dark screen with no number on it looks broken. Say what is true instead, the way
+   a receiver does when the aerial is out. */
+.screen{position:relative}
+.nosig{position:absolute;inset:0;display:none;place-items:center;
+  font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.3em;
+  text-transform:uppercase;color:#6B6F73;background:var(--screen);border-radius:5px}
+.screen.quiet .nosig{display:grid}
+.screen.quiet>*:not(.nosig){opacity:.12}
 
 /* ── dark glass screens, recessed into the metal ── */
 .screen{background:var(--screen);border:1px solid var(--screen-edge);border-radius:5px;
@@ -343,19 +379,13 @@ select{appearance:none;-webkit-appearance:none;padding-right:26px;cursor:pointer
 /* keys — Traktor's soft-touch transport keys, machined into the plate */
 button{font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.12em;
       text-transform:uppercase;color:#D9DEE3;cursor:pointer;
-      background:linear-gradient(#3D434A,#26292D);
-      border:1px solid #000;border-radius:4px;padding:7px 16px;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 1px 0 rgba(255,255,255,.55),
-                 0 2px 4px rgba(0,0,0,.25)}
-button:hover{background:linear-gradient(#464C54,#2B2F34)}
-button:active{background:#1F2226;box-shadow:inset 0 2px 4px rgba(0,0,0,.6),
-                 0 1px 0 rgba(255,255,255,.55)}
+      background:#2E3338;border:1px solid #101011;border-radius:2px;padding:7px 16px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+button:hover{background:#363C42}
+button:active{background:#212528;box-shadow:inset 0 2px 5px rgba(0,0,0,.5)}
 button:disabled{opacity:.55;cursor:default}
-button.primary{color:#231503;text-shadow:0 1px 0 rgba(255,255,255,.25);
-      background:linear-gradient(#F7A945,#DE7A1D);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 0 rgba(255,255,255,.55),
-                 0 0 12px rgba(240,134,47,.35)}
-button.primary:hover{background:linear-gradient(#FCB558,#E88526)}
+button.primary{color:#231503;background:var(--on-out);border-color:#B85D0C}
+button.primary:hover{background:var(--on-out-hi)}
 
 /* faders — a cassette-deck slot fader */
 input[type=range]{-webkit-appearance:none;appearance:none;flex:1 1 160px;height:24px;
@@ -505,17 +535,17 @@ a.brand:hover{color:var(--read)}
   color:var(--print-light-2);text-decoration:none;padding:3px 0}
 .brand.word:hover{color:var(--print-light)}
 
-.key[aria-pressed=true]{background:var(--on-listen);border-color:#20536F;color:#06202F}
-.key[aria-pressed=true]:hover{background:#4A9CD0;color:#06202F}
-.key.k-link[aria-pressed=true]{background:var(--on-link);border-color:#17603F;color:#04231A}
-.key.k-link[aria-pressed=true]:hover{background:#31B57F;color:#04231A}
-.key.k-out[aria-pressed=true]{background:var(--on-out);border-color:#8A470E;color:#231503}
-.key.k-out[aria-pressed=true]:hover{background:#E8821F;color:#231503}
+.key[aria-pressed=true]{background:var(--on-listen);border-color:#0F6CB5;color:#08243A}
+.key[aria-pressed=true]:hover{background:var(--on-listen-hi)}
+.key.k-link[aria-pressed=true]{background:var(--on-link);border-color:#8FAD1B;color:#1F2605}
+.key.k-link[aria-pressed=true]:hover{background:var(--on-link-hi)}
+.key.k-out[aria-pressed=true]{background:var(--on-out);border-color:#B85D0C;color:#231503}
+.key.k-out[aria-pressed=true]:hover{background:var(--on-out-hi)}
 /* waiting on something we do not control: the bridge's own button being pressed */
-.key.k-wait{background:#B98A1B;border-color:#7A5A0E;color:#231503;
-  animation:keywait 1s steps(1) infinite}
-@keyframes keywait{50%{background:#3A3320;color:#B9A470}}
-.key.k-bad{background:#B23A28;border-color:#7A2418;color:#F6E2DE}
+.key.k-wait{background:var(--on-out);border-color:#B85D0C;color:#231503;
+  animation:keywait .9s steps(1) infinite}
+@keyframes keywait{50%{background:#3A2A15;color:#C08A40}}
+.key.k-bad{background:var(--bad);border-color:#A32718;color:#FFE8E4}
 @media(prefers-reduced-motion:reduce){.key.k-wait{animation:none}}
 
 /* an IPv4 field that only takes an IPv4: four octets, each 0-255, machined into one
@@ -590,9 +620,7 @@ a.brand:hover{color:var(--read)}
       <div class="screen wallscreen">
         <div id="wall"></div>
       </div>
-      <p class="note" id="wallNote">Turn the output on to watch the frames.</p>
-      <p class="note">The face holds the peak for a moment so a single-frame flash stays
-        visible; the strip under it is the last two seconds, unheld.</p>
+
     </div>
   </section>
 
@@ -601,40 +629,47 @@ a.brand:hover{color:var(--read)}
   <section class="panel"
     data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second. The rate on the right is what is arriving on the wire.">
     <div class="pnl-head"><span class="legend">Audio in</span><span class="sub" id="rate">&mdash;</span></div>
-    <div class="screen lcd wide"><div id="spec"></div></div>
-  </section>
-
-  <section class="panel"
-    data-hint="Level|Peak per channel, straight off the audio. The needles show what is coming in; the ladders beside them hold a peak a moment longer so a short one is still visible.">
-    <div class="meters">
-      <div class="mtr">
-        <div class="vuwrap" id="vu-l"></div><span class="mtr-cap">L</span>
-      </div>
-      <div class="ledcol" id="led-l"></div>
-      <div class="ledcol mirror" id="led-r"></div>
-      <div class="mtr mirror">
-        <div class="vuwrap" id="vu-r"></div><span class="mtr-cap">R</span>
-      </div>
-    </div>
+    <div class="screen lcd wide" id="scr-spec"><div id="spec"></div><i class="nosig">No signal</i></div>
   </section>
 
   <section class="panel">
-    <div class="trio">
-      <div class="link"
-        data-hint="Beat|Tempo read from the audio. Every effect fires on this grid, so if the number is wrong the lights will be too.">
-        <div class="pnl-head"><span class="legend">Beat</span>
-          <span class="sub"><span id="beats">0</span> beats</span></div>
-        <div class="screen lcd"><div class="big"><span id="bpm">&mdash;</span><span class="unit">BPM</span></div></div>
+    <div class="deck">
+      <div class="dcol">
+        <div class="cell"
+          data-hint="Tempo|Read from the audio. Every effect fires on this grid, so if this is wrong the lights are wrong with it.">
+          <span class="cap">Tempo</span>
+          <div class="screen lcd" id="scr-bpm"><div class="big"><span id="bpm">&mdash;</span><span class="unit">BPM</span></div><i class="nosig">No beat</i></div>
+        </div>
+        <div class="cell"
+          data-hint="Bar|Which beat of the bar the engine is on, and how many beats it has counted since it started.">
+          <span class="cap">Bar<b class="capval" id="beats">0</b></span>
+          <div class="screen lcd" id="scr-bar"><div class="big"><span id="barBeat">&mdash;</span><span class="unit">of 4</span></div><i class="nosig">No grid</i></div>
+        </div>
       </div>
-      <div class="link"
-        data-hint="Engine|Frames rendered since the daemon started, and the rate it is managing now. Thirty a second is the target.">
-        <div class="pnl-head"><span class="legend">Engine</span><span class="sub" id="rps">&mdash;</span></div>
-        <div class="screen lcd"><div class="big"><span id="renders">0</span></div></div>
+
+      <div class="meters"
+        data-hint="Level|Peak per channel, straight off the audio. The needles show what is arriving; the ladders beside them hold a peak a moment longer, so a short one is still visible.">
+        <div class="mtr">
+          <div class="vuwrap" id="vu-l"></div><span class="mtr-cap">L</span>
+        </div>
+        <div class="ledcol" id="led-l"></div>
+        <div class="ledcol mirror" id="led-r"></div>
+        <div class="mtr mirror">
+          <div class="vuwrap" id="vu-r"></div><span class="mtr-cap">R</span>
+        </div>
       </div>
-      <div class="link"
-        data-hint="Bridge|Frames that carried light, and the room they went to. Zero while Sync is off.">
-        <div class="pnl-head"><span class="legend">Bridge</span><span class="sub" id="outState">off</span></div>
-        <div class="screen lcd"><div class="big"><span id="lit">0</span><span class="unit">lit</span></div></div>
+
+      <div class="dcol">
+        <div class="cell"
+          data-hint="Engine|Frames rendered since the daemon started, and the rate it is managing now. Thirty a second is the target.">
+          <span class="cap">Engine<b class="capval" id="rps">&mdash;</b></span>
+          <div class="screen lcd"><div class="big"><span id="renders">0</span></div></div>
+        </div>
+        <div class="cell"
+          data-hint="Bridge|Frames that carried light to the room. Zero while Sync is off.">
+          <span class="cap">Bridge</span>
+          <div class="screen lcd" id="scr-lit"><div class="big"><span id="lit">0</span><span class="unit">lit</span></div><i class="nosig">No output</i></div>
+        </div>
       </div>
     </div>
   </section>
@@ -972,6 +1007,10 @@ function flash(id, on, ms){
   if (on) held[id] = now + (ms || 90);
   el.classList.toggle('on', (held[id] || 0) > now);
 }
+/* NO SIGNAL, the way a receiver says it. */
+function quiet(id, on){
+  const el = $(id); if (el) el.classList.toggle('quiet', !!on);
+}
 function steady(id, on){
   const el = $(id); if (el) el.classList.toggle('on', !!on);
 }
@@ -1029,8 +1068,14 @@ async function poll(){
   $('beats').textContent = s.beats;
   $('renders').textContent = s.renders;
   $('lit').textContent = s.lit;
-  $('outState').textContent = s.output === 'hue' ? ('streaming · ' + (s.area || '')) : 'output off';
   if (!outTouched) setKey('outBtn', s.output === 'hue');
+  $('barBeat').textContent = s.beat_in_bar || '—';
+
+  // A screen with nothing on it looks broken; say what is true instead.
+  quiet('scr-spec', !s.receiving);
+  quiet('scr-bpm', !s.bpm);
+  quiet('scr-bar', !s.beat_in_bar);
+  quiet('scr-lit', s.output !== 'hue');
 
   // The keys say whether we are on that network as a player; hovering one says how it
   // is getting on, so a failure has somewhere to go without a line of prose.
@@ -1103,7 +1148,7 @@ function buildWall(lights){
   wall.innerHTML = '';
   tiles = new Map();
   if (!lights.length){
-    wall.innerHTML = '<p class="empty">No lights yet — pair a bridge and turn the output on.</p>';
+    wall.innerHTML = '<p class="empty">No output</p>';
     return;
   }
   for (const l of lights){
@@ -1165,8 +1210,6 @@ setInterval(() => {
   if (fpsMark){ $('fps').textContent =
       (frames * 1000 / (now - fpsMark)).toFixed(0).padStart(2, '0') + ' FPS'; }
   fpsMark = now; frames = 0;
-  $('wallNote').textContent = tiles.size
-    ? '' : 'Turn the output on to watch the frames.';
 }, 1000);
 
 /* ══ settings, generated from the provider's own entries ═════════════ */
@@ -1247,7 +1290,7 @@ function buildLightPicker(e){
   if (!LIGHTS.length){
     const p = document.createElement('span');
     p.style.color = 'var(--legend)'; p.style.fontSize = '13px';
-    p.textContent = 'Turn the output on to see this area’s lights.';
+    p.textContent = 'No lights';
     box.appendChild(p);
   }
   // Which lights take part: a key each, lit when the light is in. Same switch as
