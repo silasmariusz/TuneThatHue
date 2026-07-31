@@ -81,21 +81,80 @@ Both are reported in the panel in those words, so nobody has to guess.
 
 ## Install
 
-**On a NAS.** Download the `.qpkg`, install it in App Center through *Install Manually*,
-open **TuneThatHue** from the main menu, pair the bridge, pick an area, turn the output
-on.
+Everything is on the [releases page](https://github.com/silasmariusz/TuneThatHue/releases).
 
-**On a desktop.** Run the installer for your system. It sets up the service, the tray
-icon and the decoder in one go.
+| You have | Download | Then |
+| --- | --- | --- |
+| QNAP NAS | `TuneThatHue_x.y.z.qpkg` | App Center -> *Install Manually* |
+| Windows 10/11 | `TuneThatHue-daemon-x.y.z-setup.exe` | run it |
+| Linux, Raspberry Pi | `TuneThatHue-x.y.z-unix.tar.gz` | unpack, run `install/linux/install.sh` |
+| macOS 12+ | `TuneThatHue-x.y.z-unix.tar.gz` | unpack, run `install/macos/install.sh` |
+| Docker | `docker pull silasmariusz/tunethathue` | see below |
 
-    Windows   TuneThatHue-daemon-setup.exe
-    macOS     ./install/macos/install.sh
-    Linux     ./install/linux/install.sh
-
-Then `tunethathue status` from a terminal, or the tray icon, or
-`http://127.0.0.1:8080`.
+On every platform it installs as a service that starts by itself and keeps running: a
+Windows service, a launchd agent, a systemd user unit, a QNAP package with a watchdog.
+The panel is then on **http://127.0.0.1:8080** (`http://<nas>/TuneThatHue/` on a NAS),
+and `tunethathue status` works from a terminal.
 
 ![Settings, generated from the Music Assistant provider's own sources](docs/img/settings.webp)
+
+### Raspberry Pi and Linux, step by step
+
+Tested on Ubuntu 24.04 and Raspberry Pi OS (64-bit) on a Pi 4B.
+
+```sh
+tar xzf TuneThatHue-0.9.0-unix.tar.gz
+cd TuneThatHue-0.9.0
+./install/linux/install.sh
+```
+
+That is the whole thing. No `sudo` except for two packages the tray icon needs, and
+nothing is written outside your own account. It will:
+
+1. **Find a Python 3.14**, and fetch a portable one if the system has none. Raspberry Pi
+   OS and Ubuntu 24.04 both ship an older Python, so this normally downloads one - about
+   30 MB, into the install directory, touching nothing system-wide. It has to be 3.14:
+   the effects engine is carried byte-for-byte from Music Assistant and uses syntax
+   older versions cannot parse.
+2. **Make a virtual environment** and install what the daemon imports.
+3. **Find a decoder.** It uses the bundled `ffmpeg` if the archive has one for your
+   architecture, otherwise the system's. If you have neither, `sudo apt install ffmpeg`
+   first - without it only uncompressed audio plays, which rules out most of what a
+   Snapcast or DLNA sender will send you.
+4. **Install a systemd user service** and enable lingering, so it starts at boot and
+   keeps running after you log out.
+5. **Install a tray icon** unless you pass `--no-tray`.
+
+Afterwards:
+
+```sh
+tunethathue status          # is it running, and what is it hearing
+tunethathue stop | start | restart
+tunethathue panel           # open the browser panel
+tunethathue codecs          # check every decoder the inputs need
+journalctl --user -u tunethathue -f          # the log
+./install/linux/install.sh --remove          # take it off again
+```
+
+**A headless Pi** needs nothing else - the panel is on `http://<pi>:8080` from any
+machine on the network. Pass `--no-tray` and skip the two desktop packages.
+
+**32-bit Raspberry Pi OS: the tempo will not lock.** NumPy publishes no build for 32-bit
+ARM on Python 3.14, and the beat tracker needs it. Everything else works - the panel, the
+inputs, pairing, colour - but the lights will not follow the beat. Use the 64-bit image
+(`uname -m` should say `aarch64`), or run the container instead.
+
+### Docker
+
+```sh
+docker run -d --name tunethathue --network host \
+  -v tunethathue:/config silasmariusz/tunethathue:latest
+```
+
+`--network host` is not laziness: every way this box is found on the network - mDNS for
+Sendspin, SSDP for DLNA, a broadcast for Squeezebox - needs multicast to reach the LAN,
+and none of it survives a bridge network. `amd64` and `arm64` only, for the NumPy reason
+above.
 
 ## The senders
 

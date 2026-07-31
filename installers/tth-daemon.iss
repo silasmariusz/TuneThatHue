@@ -1,13 +1,21 @@
 ; TuneThatHue daemon installer for Windows.
 ;
-; Installs the daemon, its Python runtime, the bundled ffmpeg and the tray icon, then
-; registers a Windows service so it starts at boot without anyone logging in. The tray
-; is a separate autostart entry, because a service has no desktop to draw on.
+; Installs the daemon, its Python runtime, the bundled ffmpeg and the tray icon, and
+; registers a Windows service so it starts at boot with nobody signed in - the same as
+; the systemd unit on Linux and the launchd job on macOS.
+;
+; The service runs under WinSW rather than directly: Windows expects a service to answer
+; the service control manager within thirty seconds, which a Python process never does,
+; and a bare `sc create` produced a service killed at every start with error 1053.
+;
+; Because a service runs as LocalSystem, the settings live in ProgramData rather than in
+; anyone's AppData - otherwise the daemon would write them where the panel cannot read
+; them, and a paired bridge would look unpaired to the person who paired it.
 ;
 ; Build:  ISCC.exe installers\tth-daemon.iss
 
 #define AppName     "TuneThatHue"
-#define AppVersion  "0.6.0"
+#define AppVersion  "0.9.0"
 #define Publisher   "Silas Mariusz Grzybacz"
 #define AppUrl      "https://github.com/silasmariusz/TuneThatHue"
 #define Root        ".."
@@ -25,7 +33,7 @@ OutputBaseFilename={#AppName}-daemon-{#AppVersion}-setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-; A Windows service has to be created by an administrator.
+; Writing into Program Files needs an administrator; the daemon itself does not.
 PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64compatible
 SetupIconFile={#Root}\resources\tth.ico
@@ -36,7 +44,7 @@ DisableProgramGroupPage=yes
 Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "service"; Description: "Run in the background as a Windows service (starts at boot)"; GroupDescription: "How it runs:"
+Name: "service"; Description: "Run as a Windows service (starts at boot, no sign-in needed)"; GroupDescription: "How it runs:"
 Name: "tray";    Description: "Show the tray icon at sign-in"; GroupDescription: "How it runs:"
 
 [Files]
@@ -50,6 +58,9 @@ Source: "{#Root}\install\*";    DestDir: "{app}\install";    Flags: ignoreversio
 ; compiled on a machine that has not assembled them yet.
 Source: "{#Root}\runtime\python-win\*";     DestDir: "{app}\runtime\python"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
 Source: "{#Root}\runtime\ffmpeg-AMD64\*";   DestDir: "{app}\runtime\ffmpeg-AMD64"; Flags: ignoreversion skipifsourcedoesntexist
+; WinSW, the service host. Windows expects a service to answer the service control
+; manager within thirty seconds; a Python process never does, so WinSW answers for it.
+Source: "{#Root}\runtime\WinSW-x64.exe";    DestDir: "{app}\runtime"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\{#AppName} panel"; Filename: "{app}\runtime\python\pythonw.exe"; Parameters: """{app}\install\tunethathue_ctl.py"" panel"; IconFilename: "{app}\resources\tth.ico"

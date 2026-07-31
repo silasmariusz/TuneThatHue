@@ -85,6 +85,21 @@ $env:TTH_FFMPEG = $FfmpegExe
 & (Join-Path $Runtime "python.exe") (Join-Path $Root "install\tunethathue_ctl.py") codecs
 if ($LASTEXITCODE -ne 0) { throw "the bundled ffmpeg is missing codecs" }
 
+Write-Host "==> service host" -ForegroundColor Cyan
+# WinSW: what lets the daemon be a real Windows service. Windows expects a service to
+# answer the service control manager within thirty seconds and a Python process never
+# does, so WinSW answers on its behalf and restarts the daemon if it dies. Apache-2.0,
+# a single executable, no .NET install needed on Windows 10 or 11.
+$WinSW = Join-Path $Root "runtime\WinSW-x64.exe"
+if (Test-Path $WinSW) {
+    Write-Host "    already here"
+} else {
+    $url = "https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe"
+    Write-Host "    downloading WinSW"
+    New-Item -ItemType Directory -Force -Path (Split-Path $WinSW) | Out-Null
+    Invoke-WebRequest -Uri $url -OutFile $WinSW
+}
+
 if ($SkipBuild) { Write-Host "assembled; skipping the build"; exit 0 }
 
 Write-Host "==> installer" -ForegroundColor Cyan

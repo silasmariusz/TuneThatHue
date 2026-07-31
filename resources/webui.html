@@ -47,7 +47,7 @@
   --print-dark:#26292C;     /* on aluminium */
   --print-dark-2:#5A6167;   /* on aluminium, secondary */
   --print-light:#D6DCE1;    /* on a dark plate */
-  --print-light-2:#868F97;  /* on a dark plate, secondary */
+  --print-light-2:#9AA3AC;  /* on a dark plate, secondary */
 
   /* Read off the Traktor Pro 4 screenshot rather than mixed by eye, which is how the
      last set came out muted enough that the amber read as brown. Traktor's accents are
@@ -72,12 +72,11 @@
   --f-display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Liberation Sans Narrow","Arial Narrow",system-ui,sans-serif;
   --f-body:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
   --f-mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,"SF Mono",monospace;
+  --f-cond:var(--f-display);
 }
 *{box-sizing:border-box}
-html{background:var(--chassis)}
-body{margin:0;background:
-     radial-gradient(1200px 400px at 50% -160px, #22262B, transparent 70%),
-     var(--chassis);
+html{background:var(--chassis);color-scheme:dark}
+body{margin:0;background:var(--chassis);
      color:var(--read);font:13.5px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
 a{color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -201,14 +200,14 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
    nudging. Nothing here goes out of true when a font or a window size changes. */
 /* the input stage is one panel: what is arriving, then what it measures */
 .panel .screen.wide{margin-bottom:12px}
-.deck{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;height:160px}
+.deck{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;height:136px}
 .dcol{display:grid;grid-template-rows:1fr 1fr;gap:12px;min-width:0}
 .cell{min-width:0;display:grid}
 .cell .screen{display:grid;place-items:center;height:100%}
 @media(max-width:860px){
   .deck{grid-template-columns:1fr;height:auto;gap:12px}
-  .dcol{grid-template-rows:74px 74px}
-  .meters{order:-1;height:160px}
+  .dcol{grid-template-rows:62px 62px}
+  .meters{order:-1;height:136px}
 }
 
 /* ── nothing coming in ────────────────────────────────────────────────────
@@ -283,6 +282,10 @@ main>.panel+.panel{margin-top:0}
 .plate.dark h3,
 .plate.dark .sub{color:var(--print-light-2)}
 .plate.dark .note strong,.plate.dark .big{color:var(--print-light)}
+/* .row>label carries the aluminium ink and, written later in the sheet, out-ranks the
+   rule above on a dark plate - which is how the settings labels went invisible. */
+.plate.dark .row>label:first-child{color:var(--print-light)}
+.plate.dark label.fieldname{color:var(--print-light)}
 
 .meters{display:grid;grid-template-columns:repeat(4,auto);gap:8px;justify-content:center;
   align-items:stretch;height:100%}
@@ -319,9 +322,9 @@ main>.panel+.panel{margin-top:0}
 .cap-c{background:var(--deck-c)} .cap-d{background:var(--deck-d)}
 @media(min-width:760px){
 }
-.lcd{height:52px;display:flex;align-items:center;justify-content:center;padding:6px 10px}
+.lcd{height:46px;display:flex;align-items:center;justify-content:center;padding:6px 10px}
 .big{font-family:var(--f-mono);font-variant-numeric:tabular-nums;
-      font-size:24px;line-height:1;color:var(--vfd);
+      font-size:19px;line-height:1;color:var(--vfd);
       text-shadow:0 0 10px rgba(255,184,104,.35);white-space:nowrap}
 .big .unit{font-size:10px;letter-spacing:.14em;margin-left:6px;color:#8A6F4E;text-shadow:none}
 .sub{margin-top:6px;font-family:var(--f-mono);font-size:11px;color:var(--ink-soft);
@@ -334,11 +337,15 @@ main>.panel+.panel{margin-top:0}
 
 /* ══ ROWS — a channel strip line on the faceplate ════════════════════ */
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0}
-/* Only in the bridge card, where Pair and Sync are meant to line up down one edge.
-   Written unscoped the first time, it threw the last key of every row on the page to
-   the far right and left a hole in the middle of Sources. */
-#bridgeCard .row>.key:last-child{margin-left:auto}
-#bridgeCard .row .ipv4{flex:1 1 auto}
+/* The bridge card is two rows of the same shape: a full-width field, then its key.
+   Both fields take the same column, both keys take the same fixed column, so the
+   edges line up by construction and the keys never change size. */
+#bridgeCard .bgrid{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:10px;
+  align-items:stretch}
+#bridgeCard .bgrid .key{width:100%;min-width:0;height:30px}
+#bridgeCard .bgrid .ipv4{width:100%;justify-content:space-between;height:30px}
+#bridgeCard .bgrid .ipv4 input{flex:1 1 auto}
+#bridgeCard .bgrid select{width:100%;height:30px}
 .row>label:first-child{flex:0 0 148px;font-family:var(--f-display);font-size:11.5px;
       font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
 label.fieldname{display:block;margin:14px 0 8px;font-family:var(--f-display);font-size:11.5px;
@@ -356,11 +363,20 @@ input[type=text],select{font:12.5px/1.4 var(--f-mono);color:var(--read);
       min-width:0;box-shadow:inset 0 2px 5px rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.5)}
 input[type=text]{flex:1 1 140px}
 input[type=text]::placeholder{color:#5C646C}
-select{appearance:none;-webkit-appearance:none;padding-right:26px;cursor:pointer;
+/* the mode selector is a machined control like the keys, not a browser default:
+   DIN print, dark well, milled arrow — and a dark native list via color-scheme */
+select{appearance:none;-webkit-appearance:none;cursor:pointer;
+      font:600 11px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;
+      color:#D9DEE3;height:30px;padding:0 30px 0 12px;border-radius:3px;
+      background-color:#101317;border:1px solid #000;
+      box-shadow:inset 0 2px 5px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,255,255,.04);
       background-image:linear-gradient(45deg,transparent 49%,#8A929A 50%),
                        linear-gradient(-45deg,transparent 49%,#8A929A 50%);
-      background-position:right 14px center,right 9px center;
+      background-position:right 16px center,right 11px center;
       background-size:5px 5px;background-repeat:no-repeat}
+select:hover{background-color:#15191E;color:#EDF1F4}
+select option{font:13px/1.6 var(--f-body);letter-spacing:0;text-transform:none;
+      background:#1B1E22;color:#D9DEE3}
 
 /* keys — Traktor's soft-touch transport keys, machined into the plate */
 button{font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.12em;
@@ -405,21 +421,27 @@ input[type=range]::-moz-range-thumb{width:24px;height:15px;border-radius:3px;bor
 .board>input[type=text]{width:100%;margin-bottom:10px}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;
       max-height:264px;overflow-y:auto;padding:8px;border-radius:5px;
-      background:rgba(0,0,0,.06);box-shadow:inset 0 1px 3px rgba(0,0,0,.18),
-      0 1px 0 rgba(255,255,255,.5)}
-.sw{display:block;padding:0;margin:0;text-align:left;letter-spacing:0;text-transform:none;
+      background:rgba(0,0,0,.32);box-shadow:inset 0 1px 4px rgba(0,0,0,.55);
+      scrollbar-width:thin;scrollbar-color:#3C4248 #0D1013}
+/* the scrollbar is part of the panel, not the browser's */
+.swatches::-webkit-scrollbar{width:10px}
+.swatches::-webkit-scrollbar-track{background:#0D1013;border-radius:5px}
+.swatches::-webkit-scrollbar-thumb{background:#3C4248;border:2px solid #0D1013;
+      border-radius:5px}
+.swatches::-webkit-scrollbar-thumb:hover{background:#4A5157}
+.pal{display:block;padding:0;margin:0;text-align:left;letter-spacing:0;text-transform:none;
       background:#14171B;border:1px solid #000;border-radius:4px;overflow:hidden;
-      box-shadow:0 1px 0 rgba(255,255,255,.4);cursor:pointer}
-.sw:hover{background:#1B1F24;box-shadow:0 1px 0 rgba(255,255,255,.4)}
-.sw:active{background:#101317}
-.sw .bars{display:flex;height:26px}
-.sw .bars i{flex:1}
-.sw .t{display:flex;align-items:center;gap:5px;padding:4px 7px;
+      box-shadow:0 1px 0 rgba(255,255,255,.06);cursor:pointer}
+.pal:hover{background:#1B1F24}
+.pal:active{background:#101317}
+.pal .bars{display:flex;height:26px}
+.pal .bars i{flex:1}
+.pal .t{display:flex;align-items:center;gap:5px;padding:4px 7px;
       font:10.5px/1.3 var(--f-body);color:#B8BFC6;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sw[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-2px;
-      box-shadow:0 0 10px rgba(240,134,47,.4),0 1px 0 rgba(255,255,255,.4)}
-.sw[aria-pressed="true"] .t{color:#FFD9AE}
+.pal[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-2px;
+      box-shadow:0 0 10px rgba(240,134,47,.4)}
+.pal[aria-pressed="true"] .t{color:#FFD9AE}
 .tick{flex:none;margin-left:auto;font-family:var(--f-display);font-size:8.5px;
       letter-spacing:.1em;color:#0D0F11;background:var(--deck-b);
       border-radius:2px;padding:1px 4px}
@@ -508,20 +530,8 @@ a.brand:hover{color:var(--read)}
 /* the label is what changes; give it one width so the key never resizes */
 .key .lb{min-width:5.2em;text-align:center}
 
-/* Sources on a grid: the switch, then what that source needs to be told. Three columns
-   of the same width, so the card is filled by the controls rather than by a gap. */
-/* At rest the marks take the key's own colour, so a row of sources is one colour and
-   reads as a set. Hovering one shows it in the colour that belongs to it. A lit key
-   keeps its mark dark, because the key is the lit thing, not the badge on it. */
-.key:hover .g-sendspin,.srcvban:hover .g-sendspin{color:#41C0A8}
-.key:hover .g-squeezebox,.srcvban:hover .g-squeezebox{color:#8FA4B8}
-.key:hover .g-snapcast,.srcvban:hover .g-snapcast{color:#5AA9E6}
-.key:hover .g-dlna,.srcvban:hover .g-dlna{color:#C3E635}
-.key:hover .g-wled,.srcvban:hover .g-wled{color:#F5811F}
-.key:hover .g-vban,.srcvban:hover .g-vban{color:#E0C267}
-.key[aria-pressed=true]:hover svg{color:inherit}
-.srcvban svg{width:14px;height:14px}
-
+/* Sources on a grid: the switch, then what that source needs to be told. The keys are
+   plain print - no badges: five borrowed marks at eleven pixels read as smudges. */
 .srcs{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
 .srcs>.key{width:100%}
 .srcs .ipv4{width:100%}
@@ -529,8 +539,10 @@ a.brand:hover{color:var(--read)}
   font-family:var(--f-display);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--print-light-2)}
 .srcnote input[type=number]{width:4.5em}
-.srcvban{grid-column:1 / -1;flex-direction:row;gap:8px;justify-content:flex-start;
-  padding-top:4px;border-top:1px solid rgba(255,255,255,.06)}
+/* the VBAN lamp lives on the module's rail: always-on plumbing, not a switch */
+.rail .led{flex-direction:row;gap:6px;font-size:9px;letter-spacing:.14em;
+  color:var(--rail-dim)}
+.rail .led.on{color:var(--rail-ink)}
 @media(max-width:560px){
   .srcs{grid-template-columns:1fr}
   .srcnote{justify-self:start}
@@ -541,10 +553,10 @@ a.brand:hover{color:var(--read)}
    brightness on hover. Their aspect ratios differ wildly, so height is fixed and width
    follows - which is how a logo strip works and why square glyphs looked wrong. */
 .brand img{height:17px;width:auto;max-width:104px;display:block;
-  filter:grayscale(1) brightness(1.7) opacity(.55);transition:filter .12s linear}
-/* at rest they are one printed strip; hovering one shows the mark as its owner
-   draws it, in its own colours */
-.brand:hover img{filter:none}
+  filter:brightness(0) invert(.6);transition:filter .12s linear}
+/* forced to one grey and lifted to near-white on hover: several of the supplied marks
+   are solid black, which no amount of brightness alone can raise off a dark strip */
+.brand:hover img{filter:brightness(0) invert(.92)}
 /* Snapcast, Squeezebox, Sendspin, Linux: no logo was supplied, so the name is set as a
    wordmark rather than a picture invented for it. */
 .brand.word{font:600 10px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;
@@ -599,12 +611,6 @@ a.brand:hover{color:var(--read)}
 <!-- brand glyphs, drawn once, reused in senders + footer -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="sym-sendspin" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2.6" fill="currentColor"/><path d="M16 5.5a10.5 10.5 0 0 1 9.1 5.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
-    <symbol id="sym-squeezebox" viewBox="0 0 32 32"><rect x="3.5" y="8" width="25" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7.5 13h11M7.5 17.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="16" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
-    <symbol id="sym-snapcast" viewBox="0 0 32 32"><rect x="12" y="3.5" width="8" height="8" rx="1.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 11.5v5M16 16.5H6.5v4M16 16.5h9.5v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="25.5" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
-    <symbol id="sym-dlna" viewBox="0 0 32 32"><rect x="3.5" y="6" width="25" height="20" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 12.5 20 16l-6.5 3.5Z" fill="currentColor"/><path d="M7 12.5v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
-    <symbol id="sym-wled" viewBox="0 0 32 32"><rect x="2.5" y="12" width="27" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="16" r="1.9" fill="currentColor"/><circle cx="16" cy="16" r="1.9" fill="currentColor"/><circle cx="23" cy="16" r="1.9" fill="currentColor"/></symbol>
-    <symbol id="sym-vban" viewBox="0 0 32 32"><path d="M3 16h3l3-8 4 16 4-13 3 9 2-4h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="sym-play" viewBox="0 0 32 32">
       <path d="M11 7.5 25 16 11 24.5Z" fill="currentColor"/>
     </symbol>
@@ -692,18 +698,22 @@ a.brand:hover{color:var(--read)}
   <div class="duo">
     <!-- ── SOURCES ─────────────────────────────────────────────────── -->
     <section class="module">
-      <div class="rail"><h2 class="legend">Sources</h2><button class="q" data-hint="Sources|A lit key means we are on the network as that kind of player, waiting to be picked. Leave as many on as you like: one drives the lights at a time, and another takes over a couple of seconds after it goes quiet.">?</button></div>
+      <div class="rail"><h2 class="legend">Sources</h2>
+        <span class="sp"></span>
+        <span class="led" id="ledVban"
+          data-hint="VBAN|Always listening on UDP 6980. Lights when a player plug-in or a sound-capture sender is sending. There is nothing to switch on."><i></i>VBAN &middot; UDP 6980</span>
+        <button class="q" data-hint="Sources|A lit key means we are on the network as that kind of player, waiting to be picked. Leave as many on as you like: one drives the lights at a time, and another takes over a couple of seconds after it goes quiet.">?</button></div>
       <div class="plate dark">
         <div class="srcs">
           <button class="key" id="ssDevice" aria-pressed="false"
-            data-hint="Sendspin|Music Assistant's own protocol. Switch it on and this box appears in Music Assistant as somewhere to send a stream."><svg class="g-sendspin" aria-hidden="true"><use href="#sym-sendspin"/></svg>Sendspin</button>
+            data-hint="Sendspin|Music Assistant's own protocol. Switch it on and this box appears in Music Assistant as somewhere to send a stream.">Sendspin</button>
           <button class="key" id="slimDevice" aria-pressed="false"
-            data-hint="Squeezebox|Announces this box as a Squeezebox player, so a Logitech Media Server or Music Assistant can pick it."><svg class="g-squeezebox" aria-hidden="true"><use href="#sym-squeezebox"/></svg>Squeezebox</button>
+            data-hint="Squeezebox|Announces this box as a Squeezebox player, so a Logitech Media Server or Music Assistant can pick it.">Squeezebox</button>
           <button class="key" id="dlnaDevice" aria-pressed="false"
-            data-hint="DLNA|Announces this box as a DLNA speaker, so anything that can cast to a renderer can send to it."><svg class="g-dlna" aria-hidden="true"><use href="#sym-dlna"/></svg>DLNA</button>
+            data-hint="DLNA|Announces this box as a DLNA speaker, so anything that can cast to a renderer can send to it.">DLNA</button>
 
           <button class="key" id="snapBtn" aria-pressed="false"
-            data-hint="Snapcast|The one source we go to rather than wait for, so it needs the server's address."><svg class="g-snapcast" aria-hidden="true"><use href="#sym-snapcast"/></svg>Snapcast</button>
+            data-hint="Snapcast|The one source we go to rather than wait for, so it needs the server's address.">Snapcast</button>
           <div class="ipv4" id="snapGroup">
             <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, first">
             <b>.</b>
@@ -716,7 +726,7 @@ a.brand:hover{color:var(--read)}
           <span class="unit srcnote">server</span>
 
           <button class="key k-out" id="wledBtn" aria-pressed="false"
-            data-hint="WLED|An LED strip lit from the same frames as the bridge. The strip is cut into as many pieces as the room has lamps, so a chase across the room runs along it."><svg class="g-wled" aria-hidden="true"><use href="#sym-wled"/></svg>WLED</button>
+            data-hint="WLED|An LED strip lit from the same frames as the bridge. The strip is cut into as many pieces as the room has lamps, so a chase across the room runs along it.">WLED</button>
           <div class="ipv4" id="wledGroup">
             <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, first">
             <b>.</b>
@@ -728,9 +738,6 @@ a.brand:hover{color:var(--read)}
           </div>
           <span class="srcnote"><input type="number" id="wledPixels" min="1" max="1500"
             step="1" value="60" aria-label="how many LEDs"><span class="unit">leds</span></span>
-
-          <span class="led l-beat srcvban" id="ledVban"
-            data-hint="VBAN|Always listening on UDP 6980. Lights when a player plug-in or a sound-capture sender is sending. There is nothing to switch on."><i></i><svg class="g-vban" aria-hidden="true"><use href="#sym-vban"/></svg>VBAN &middot; UDP 6980</span>
         </div>
       </div>
     </section>
@@ -740,7 +747,7 @@ a.brand:hover{color:var(--read)}
       <section class="module" id="bridgeCard">
         <div class="rail"><h2 class="legend">Hue bridge</h2><button class="q" data-hint="Hue bridge|Where the light goes. Pair once, pick the room, then Sync. Pair is green while we hold the bridge&#39;s credentials, and pressing it green gives them back. Leave the address empty to find the bridge on the network.">?</button></div>
         <div class="plate dark">
-          <div class="row">
+          <div class="bgrid">
             <div class="ipv4" id="hostGroup">
               <input type="text" inputmode="numeric" maxlength="3" aria-label="bridge address, first number">
               <b>.</b>
@@ -751,9 +758,8 @@ a.brand:hover{color:var(--read)}
               <input type="text" inputmode="numeric" maxlength="3" aria-label="fourth number">
             </div>
             <button class="key k-link" id="pairBtn" aria-pressed="false">Pair</button>
-            <select id="area" class="grow" aria-label="room"></select>
-            <button class="key k-out" id="outBtn" aria-pressed="false">
-              <svg aria-hidden="true"><use href="#sym-play"/></svg>Sync</button>
+            <select id="area" aria-label="entertainment area"></select>
+            <button class="key k-out" id="outBtn" aria-pressed="false">Sync</button>
           </div>
         </div>
       </section>
@@ -792,7 +798,7 @@ a.brand:hover{color:var(--read)}
       <h2 class="legend">Settings</h2><button class="q" data-hint="Settings|Generated from the Music Assistant provider&#39;s own sources, so every setting here means exactly what it means there.">?</button>
       <span class="sp"></span>
       <button class="sw" id="showAdvanced" aria-pressed="false"
-        data-hint="Advanced|The rest of the provider's settings. Everything above is what most setups need; this is the fine tuning behind it."><span>Basic</span><span>All</span></button>
+        data-hint="Advanced|The rest of the provider's settings. Everything above is what most setups need; this is the fine tuning behind it."><span>Basic</span><span>Advanced</span></button>
     </div>
     <div class="plate dark">
       <p class="note" style="margin:0 0 10px">Generated from the Music Assistant provider's own sources, so
@@ -834,8 +840,8 @@ a.brand:hover{color:var(--read)}
              rel="noopener">Snapcast</a>
           <a class="brand word" href="https://github.com/Logitech/slimserver" target="_blank"
              rel="noopener">Squeezebox</a>
-          <a class="brand word" href="https://github.com/Sendspin/spec" target="_blank"
-             rel="noopener">Sendspin</a>
+          <a class="brand" href="https://github.com/Sendspin/spec" target="_blank" rel="noopener"
+             title="Sendspin"><img data-logo="sendspin.svg" alt="Sendspin"></a>
           <a class="brand word" href="https://kno.wled.ge" target="_blank" rel="noopener">WLED</a>
         </div>
       </div>
@@ -843,11 +849,13 @@ a.brand:hover{color:var(--read)}
         <span class="eyebrow">Runs on</span>
         <div class="brandrow">
           <a class="brand" href="https://www.qnap.com" target="_blank" rel="noopener" title="QNAP NAS"
-             ><img data-logo="qnap-q.svg" alt="QNAP"></a>
+             ><img data-logo="qnap.svg" alt="QNAP"></a>
           <a class="brand" href="https://www.raspberrypi.com" target="_blank" rel="noopener"
              title="Raspberry Pi"><img data-logo="raspberrypi.svg" alt="Raspberry Pi"></a>
-          <a class="brand word" href="https://ubuntu.com" target="_blank" rel="noopener">Linux</a>
-          <a class="brand word" href="https://www.docker.com" target="_blank" rel="noopener">Docker</a>
+          <a class="brand" href="https://ubuntu.com" target="_blank" rel="noopener"
+             title="Linux"><img data-logo="linux.svg" alt="Linux"></a>
+          <a class="brand" href="https://www.docker.com" target="_blank" rel="noopener"
+             title="Docker"><img data-logo="docker.svg" alt="Docker"></a>
         </div>
       </div>
     </div>
@@ -941,48 +949,56 @@ function ledColour(i){
   return '#33E1A0';
 }
 
-const VU_FACE = `<svg viewBox="0 0 200 122" aria-hidden="true">
-  <rect width="200" height="122" fill="#000"/>
-  <path d="M53.16 77.87 A86.0 86.0 0 0 1 115.76 65.46" fill="none" stroke="#EFDFA6" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M115.76 65.46 A86.0 86.0 0 0 1 146.84 77.87" fill="none" stroke="#C7302B" stroke-width="5.0" stroke-linecap="butt"/>
-  <line x1="53.16" y1="77.87" x2="47.71" y2="69.49" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="41.18" y="59.42" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">−20</text>
-  <line x1="71.34" y1="68.92" x2="68.00" y2="59.49" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="64.00" y="48.18" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">10</text>
-  <line x1="80.36" y1="66.27" x2="78.08" y2="56.54" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="75.34" y="44.85" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">7</text>
-  <line x1="87.66" y1="64.89" x2="86.22" y2="54.99" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="84.50" y="43.12" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">5</text>
-  <line x1="96.24" y1="64.08" x2="95.80" y2="54.09" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="95.27" y="42.10" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">3</text>
-  <line x1="106.93" y1="64.28" x2="107.73" y2="54.31" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="108.70" y="42.35" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">1</text>
-  <line x1="115.76" y1="65.46" x2="117.59" y2="55.63" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="119.79" y="43.83" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
-  <line x1="124.90" y1="67.68" x2="127.80" y2="58.11" stroke="#C7302B" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="131.27" y="46.63" fill="#C7302B" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">1</text>
-  <line x1="135.55" y1="71.69" x2="139.69" y2="62.59" stroke="#C7302B" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="144.65" y="51.66" fill="#C7302B" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">3</text>
-  <line x1="146.84" y1="77.87" x2="152.29" y2="69.49" stroke="#C7302B" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="158.82" y="59.42" fill="#C7302B" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+5</text>
-  <line x1="61.76" y1="72.97" x2="59.09" y2="67.59" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="76.05" y1="67.40" x2="74.38" y2="61.64" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="84.24" y1="65.46" x2="83.14" y2="59.56" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="92.09" y1="64.36" x2="91.53" y2="58.39" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="101.49" y1="64.01" x2="101.59" y2="58.01" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="111.36" y1="64.75" x2="112.15" y2="58.81" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="120.60" y1="66.50" x2="122.04" y2="60.68" stroke="#C7302B" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="130.25" y1="69.49" x2="132.36" y2="63.88" stroke="#C7302B" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="141.31" y1="74.57" x2="144.19" y2="69.31" stroke="#C7302B" stroke-width="1.2" stroke-linecap="round"/>
-  <path d="M64.05 94.65 A66.0 66.0 0 0 1 112.10 85.12" fill="none" stroke="#EFDFA6" stroke-width="1.4" stroke-linecap="round"/>
-  <text x="68.41" y="101.36" fill="#EFDFA6" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
-  <text x="94.33" y="92.28" fill="#EFDFA6" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">50</text>
-  <text x="110.63" y="92.98" fill="#EFDFA6" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">100%</text>
-  <text x="100.0" y="110" fill="#EFDFA6" font-size="19" font-weight="700" text-anchor="middle" letter-spacing="1" class="face-print">VU</text>
-  <g class="needle" style="transform-origin:100.0px 150.0px;transform:rotate(-33.0deg);transition:transform .26s cubic-bezier(.22,.9,.3,1)">
-    <line x1="100.0" y1="150.0" x2="100.0" y2="50.0" stroke="#EFDFA6" stroke-width="1.8" stroke-linecap="round"/>
-  </g>
-</svg>`;
+const VU_FACE = `<svg viewBox="0 0 200 120" aria-hidden="true">
+  <defs><radialGradient id="vulamp" cx="50%" cy="18%" r="90%"><stop offset="0%" stop-color="#201409"/><stop offset="55%" stop-color="#0E0906"/><stop offset="100%" stop-color="#000"/></radialGradient></defs>
+  <rect width="200" height="120" fill="url(#vulamp)"/>
+  <path d="M46.26 88.26 A76.0 76.0 0 0 1 127.98 71.34" fill="none" stroke="#EFDFA6" stroke-width="2.0" stroke-linecap="round"/>
+  <path d="M128.57 69.85 A77.6 77.6 0 0 1 154.87 87.13" fill="none" stroke="#D8402C" stroke-width="4.4" stroke-linecap="butt"/>
+  <line x1="46.26" y1="88.26" x2="40.60" y2="82.60" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="32.82" y="74.82" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-20</text>
+  <line x1="61.31" y1="76.58" x2="57.24" y2="69.70" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="51.64" y="60.23" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-10</text>
+  <line x1="74.26" y1="70.49" x2="71.55" y2="62.97" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="67.82" y="52.62" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-7</text>
+  <line x1="85.76" y1="67.35" x2="84.26" y2="59.49" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="82.20" y="48.68" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-5</text>
+  <line x1="100.00" y1="66.00" x2="100.00" y2="58.00" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="100.00" y="47.00" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-3</text>
+  <line x1="109.53" y1="66.60" x2="110.53" y2="58.66" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="111.91" y="47.75" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-2</text>
+  <line x1="118.90" y1="68.39" x2="120.89" y2="60.64" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="123.63" y="49.98" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-1</text>
+  <line x1="127.98" y1="71.34" x2="130.92" y2="63.90" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="134.97" y="53.67" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
+  <line x1="136.61" y1="75.40" x2="140.47" y2="68.39" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="145.77" y="58.75" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+1</text>
+  <line x1="144.67" y1="80.51" x2="149.37" y2="74.04" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="155.84" y="65.14" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+2</text>
+  <line x1="153.74" y1="88.26" x2="159.40" y2="82.60" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="167.18" y="74.82" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+3</text>
+  <line x1="53.42" y1="81.95" x2="50.97" y2="78.79" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="67.64" y1="73.23" x2="65.94" y2="69.61" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="79.95" y1="68.69" x2="78.89" y2="64.84" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="92.85" y1="66.34" x2="92.47" y2="62.36" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="104.77" y1="66.15" x2="105.02" y2="62.16" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="114.24" y1="67.35" x2="114.99" y2="63.42" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="123.49" y1="69.72" x2="124.72" y2="65.92" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="132.36" y1="73.23" x2="134.06" y2="69.61" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="140.72" y1="77.83" x2="142.87" y2="74.45" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="149.36" y1="84.21" x2="151.96" y2="81.17" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
+  <path d="M61.67 101.18 A56.0 56.0 0 0 1 120.61 89.93" fill="none" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M120.61 89.93 A56.0 56.0 0 0 1 138.33 101.18" fill="none" stroke="#D8402C" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="61.67" y1="101.18" x2="64.06" y2="103.73" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <text x="67.83" y="107.74" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
+  <line x1="91.24" y1="86.69" x2="91.79" y2="90.15" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <text x="92.65" y="95.58" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">50</text>
+  <line x1="120.61" y1="89.93" x2="119.33" y2="93.19" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <text x="117.30" y="98.30" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">100%</text>
+  <text x="100" y="110" fill="#EFDFA6" font-size="15" font-weight="700" text-anchor="middle" letter-spacing="2" class="face-print">VU</text>
+  <g class="needle" style="transform-origin:100.0px 142.0px;transform:rotate(-45.0deg);transition:transform .26s cubic-bezier(.22,.9,.3,1)"><line x1="100.0" y1="142.0" x2="100.0" y2="54.0" stroke="#F4E7B8" stroke-width="2" stroke-linecap="round"/><line x1="100.0" y1="142.0" x2="100.0" y2="54.0" stroke="rgba(0,0,0,.55)" stroke-width="4.5" stroke-linecap="round" transform="translate(1.5 1.5)" opacity=".35"/></g>
+  <circle cx="100.0" cy="142.0" r="26" fill="#15130F" stroke="#000" stroke-width="1"/>
+  <circle cx="100.0" cy="142.0" r="26" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1" stroke-dasharray="40 130"/>
+  </svg>`;
 
 function buildMeters(){
   for (const side of ['l', 'r']){
@@ -1000,7 +1016,7 @@ function paintMeters(left, right){
       ? target : meterState[side] * 0.80 + target * 0.20;
     const v = Math.max(0, Math.min(1, meterState[side]));
     const needle = $('vu-' + side).querySelector('.needle');
-    if (needle) needle.style.transform = 'rotate(' + (-33.0 + v * 66.0) + 'deg)';
+    if (needle) needle.style.transform = 'rotate(' + (-45 + v * 90) + 'deg)';
     const lit = Math.round(v * LED_ROWS);
     [...$('led-' + side).children].forEach((led, i) => {
       const on = i < lit;
@@ -1371,7 +1387,7 @@ function buildPaletteBoard(e){
   };
   const swatch = (value, title, colors) => {
     const b = document.createElement('button');
-    b.className = 'sw'; b.type = 'button';
+    b.className = 'pal'; b.type = 'button';
     b.setAttribute('aria-pressed', String(VALUES.palette === value));
     const barsEl = document.createElement('div'); barsEl.className = 'bars';
     for (const c of colors){ const i = document.createElement('i'); i.style.background = c; barsEl.appendChild(i); }
@@ -1406,7 +1422,7 @@ function buildRotationList(e){
   const chosen = new Set(rotationList());
   for (const p of PALETTES){
     const b = document.createElement('button');
-    b.className = 'sw'; b.type = 'button';
+    b.className = 'pal'; b.type = 'button';
     b.setAttribute('aria-pressed', String(chosen.has(p.name)));
     const barsEl = document.createElement('div'); barsEl.className = 'bars';
     for (const c of p.colors){ const i = document.createElement('i'); i.style.background = c; barsEl.appendChild(i); }

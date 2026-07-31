@@ -67,10 +67,17 @@ def python_exe(windowed: bool = False) -> str:
 
 
 def state_dir() -> Path:
-    """Somewhere writable for the pid file and the log, per platform convention."""
+    """
+    Somewhere writable for the settings, the log and the pid file.
+
+    On Windows this is ProgramData rather than the user's own AppData, because the
+    daemon runs as a service. A service runs as LocalSystem, whose AppData is a system
+    profile no user can reach - settings written there would be invisible to the panel
+    and the tray, and the bridge would look unpaired to the person who paired it.
+    """
     system = platform.system()
     if system == "Windows":
-        base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+        base = Path(os.environ.get("PROGRAMDATA", r"C:\ProgramData"))
     elif system == "Darwin":
         base = Path.home() / "Library" / "Application Support"
     else:
@@ -175,7 +182,9 @@ def _kill(pid: int) -> None:
 def _service_installed() -> bool:
     system = platform.system()
     if system == "Windows":
-        return _run(["schtasks", "/Query", "/TN", DISPLAY_NAME]) == 0
+        # either the service or, on a machine where it could not be installed, the task
+        return (_run(["sc", "query", SERVICE_NAME]) == 0
+                or _run(["schtasks", "/Query", "/TN", DISPLAY_NAME]) == 0)
     if system == "Darwin":
         return (Path.home() / "Library" / "LaunchAgents"
                 / f"pl.devspark.{SERVICE_NAME}.plist").is_file()
@@ -192,10 +201,13 @@ def _service(action: str) -> bool:
         return False
     system = platform.system()
     if system == "Windows":
-        verb = {"start": "/Run", "stop": "/End"}.get(action)
-        if verb:
-            subprocess.run(["schtasks", verb, "/TN", DISPLAY_NAME],
-                           capture_output=True, check=False)
+        if _run(["sc", "query", SERVICE_NAME]) == 0:
+            subprocess.run(["sc", action, SERVICE_NAME], capture_output=True, check=False)
+        else:
+            verb = {"start": "/Run", "stop": "/End"}.get(action)
+            if verb:
+                subprocess.run(["schtasks", verb, "/TN", DISPLAY_NAME],
+                               capture_output=True, check=False)
         return True
     if system == "Darwin":
         plist = Path.home() / "Library" / "LaunchAgents" / f"pl.devspark.{SERVICE_NAME}.plist"
@@ -267,6 +279,55 @@ def panel() -> None:
     import webbrowser
 
     webbrowser.open(f"http://127.0.0.1:{panel_port()}/")
+
+
+WINSW = "WinSW-x64.exe"
+
+
+def _winsw() -> Path:
+    """The service host that ships with the installer."""
+    return ROOT / "runtime" / WINSW
+
+
+def _install_windows_service() -> None:
+    """
+    Register the daemon as a Windows service through WinSW.
+
+    WinSW is what makes this possible at all: Windows requires a service to answer the
+    service control manager within thirty seconds, which a Python process never does, so
+    `sc create python.exe` produces a service Windows kills at every start with error
+    1053. WinSW answers on the daemon's behalf and restarts it if it dies.
+    """
+    exe = _winsw()
+    if not exe.is_file():
+        print(f"the service host is missing ({exe}); falling back to a scheduled task")
+        _install_windows_task()
+        return
+
+    log = state_dir()
+    config = config_path()
+    spec = f"""<service>
+  <id>{SERVICE_NAME}</id>
+  <name>{DISPLAY_NAME}</name>
+  <description>Sync Philips Hue lights to whatever is playing</description>
+  <executable>{python_exe()}</executable>
+  <arguments>-u "{DAEMON}" --config "{config}"</arguments>
+  <workingdirectory>{ROOT}</workingdirectory>
+  <logpath>{log}</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>3</keepFiles>
+  </log>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec"/>
+  <resetfailure>1 hour</resetfailure>
+</service>
+"""
+    (exe.with_suffix(".xml")).write_text(spec, encoding="utf-8")
+    subprocess.run([str(exe), "install"], check=False)
+    subprocess.run([str(exe), "start"], check=False)
+    print(f"installed: Windows service '{SERVICE_NAME}', starts at boot")
 
 
 def _windows_user() -> str:
@@ -412,7 +473,7 @@ def install_service() -> None:
         return
 
     if system == "Windows":
-        _install_windows_task()
+        _install_windows_service()
         return
 
     print(f"no service support for {system}")
@@ -429,11 +490,16 @@ def uninstall_service() -> None:
         subprocess.run(["launchctl", "unload", "-w", str(plist)], check=False)
         plist.unlink(missing_ok=True)
     elif system == "Windows":
+        exe = _winsw()
+        if exe.is_file():
+            subprocess.run([str(exe), "stop"], capture_output=True, check=False)
+            subprocess.run([str(exe), "uninstall"], capture_output=True, check=False)
+        # Anything an older build may have left behind: the scheduled task, and the
+        # service that never worked.
         subprocess.run(["schtasks", "/End", "/TN", DISPLAY_NAME],
                        capture_output=True, check=False)
         subprocess.run(["schtasks", "/Delete", "/TN", DISPLAY_NAME, "/F"],
                        capture_output=True, check=False)
-        # An older build may have left the service that never worked behind.
         subprocess.run(["sc", "stop", SERVICE_NAME], capture_output=True, check=False)
         subprocess.run(["sc", "delete", SERVICE_NAME], capture_output=True, check=False)
     print("service removed")
