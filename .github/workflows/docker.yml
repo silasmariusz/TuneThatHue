@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # armv7 and arm64 are emulated on the runner; slow, but it is a small image.
+      # arm64 is emulated on the runner; slow, but it is a small image.
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
@@ -67,7 +67,13 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          # No 32-bit ARM. numpy publishes no wheel for it on Python 3.14 - only x86_64
+          # and aarch64 - so that leg tried to compile numpy from source inside a slim
+          # image with no compiler, and took the whole build down with it. Adding a
+          # toolchain would mean an hour of emulated compiling per build for the one
+          # architecture that has a better route anyway: 32-bit boards can use the QNAP
+          # package or the Linux install script, which bring their own runtime.
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
