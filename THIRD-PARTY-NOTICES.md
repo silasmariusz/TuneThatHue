@@ -59,3 +59,19 @@ Windows front-ends are cross-compiled with **llvm-mingw**
 The full Apache License 2.0 text is in `LICENSE`. Trademarks (Music Assistant,
 Sendspin, Philips Hue, QNAP) belong to their respective owners; TuneThatHue is an
 independent, unaffiliated project.
+
+## FFmpeg
+
+The package carries a copy of **FFmpeg** (`runtime/ffmpeg-<arch>/ffmpeg`), used to decode
+whatever format a sender chooses. It is built from unmodified FFmpeg sources with audio
+decoders only - no video, no external libraries - and **without** `--enable-gpl` or
+`--enable-nonfree`, so the binary is covered by the **LGPL v2.1 or later**.
+
+    ffmpeg 7.1.1, https://ffmpeg.org
+    Copyright (c) 2000-2025 the FFmpeg developers
+    Licensed under the GNU Lesser General Public License version 2.1 or later.
+
+The exact configure line is in `qnap/build_ffmpeg.sh`, and the sources are the released
+tarball from ffmpeg.org, unpatched. As LGPL requires, the binary is a separate executable
+invoked as a subprocess and can be replaced: put your own build at the same path, or
+remove it and the daemon falls back to any `ffmpeg` on the system.
