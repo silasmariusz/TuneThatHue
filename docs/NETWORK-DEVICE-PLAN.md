@@ -122,6 +122,33 @@ application has to be registered with Google and served from their infrastructur
 transport is protobuf over TLS with attestation. It is out of reach and should not be
 promised.
 
+## What shipped
+
+All four are built, deployed and checked on a test NAS running the packaged daemon, each
+against the real other end rather than a mock:
+
+| Stage | Checked against | Result |
+| --- | --- | --- |
+| 1 Sendspin | a live Music Assistant server | discovered us within seconds, granted `visualizer@v1` and `color@v1`, no pairing |
+| 2 Snapcast | snapserver 0.27 serving `pcm` | 502 chunks in 10 s -> 201 spectra, 48 beats, light on 213 of 293 render ticks |
+| 3 Squeezebox | `aioslimproto`, the library the servers run | found by broadcast, registered, streamed; the beat tracker locked at 120.2 BPM on a 120 BPM signal |
+| 4 DLNA | `async-upnp-client`, the library Music Assistant uses | discovered by SSDP, both services parsed, all seven actions listed, 1.3 MB of wav pulled through |
+
+Three bugs were found by watching the real other end reject us, none of which the
+documentation mentions:
+
+- **Snapcast string payloads carry their own u32 length.** Sending bare JSON made the
+  server read the opening `{"Cl` as the length and fail to parse from the fifth byte.
+- **Slimproto framing is not symmetrical.** Player to server is the operation first then
+  a u32 length; server to player is a u16 length first then the operation. Backwards, the
+  server reads the operation as a length and never registers the player - silently.
+- **Frame timestamps in Sendspin are in the server's clock.** Rendering our own clock
+  against them puts every effect at the wrong instant.
+
+And one in our own tree, found on the way: `.gitattributes` pinned `effects/hue_fx/**` to
+LF but not `effects/ma_provider/**`, so on a Windows checkout the provider reference
+copies came back with CRLF and were no longer byte-identical.
+
 ## Testing
 
 Every stage is checked on a real NAS running the packaged build, with real lights, not on
