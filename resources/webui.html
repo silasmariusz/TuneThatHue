@@ -560,6 +560,14 @@ a.brand:hover{color:var(--read)}
    follows - which is how a logo strip works and why square glyphs looked wrong. */
 .brand img{height:17px;width:auto;max-width:104px;display:block;
   filter:brightness(0) invert(.6);transition:filter .12s linear}
+/* The marks come at wildly different visual weights, so one height does not read as one
+   size: a solid glyph looks bigger than an outline, a wordmark taller than it is. These
+   are optical corrections per mark, not layout. */
+.brand img[data-logo="qnap.svg"]{height:13px}
+.brand img[data-logo="squeezebox.svg"]{height:12px;max-width:120px}
+.brand img[data-logo="sendspin.svg"]{height:15px}
+.brand img[data-logo="raspberrypi.svg"]{height:16px}
+.brand img[data-logo="docker.svg"]{height:16px}
 /* forced to one grey and lifted to near-white on hover: several of the supplied marks
    are solid black, which no amount of brightness alone can raise off a dark strip */
 .brand:hover img{filter:brightness(0) invert(.92)}
@@ -662,7 +670,6 @@ a.brand:hover{color:var(--read)}
        made a diagram of something that is really three separate readings. -->
 
   <section class="panel">
-    data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second. The rate on the right is what is arriving on the wire.">
     <div class="screen lcd wide" id="scr-spec"><div id="spec"></div><i class="nosig">No signal</i></div>
     <div class="deck">
       <div class="dcol">
