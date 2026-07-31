@@ -510,6 +510,18 @@ a.brand:hover{color:var(--read)}
 
 /* Sources on a grid: the switch, then what that source needs to be told. Three columns
    of the same width, so the card is filled by the controls rather than by a gap. */
+/* At rest the marks take the key's own colour, so a row of sources is one colour and
+   reads as a set. Hovering one shows it in the colour that belongs to it. A lit key
+   keeps its mark dark, because the key is the lit thing, not the badge on it. */
+.key:hover .g-sendspin,.srcvban:hover .g-sendspin{color:#41C0A8}
+.key:hover .g-squeezebox,.srcvban:hover .g-squeezebox{color:#8FA4B8}
+.key:hover .g-snapcast,.srcvban:hover .g-snapcast{color:#5AA9E6}
+.key:hover .g-dlna,.srcvban:hover .g-dlna{color:#C3E635}
+.key:hover .g-wled,.srcvban:hover .g-wled{color:#F5811F}
+.key:hover .g-vban,.srcvban:hover .g-vban{color:#E0C267}
+.key[aria-pressed=true]:hover svg{color:inherit}
+.srcvban svg{width:14px;height:14px}
+
 .srcs{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
 .srcs>.key{width:100%}
 .srcs .ipv4{width:100%}
@@ -587,6 +599,12 @@ a.brand:hover{color:var(--read)}
 <!-- brand glyphs, drawn once, reused in senders + footer -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <symbol id="sym-sendspin" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2.6" fill="currentColor"/><path d="M16 5.5a10.5 10.5 0 0 1 9.1 5.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="sym-squeezebox" viewBox="0 0 32 32"><rect x="3.5" y="8" width="25" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7.5 13h11M7.5 17.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="16" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="sym-snapcast" viewBox="0 0 32 32"><rect x="12" y="3.5" width="8" height="8" rx="1.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 11.5v5M16 16.5H6.5v4M16 16.5h9.5v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="25.5" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="sym-dlna" viewBox="0 0 32 32"><rect x="3.5" y="6" width="25" height="20" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 12.5 20 16l-6.5 3.5Z" fill="currentColor"/><path d="M7 12.5v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="sym-wled" viewBox="0 0 32 32"><rect x="2.5" y="12" width="27" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="16" r="1.9" fill="currentColor"/><circle cx="16" cy="16" r="1.9" fill="currentColor"/><circle cx="23" cy="16" r="1.9" fill="currentColor"/></symbol>
+    <symbol id="sym-vban" viewBox="0 0 32 32"><path d="M3 16h3l3-8 4 16 4-13 3 9 2-4h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="sym-play" viewBox="0 0 32 32">
       <path d="M11 7.5 25 16 11 24.5Z" fill="currentColor"/>
     </symbol>
@@ -678,14 +696,14 @@ a.brand:hover{color:var(--read)}
       <div class="plate dark">
         <div class="srcs">
           <button class="key" id="ssDevice" aria-pressed="false"
-            data-hint="Sendspin|Music Assistant's own protocol. Switch it on and this box appears in Music Assistant as somewhere to send a stream.">Sendspin</button>
+            data-hint="Sendspin|Music Assistant's own protocol. Switch it on and this box appears in Music Assistant as somewhere to send a stream."><svg class="g-sendspin" aria-hidden="true"><use href="#sym-sendspin"/></svg>Sendspin</button>
           <button class="key" id="slimDevice" aria-pressed="false"
-            data-hint="Squeezebox|Announces this box as a Squeezebox player, so a Logitech Media Server or Music Assistant can pick it.">Squeezebox</button>
+            data-hint="Squeezebox|Announces this box as a Squeezebox player, so a Logitech Media Server or Music Assistant can pick it."><svg class="g-squeezebox" aria-hidden="true"><use href="#sym-squeezebox"/></svg>Squeezebox</button>
           <button class="key" id="dlnaDevice" aria-pressed="false"
-            data-hint="DLNA|Announces this box as a DLNA speaker, so anything that can cast to a renderer can send to it.">DLNA</button>
+            data-hint="DLNA|Announces this box as a DLNA speaker, so anything that can cast to a renderer can send to it."><svg class="g-dlna" aria-hidden="true"><use href="#sym-dlna"/></svg>DLNA</button>
 
           <button class="key" id="snapBtn" aria-pressed="false"
-            data-hint="Snapcast|The one source we go to rather than wait for, so it needs the server's address.">Snapcast</button>
+            data-hint="Snapcast|The one source we go to rather than wait for, so it needs the server's address."><svg class="g-snapcast" aria-hidden="true"><use href="#sym-snapcast"/></svg>Snapcast</button>
           <div class="ipv4" id="snapGroup">
             <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, first">
             <b>.</b>
@@ -698,7 +716,7 @@ a.brand:hover{color:var(--read)}
           <span class="unit srcnote">server</span>
 
           <button class="key k-out" id="wledBtn" aria-pressed="false"
-            data-hint="WLED|An LED strip lit from the same frames as the bridge. The strip is cut into as many pieces as the room has lamps, so a chase across the room runs along it.">WLED</button>
+            data-hint="WLED|An LED strip lit from the same frames as the bridge. The strip is cut into as many pieces as the room has lamps, so a chase across the room runs along it."><svg class="g-wled" aria-hidden="true"><use href="#sym-wled"/></svg>WLED</button>
           <div class="ipv4" id="wledGroup">
             <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, first">
             <b>.</b>
@@ -712,7 +730,7 @@ a.brand:hover{color:var(--read)}
             step="1" value="60" aria-label="how many LEDs"><span class="unit">leds</span></span>
 
           <span class="led l-beat srcvban" id="ledVban"
-            data-hint="VBAN|Always listening on UDP 6980. Lights when a player plug-in or a sound-capture sender is sending. There is nothing to switch on."><i></i>VBAN &middot; UDP 6980</span>
+            data-hint="VBAN|Always listening on UDP 6980. Lights when a player plug-in or a sound-capture sender is sending. There is nothing to switch on."><i></i><svg class="g-vban" aria-hidden="true"><use href="#sym-vban"/></svg>VBAN &middot; UDP 6980</span>
         </div>
       </div>
     </section>
