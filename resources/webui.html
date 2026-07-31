@@ -358,11 +358,15 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:po
 }
 
 /* wells — inputs and selects, cut into the metal like jack sockets */
-input[type=text],select{font:12.5px/1.4 var(--f-mono);color:var(--read);
+input[type=text],input[type=number],select{font:12.5px/1.4 var(--f-mono);color:var(--read);
       background:#101317;border:1px solid #000;border-radius:4px;padding:6px 10px;
       min-width:0;box-shadow:inset 0 2px 5px rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.5)}
 input[type=text]{flex:1 1 140px}
 input[type=text]::placeholder{color:#5C646C}
+input[type=number]{-moz-appearance:textfield;appearance:textfield;text-align:right;
+      font-variant-numeric:tabular-nums}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 /* the mode selector is a machined control like the keys, not a browser default:
    DIN print, dark well, milled arrow — and a dark native list via color-scheme */
 select{appearance:none;-webkit-appearance:none;cursor:pointer;
@@ -949,55 +953,55 @@ function ledColour(i){
   return '#33E1A0';
 }
 
-const VU_FACE = `<svg viewBox="0 0 200 120" aria-hidden="true">
+const VU_FACE = `<svg viewBox="0 0 200 112" aria-hidden="true">
   <defs><radialGradient id="vulamp" cx="50%" cy="18%" r="90%"><stop offset="0%" stop-color="#201409"/><stop offset="55%" stop-color="#0E0906"/><stop offset="100%" stop-color="#000"/></radialGradient></defs>
-  <rect width="200" height="120" fill="url(#vulamp)"/>
-  <path d="M46.26 88.26 A76.0 76.0 0 0 1 127.98 71.34" fill="none" stroke="#EFDFA6" stroke-width="2.0" stroke-linecap="round"/>
-  <path d="M128.57 69.85 A77.6 77.6 0 0 1 154.87 87.13" fill="none" stroke="#D8402C" stroke-width="4.4" stroke-linecap="butt"/>
-  <line x1="46.26" y1="88.26" x2="40.60" y2="82.60" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="32.82" y="74.82" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-20</text>
-  <line x1="61.31" y1="76.58" x2="57.24" y2="69.70" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="51.64" y="60.23" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-10</text>
-  <line x1="74.26" y1="70.49" x2="71.55" y2="62.97" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="67.82" y="52.62" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-7</text>
-  <line x1="85.76" y1="67.35" x2="84.26" y2="59.49" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="82.20" y="48.68" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-5</text>
-  <line x1="100.00" y1="66.00" x2="100.00" y2="58.00" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="100.00" y="47.00" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-3</text>
-  <line x1="109.53" y1="66.60" x2="110.53" y2="58.66" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="111.91" y="47.75" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-2</text>
-  <line x1="118.90" y1="68.39" x2="120.89" y2="60.64" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="123.63" y="49.98" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-1</text>
-  <line x1="127.98" y1="71.34" x2="130.92" y2="63.90" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="134.97" y="53.67" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
-  <line x1="136.61" y1="75.40" x2="140.47" y2="68.39" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="145.77" y="58.75" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+1</text>
-  <line x1="144.67" y1="80.51" x2="149.37" y2="74.04" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="155.84" y="65.14" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+2</text>
-  <line x1="153.74" y1="88.26" x2="159.40" y2="82.60" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="167.18" y="74.82" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+3</text>
-  <line x1="53.42" y1="81.95" x2="50.97" y2="78.79" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="67.64" y1="73.23" x2="65.94" y2="69.61" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="79.95" y1="68.69" x2="78.89" y2="64.84" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="92.85" y1="66.34" x2="92.47" y2="62.36" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="104.77" y1="66.15" x2="105.02" y2="62.16" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="114.24" y1="67.35" x2="114.99" y2="63.42" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="123.49" y1="69.72" x2="124.72" y2="65.92" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="132.36" y1="73.23" x2="134.06" y2="69.61" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="140.72" y1="77.83" x2="142.87" y2="74.45" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
-  <line x1="149.36" y1="84.21" x2="151.96" y2="81.17" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
-  <path d="M61.67 101.18 A56.0 56.0 0 0 1 120.61 89.93" fill="none" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
-  <path d="M120.61 89.93 A56.0 56.0 0 0 1 138.33 101.18" fill="none" stroke="#D8402C" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="61.67" y1="101.18" x2="64.06" y2="103.73" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <text x="67.83" y="107.74" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
-  <line x1="91.24" y1="86.69" x2="91.79" y2="90.15" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <text x="92.65" y="95.58" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">50</text>
-  <line x1="120.61" y1="89.93" x2="119.33" y2="93.19" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
-  <text x="117.30" y="98.30" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">100%</text>
-  <text x="100" y="110" fill="#EFDFA6" font-size="15" font-weight="700" text-anchor="middle" letter-spacing="2" class="face-print">VU</text>
-  <g class="needle" style="transform-origin:100.0px 142.0px;transform:rotate(-45.0deg);transition:transform .26s cubic-bezier(.22,.9,.3,1)"><line x1="100.0" y1="142.0" x2="100.0" y2="54.0" stroke="#F4E7B8" stroke-width="2" stroke-linecap="round"/><line x1="100.0" y1="142.0" x2="100.0" y2="54.0" stroke="rgba(0,0,0,.55)" stroke-width="4.5" stroke-linecap="round" transform="translate(1.5 1.5)" opacity=".35"/></g>
-  <circle cx="100.0" cy="142.0" r="26" fill="#15130F" stroke="#000" stroke-width="1"/>
-  <circle cx="100.0" cy="142.0" r="26" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1" stroke-dasharray="40 130"/>
+  <rect width="200" height="112" fill="url(#vulamp)"/>
+  <path d="M46.26 56.26 A76.0 76.0 0 0 1 127.98 39.34" fill="none" stroke="#EFDFA6" stroke-width="2.0" stroke-linecap="round"/>
+  <path d="M128.57 37.85 A77.6 77.6 0 0 1 154.87 55.13" fill="none" stroke="#D8402C" stroke-width="4.4" stroke-linecap="butt"/>
+  <line x1="46.26" y1="56.26" x2="40.60" y2="50.60" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="32.82" y="42.82" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-20</text>
+  <line x1="61.31" y1="44.58" x2="57.24" y2="37.70" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="51.64" y="28.23" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-10</text>
+  <line x1="74.26" y1="38.49" x2="71.55" y2="30.97" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="67.82" y="20.62" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-7</text>
+  <line x1="85.76" y1="35.35" x2="84.26" y2="27.49" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="82.20" y="16.68" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-5</text>
+  <line x1="100.00" y1="34.00" x2="100.00" y2="26.00" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="100.00" y="15.00" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-3</text>
+  <line x1="109.53" y1="34.60" x2="110.53" y2="26.66" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="111.91" y="15.75" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-2</text>
+  <line x1="118.90" y1="36.39" x2="120.89" y2="28.64" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="123.63" y="17.98" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">-1</text>
+  <line x1="127.98" y1="39.34" x2="130.92" y2="31.90" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="134.97" y="21.67" fill="#EFDFA6" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
+  <line x1="136.61" y1="43.40" x2="140.47" y2="36.39" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="145.77" y="26.75" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+1</text>
+  <line x1="144.67" y1="48.51" x2="149.37" y2="42.04" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="155.84" y="33.14" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+2</text>
+  <line x1="153.74" y1="56.26" x2="159.40" y2="50.60" stroke="#D8402C" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="167.18" y="42.82" fill="#D8402C" font-size="9.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+3</text>
+  <line x1="53.42" y1="49.95" x2="50.97" y2="46.79" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="67.64" y1="41.23" x2="65.94" y2="37.61" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="79.95" y1="36.69" x2="78.89" y2="32.84" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="92.85" y1="34.34" x2="92.47" y2="30.36" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="104.77" y1="34.15" x2="105.02" y2="30.16" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="114.24" y1="35.35" x2="114.99" y2="31.42" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="123.49" y1="37.72" x2="124.72" y2="33.92" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="132.36" y1="41.23" x2="134.06" y2="37.61" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="140.72" y1="45.83" x2="142.87" y2="42.45" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
+  <line x1="149.36" y1="52.21" x2="151.96" y2="49.17" stroke="#D8402C" stroke-width="1.0" stroke-linecap="round"/>
+  <path d="M61.67 69.18 A56.0 56.0 0 0 1 120.61 57.93" fill="none" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M120.61 57.93 A56.0 56.0 0 0 1 138.33 69.18" fill="none" stroke="#D8402C" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="61.67" y1="69.18" x2="64.06" y2="71.73" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <text x="67.83" y="75.74" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
+  <line x1="91.24" y1="54.69" x2="91.79" y2="58.15" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <text x="92.65" y="63.58" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">50</text>
+  <line x1="120.61" y1="57.93" x2="119.33" y2="61.19" stroke="#EFDFA6" stroke-width="1.0" stroke-linecap="round"/>
+  <text x="117.30" y="66.30" fill="#EFDFA6" font-size="7.5" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">100%</text>
+  <text x="100" y="84" fill="#EFDFA6" font-size="14" font-weight="700" text-anchor="middle" letter-spacing="2" class="face-print">VU</text>
+  <g class="needle" style="transform-origin:100.0px 110.0px;transform:rotate(-45.0deg);transition:transform .26s cubic-bezier(.22,.9,.3,1)"><line x1="100.0" y1="110.0" x2="100.0" y2="22.0" stroke="#F4E7B8" stroke-width="2" stroke-linecap="round"/><line x1="100.0" y1="110.0" x2="100.0" y2="22.0" stroke="rgba(0,0,0,.55)" stroke-width="4.5" stroke-linecap="round" transform="translate(1.5 1.5)" opacity=".35"/></g>
+  <circle cx="100.0" cy="110.0" r="16" fill="#15130F" stroke="#000" stroke-width="1"/>
+  <circle cx="100.0" cy="110.0" r="16" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1" stroke-dasharray="40 130"/>
   </svg>`;
 
 function buildMeters(){
