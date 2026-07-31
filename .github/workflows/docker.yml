@@ -16,16 +16,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/tunethathue
-  HUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/tunethathue
-
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    # Both of these belong to the job, not the workflow: secrets are not readable from
+    # workflow-level env, so HUB_IMAGE up there would silently come out as "/tunethathue"
+    # and the push would fail on a nameless repository.
+    env:
+      GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/tunethathue
+      HUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/tunethathue
     steps:
       - uses: actions/checkout@v4
 
