@@ -22,12 +22,13 @@ jobs:
     permissions:
       contents: read
       packages: write
-    # Both of these belong to the job, not the workflow: secrets are not readable from
-    # workflow-level env, so HUB_IMAGE up there would silently come out as "/tunethathue"
-    # and the push would fail on a nameless repository.
+    # Secrets can be read here but not in a step's `if:`, and not in workflow-level env
+    # at all. So everything a condition needs is turned into a plain string here first -
+    # otherwise the run is rejected before a single step starts, which is what happened.
     env:
       GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/tunethathue
       HUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/tunethathue
+      HAS_HUB: ${{ secrets.DOCKERHUB_USERNAME != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +44,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
+        if: env.HAS_HUB == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -55,7 +56,7 @@ jobs:
         with:
           images: |
             ${{ env.GHCR_IMAGE }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && env.HUB_IMAGE || '' }}
+            ${{ env.HAS_HUB == 'true' && env.HUB_IMAGE || '' }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
