@@ -33,6 +33,8 @@ import time
 import uuid
 from typing import Any, Callable
 
+from wav_feed import NotWav, feed_wav
+
 DISCOVERY_PORT = 3483
 SLIM_PORT = 3483
 DISCOVERY_TIMEOUT_S = 3.0
@@ -245,46 +247,20 @@ class SlimprotoPlayer:
                 return
 
     async def _read_pcm(self, reader: asyncio.StreamReader) -> None:
-        """
-        Read a WAV stream and hand out whole frames.
+        """Hand the stream to the shared WAV reader; it knows the format and the frames."""
+        def note(rate: int, channels: int, bits: int) -> None:
+            self._set(format=f"{rate} Hz / {channels}ch / {bits}-bit", error="")
+            print(f"[slimproto] stream: wav {rate} Hz / {channels}ch / {bits}-bit")
 
-        Anything that is not RIFF/WAVE we cannot decode; say which format it was and
-        stop, rather than feeding noise into the analyzer.
-        """
-        head = await reader.readexactly(12)
-        if head[:4] != b"RIFF" or head[8:12] != b"WAVE":
-            self._set(error="server is not sending wav - set this player's output codec to wav")
-            print("[slimproto] stream is not wav; set the player's output codec to wav")
-            return
-        rate, channels, bits = 44100, 2, 16
-        while True:
-            chunk_head = await reader.readexactly(8)
-            cid, size = chunk_head[:4], struct.unpack("<I", chunk_head[4:])[0]
-            if cid == b"fmt ":
-                fmt = await reader.readexactly(size)
-                channels, rate = struct.unpack_from("<HI", fmt, 2)
-                bits = struct.unpack_from("<H", fmt, 14)[0]
-            elif cid == b"data":
-                break
-            else:
-                await reader.readexactly(size)
-        if bits != 16:
-            self._set(error=f"{bits}-bit audio is not supported")
-            return
-        self._set(format=f"{rate} Hz / {channels}ch / {bits}-bit", error="")
-        print(f"[slimproto] stream: wav {rate} Hz / {channels}ch / {bits}-bit")
-        frame = channels * 2
-        # 20 ms at a time, which is what the extractor is happiest with and what the
-        # other inputs deliver.
-        block = max(frame, (rate // 50) * frame)
-        while True:
-            data = await reader.read(block)
-            if not data:
-                return
-            self.bytes_in += len(data)
-            usable = len(data) - (len(data) % frame)
-            if usable:
-                self._on_chunk(data[:usable], rate, channels)
+        def deliver(pcm: bytes, rate: int, channels: int) -> None:
+            self.bytes_in += len(pcm)
+            self._on_chunk(pcm, rate, channels)
+
+        try:
+            await feed_wav(reader.read, deliver, on_format=note)
+        except NotWav as err:
+            self._set(error=f"{err} - set this player's output codec to wav")
+            print(f"[slimproto] {err}; set the player's output codec to wav")
 
     async def _stop_stream(self) -> None:
         task, self._stream_task = self._stream_task, None

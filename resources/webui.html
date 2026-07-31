@@ -228,6 +228,13 @@
     <p class="note">Finds a Logitech Media Server or Music Assistant by itself and appears in it as
       a player, ready to be put in a sync group. Set that player's output codec to
       <strong>wav</strong> — it reads uncompressed samples and cannot decode flac or mp3.</p>
+    <div class="row">
+      <label for="dlnaDevice">As a DLNA speaker</label>
+      <label class="toggle" style="flex:none"><input type="checkbox" id="dlnaDevice"> Appear as a renderer</label>
+      <span class="mono" id="src-dlna" style="font-size:13px;color:var(--legend)">off</span>
+    </div>
+    <p class="note">Shows up wherever a phone, a hi-fi app or Music Assistant looks for a network
+      speaker. Same rule: the sender's output codec has to be <strong>wav</strong>.</p>
   </section>
 
   <!-- ── BRIDGE ─────────────────────────────────────────────────── -->
@@ -331,6 +338,7 @@ let prev = null;
 let ssTouched = false;
 let snapTouched = false;
 let slimTouched = false;
+let dlnaTouched = false;
 
 function lamp(el, on, warn){
   el.className = 'lamp' + (on ? ' on' : '') + (warn ? ' warn' : '');
@@ -370,6 +378,12 @@ async function poll(){
     : sl.playing ? (sl.format + ' · playing')
     : ('registered with ' + (sl.server_name || sl.server));
   if (!slimTouched) $('slimDevice').checked = !!sl;
+  const dl = s.dlna;
+  $('src-dlna').textContent = !dl ? 'off'
+    : dl.playing ? (dl.format + ' · playing' + (dl.controller ? ' from ' + dl.controller : ''))
+    : dl.error ? dl.error
+    : 'announced as "' + dl.name + '"';
+  if (!dlnaTouched) $('dlnaDevice').checked = !!dl;
   const sp = s.spectrum || [];
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
   if (prev && s.t > prev.t){
@@ -708,6 +722,11 @@ $('snapBtn').onclick = async () => {
 $('slimDevice').onchange = async () => {
   slimTouched = true;
   await apply({slimproto_enabled: $('slimDevice').checked});
+};
+
+$('dlnaDevice').onchange = async () => {
+  dlnaTouched = true;
+  await apply({dlna_enabled: $('dlnaDevice').checked});
 };
 
 $('showAdvanced').onchange = renderSchema;

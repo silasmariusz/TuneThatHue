@@ -102,6 +102,8 @@ _SETTING_MAP: dict[str, tuple[str, str]] = {
     "slimproto_enabled": ("slimproto", "enabled"),
     "slimproto_host": ("slimproto", "host"),
     "slimproto_name": ("slimproto", "name"),
+    "dlna_enabled": ("dlna", "enabled"),
+    "dlna_name": ("dlna", "name"),
     "palette_rotate": ("effects.rotation", "enabled"),
     "palette_rotate_list": ("effects.rotation", "list"),
     "palette_rotate_beats": ("effects.rotation", "beats"),
@@ -227,6 +229,28 @@ async def _apply_slimproto(daemon: "tth_phase2.Phase2Daemon") -> None:
         daemon.slimproto = player
 
 
+async def _apply_dlna(daemon: "tth_phase2.Phase2Daemon") -> None:
+    """Start, stop or rename the DLNA renderer to match the config."""
+    name = str(daemon.cfg.get_value("dlna_name") or "TuneThatHue")
+    wanted = bool(daemon.cfg.get_value("dlna_enabled"))
+    running = daemon.dlna
+    if running is not None and (not wanted or running.name != name):
+        await running.stop()
+        daemon.dlna = None
+        running = None
+    if wanted and running is None:
+        from dlna_renderer import DlnaRenderer  # noqa: PLC0415 - optional input
+
+        port = int(float(str(daemon.cfg.get_value("dlna_port") or 8930)))
+        renderer = DlnaRenderer(daemon.on_chunk, name=name, port=port)
+        try:
+            await renderer.start()
+        except Exception as err:  # noqa: BLE001 - a busy port must not take us down
+            print(f"[dlna] could not start: {err}")
+            return
+        daemon.dlna = renderer
+
+
 def _bridge_paired(config_path: Path) -> tuple[bool, str, str]:
     """Return (paired, host, area) from the toml without exposing secrets."""
     try:
@@ -289,6 +313,7 @@ def create_app(
                 "sendspin": daemon.sendspin.status() if daemon.sendspin is not None else None,
                 "snapcast": daemon.snapcast.status() if daemon.snapcast is not None else None,
                 "slimproto": daemon.slimproto.status() if daemon.slimproto is not None else None,
+                "dlna": daemon.dlna.status() if daemon.dlna is not None else None,
             }
         )
 
@@ -403,6 +428,8 @@ def create_app(
             await _apply_snapcast(daemon)
         if any(k.startswith("slimproto_") for k in data):
             await _apply_slimproto(daemon)
+        if any(k.startswith("dlna_") for k in data):
+            await _apply_dlna(daemon)
         return web.json_response(
             {"ok": True, "applied": sorted(k for k in data if k not in unknown), "ignored": unknown}
         )

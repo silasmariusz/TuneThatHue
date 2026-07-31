@@ -14,6 +14,14 @@ enabled = false
 host = ""
 name = "TuneThatHue"
 
+[dlna]
+# Appear as a UPnP/DLNA media renderer, so anything that can push to a network speaker
+# can push to the lights. Set the sending player's output codec to "wav" - the renderer
+# plays what it is handed and cannot decode.
+enabled = false
+name = "TuneThatHue"
+port = 8930
+
 [effects]/[pulse]/[strobe] keys mirror the Music Assistant provider
 # settings 1:1 so a tuned MA setup can be transplanted here directly.
 

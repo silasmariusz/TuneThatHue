@@ -232,6 +232,8 @@ class Phase2Daemon:
         self.snapcast: Any = None
         # Fourth input: a Squeezebox player, found by broadcast. Also raw PCM.
         self.slimproto: Any = None
+        # Fifth input: a UPnP renderer other things push audio to.
+        self.dlna: Any = None
         # Preview subscribers. The panel watches the exact frames the bridge gets, so
         # the tee sits after render and is capped well under the render rate - a browser
         # cannot use 30 fps and the queue must never become the slow path.
@@ -777,6 +779,21 @@ async def main() -> None:
         )
         await daemon.slimproto.start()
 
+    # Fifth input: appear as a UPnP/DLNA renderer.
+    if daemon.cfg.get_value("dlna_enabled"):
+        from dlna_renderer import DlnaRenderer  # noqa: PLC0415 - optional input
+
+        daemon.dlna = DlnaRenderer(
+            daemon.on_chunk,
+            name=str(daemon.cfg.get_value("dlna_name") or "TuneThatHue"),
+            port=int(float(str(daemon.cfg.get_value("dlna_port") or 8930))),
+        )
+        try:
+            await daemon.dlna.start()
+        except Exception as err:  # noqa: BLE001
+            print(f"[dlna] could not start: {err}")
+            daemon.dlna = None
+
     try:
         await asyncio.gather(daemon.render_loop(), daemon.stats_loop())
     finally:
@@ -786,6 +803,8 @@ async def main() -> None:
             await daemon.snapcast.stop()
         if daemon.slimproto is not None:
             await daemon.slimproto.stop()
+        if daemon.dlna is not None:
+            await daemon.dlna.stop()
         transport.close()
         if webui_runner is not None:
             await webui_runner.cleanup()
