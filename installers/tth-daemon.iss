@@ -15,7 +15,7 @@
 ; Build:  ISCC.exe installers\tth-daemon.iss
 
 #define AppName     "TuneThatHue"
-#define AppVersion  "0.9.0"
+#define AppVersion  "0.9.1"
 #define Publisher   "Silas Mariusz Grzybacz"
 #define AppUrl      "https://github.com/silasmariusz/TuneThatHue"
 #define Root        ".."
