@@ -199,6 +199,8 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
    of it and the meters are a single cell stretched across the same height, so the top
    and bottom edges of all of it are the same two lines - by construction, not by
    nudging. Nothing here goes out of true when a font or a window size changes. */
+/* the input stage is one panel: what is arriving, then what it measures */
+.panel .screen.wide{margin-bottom:12px}
 .deck{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;height:160px}
 .dcol{display:grid;grid-template-rows:1fr 1fr;gap:12px;min-width:0}
 .cell{min-width:0;display:grid}
@@ -257,11 +259,12 @@ main>.panel+.panel{margin-top:0}
 /* One "?" per module, in its header, and nowhere else. Individual controls do not
    need their own: with [i] switched on, hovering any of them shows its hint, which is
    what that switch is for. */
-.q{width:15px;height:15px;min-width:0;padding:0;border-radius:50%;
-  font:700 10px/1 var(--f-body);background:#3A4046;color:#98A1A8;border:1px solid #14171A;
-  cursor:help;box-shadow:none}
-.q:hover{background:var(--accent);color:#2A1405;border-color:#8A4A12}
-.rail .q{margin-left:8px}
+.q{width:auto;height:auto;min-width:0;padding:0 2px;border:0;background:none;border-radius:0;
+  font:700 13px/1 var(--f-body);color:var(--rail-dim);cursor:help;box-shadow:none;
+  text-shadow:1px 1px 0 rgba(0,0,0,.85)}
+.q:hover{color:var(--accent);background:none}
+/* always the last thing on the rail, hard right */
+.rail .q{margin-left:auto;order:99}
 .link h3 .sub{margin-left:auto;font-size:10.5px}
 
 /* only the signal chain is metal; every other module is Traktor's dark */
@@ -336,6 +339,11 @@ main>.panel+.panel{margin-top:0}
 
 /* ══ ROWS — a channel strip line on the faceplate ════════════════════ */
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0}
+/* a key at the end of a row is pushed to the right edge and given the same width
+   as every other one, so they read as a column of controls rather than as buttons
+   stopping wherever the field before them happened to end */
+.row>.key:last-child{margin-left:auto}
+.plate.dark .row .ipv4{flex:1 1 auto}
 .row>label:first-child{flex:0 0 148px;font-family:var(--f-display);font-size:11.5px;
       font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
 label.fieldname{display:block;margin:14px 0 8px;font-family:var(--f-display);font-size:11.5px;
@@ -609,13 +617,11 @@ a.brand:hover{color:var(--read)}
 
   <!-- Three instruments, three panels. They were one panel under one heading, which
        made a diagram of something that is really three separate readings. -->
-  <section class="panel"
+
+  <section class="panel">
     data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second. The rate on the right is what is arriving on the wire.">
     <div class="pnl-head"><span class="legend">Audio in</span><span class="sub" id="rate">&mdash;</span></div>
     <div class="screen lcd wide" id="scr-spec"><div id="spec"></div><i class="nosig">No signal</i></div>
-  </section>
-
-  <section class="panel">
     <div class="deck">
       <div class="dcol">
         <div class="cell"
@@ -816,8 +822,8 @@ a.brand:hover{color:var(--read)}
       TuneThatHue &copy; 2025–2026 Silas Mariusz Grzybacz · <a href="https://devspark.pl">devspark.pl</a><br>
       published: <a href="https://forum.qnap.net.pl/download/tunethathue.1113/">forum.qnap.net.pl</a>
       · qnap app repo: <a href="https://www.myqnap.org">myqnap.org</a><br>
-      Not affiliated with, endorsed by, or sponsored by Signify / Philips Hue, Native Instruments,
-      Winamp, foobar2000 or AIMP. Marks belong to their owners.
+      Not affiliated with, endorsed by, or sponsored by Signify / Philips Hue, Winamp,
+      foobar2000 or AIMP. Marks belong to their owners.
     </p>
   </div>
 </footer>
