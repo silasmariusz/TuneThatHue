@@ -340,8 +340,10 @@ main>.panel+.panel{margin-top:0}
 /* The bridge card is two rows of the same shape: a full-width field, then its key.
    Both fields take the same column, both keys take the same fixed column, so the
    edges line up by construction and the keys never change size. */
+#bridgeCard{display:flex;flex-direction:column}
+#bridgeCard .plate{flex:1 1 auto}
 #bridgeCard .bgrid{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:10px;
-  align-items:stretch}
+  align-items:stretch;align-content:space-between;height:100%;min-height:70px}
 #bridgeCard .bgrid .key{width:100%;min-width:0;height:30px}
 #bridgeCard .bgrid .ipv4{width:100%;justify-content:space-between;height:30px}
 #bridgeCard .bgrid .ipv4 input{flex:1 1 auto}
@@ -746,9 +748,8 @@ a.brand:hover{color:var(--read)}
       </div>
     </section>
 
-    <div class="stack">
-      <!-- ── BRIDGE ────────────────────────────────────────────────── -->
-      <section class="module" id="bridgeCard">
+    <!-- ── BRIDGE ──────────────────────────────────────────────────── -->
+    <section class="module" id="bridgeCard">
         <div class="rail"><h2 class="legend">Hue bridge</h2><button class="q" data-hint="Hue bridge|Where the light goes. Pair once, pick the room, then Sync. Pair is green while we hold the bridge&#39;s credentials, and pressing it green gives them back. Leave the address empty to find the bridge on the network.">?</button></div>
         <div class="plate dark">
           <div class="bgrid">
@@ -767,10 +768,11 @@ a.brand:hover{color:var(--read)}
           </div>
         </div>
       </section>
+  </div>
 
-      <!-- ── CALIBRATION ───────────────────────────────────────────── -->
-      <section class="module">
-        <div class="rail"><h2 class="legend">Latency calibration</h2><button class="q" data-hint="Latency calibration|Sound reaches the lights later than it reaches your ears. Play the click on the machine that captures the audio, and raise the delay until the flash lands on it. The lamps show what the engine is hearing: beat and bar from the tempo grid, then the sections it reacts to.">?</button></div>
+  <!-- ── CALIBRATION — full width, the slider earns it ─────────────── -->
+  <section class="module">
+    <div class="rail"><h2 class="legend">Latency calibration</h2><button class="q" data-hint="Latency calibration|Sound reaches the lights later than it reaches your ears. Play the click on the machine that captures the audio, and raise the delay until the flash lands on it. The lamps show what the engine is hearing: beat and bar from the tempo grid, then the sections it reacts to.">?</button></div>
         <div class="plate dark">
           <div class="row">
             <button class="key k-out" id="metroBtn" aria-pressed="false">
@@ -793,8 +795,6 @@ a.brand:hover{color:var(--read)}
           </div>
         </div>
       </section>
-    </div>
-  </div>
 
   <!-- ── SETTINGS (generated from the provider) ────────────────────── -->
   <section class="module">
@@ -842,8 +842,8 @@ a.brand:hover{color:var(--read)}
              ><img data-logo="dlna.svg" alt="DLNA"></a>
           <a class="brand word" href="https://github.com/badaix/snapcast" target="_blank"
              rel="noopener">Snapcast</a>
-          <a class="brand word" href="https://github.com/Logitech/slimserver" target="_blank"
-             rel="noopener">Squeezebox</a>
+          <a class="brand" href="https://github.com/Logitech/slimserver" target="_blank" rel="noopener"
+             title="Squeezebox"><img data-logo="squeezebox.svg" alt="Squeezebox"></a>
           <a class="brand" href="https://github.com/Sendspin/spec" target="_blank" rel="noopener"
              title="Sendspin"><img data-logo="sendspin.svg" alt="Sendspin"></a>
           <a class="brand word" href="https://kno.wled.ge" target="_blank" rel="noopener">WLED</a>
