@@ -4,280 +4,286 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TuneThatHue</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B0D10'/%3E%3Crect x='6' y='18' width='4' height='8' fill='%2333E1A0'/%3E%3Crect x='12' y='12' width='4' height='14' fill='%2333E1A0'/%3E%3Crect x='18' y='6' width='4' height='20' fill='%2333E1A0'/%3E%3Crect x='24' y='15' width='4' height='11' fill='%2333E1A0'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231C1C1C'/%3E%3Crect x='6' y='18' width='4' height='8' fill='%23C6E33C'/%3E%3Crect x='12' y='12' width='4' height='14' fill='%23C6E33C'/%3E%3Crect x='18' y='6' width='4' height='20' fill='%23C6E33C'/%3E%3Crect x='24' y='15' width='4' height='11' fill='%23C6E33C'/%3E%3C/svg%3E">
 <style>
+  /* Colours and materials: docs/STYLE-GUIDE.md. Dark chassis, silver decks, nothing else
+     silver. Sampled from Traktor Pro 4 rather than invented. */
   :root{
-    --desk:#0B0D10;      /* the surface everything sits on */
-    --strip:#14181D;     /* channel strip / card face */
-    --rule:#232A32;      /* hairlines and separators */
-    --legend:#7C8899;    /* silkscreen labels */
-    --read:#E8EDF3;      /* readouts and values */
-    --live:#33E1A0;      /* the one accent: signal present. never decoration */
-    --hot:#FFB020;       /* warnings only */
-    /* Self-hosted is impossible on a box with no internet, so these are system
-       stacks picked for the same shapes: condensed silkscreen, plain body, mono. */
-    --f-display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Liberation Sans Narrow","Arial Narrow",system-ui,sans-serif;
+    --chrome:#1C1C1C; --panel:#2C2E2E; --panel-hi:#383B3B; --inset:#141616;
+    --rule:#454848; --rule-dark:#171919; --legend:#8A9090; --read:#E6E9E9;
+    --silver-hi:#E4E6E6; --silver:#C6C9C9; --silver-lo:#9EA2A2; --engrave:#3E4141;
+    --vu-face:#EFE7D2; --vu-ink:#3A3833;
+    --live:#C6E33C; --blue:#3C9AD9; --amber:#E2A032; --red:#D8452F;
+    --f-cond:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Liberation Sans Narrow","Arial Narrow",system-ui,sans-serif;
     --f-body:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
     --f-mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,"SF Mono",monospace;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--desk);color:var(--read);font:15px/1.5 var(--f-body);
+  body{margin:0;background:var(--chrome);color:var(--read);font:13px/1.45 var(--f-body);
        -webkit-font-smoothing:antialiased}
   a{color:var(--legend)}
-  :focus-visible{outline:2px solid var(--live);outline-offset:2px}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 
-  /* ── silkscreen legends ─────────────────────────────────────────── */
-  .legend{font-family:var(--f-display);font-size:13px;letter-spacing:.18em;
-          text-transform:uppercase;color:var(--legend);margin:0 0 14px}
+  .lbl{font-family:var(--f-cond);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+       color:var(--legend)}
   .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 
-  /* ── header ─────────────────────────────────────────────────────── */
-  header{display:flex;align-items:center;gap:14px;padding:14px 22px;
-         border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--desk);z-index:5}
-  .mark{width:22px;height:22px;flex:none}
-  h1{font-family:var(--f-display);font-size:21px;letter-spacing:.22em;text-transform:uppercase;
+  /* ── chassis ────────────────────────────────────────────────────── */
+  header{display:flex;align-items:center;gap:10px;padding:8px 14px;
+         background:linear-gradient(180deg,#2A2C2C,#202222);
+         border-bottom:1px solid var(--rule-dark);position:sticky;top:0;z-index:5}
+  .mark{width:18px;height:18px;flex:none}
+  h1{font-family:var(--f-cond);font-size:16px;letter-spacing:.2em;text-transform:uppercase;
      font-weight:600;margin:0}
-  .lamps{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-  .lamp{font-family:var(--f-display);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
-        color:var(--legend);display:flex;align-items:center;gap:6px}
-  .lamp::before{content:"";width:7px;height:7px;border-radius:50%;background:#2A323C;flex:none}
+  .lamps{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+  .lamp{font-family:var(--f-cond);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+        color:#6E7474;display:flex;align-items:center;gap:5px}
+  .lamp::before{content:"";width:6px;height:6px;border-radius:50%;background:#2A2D2D;
+                box-shadow:inset 0 1px 1px rgba(0,0,0,.8);flex:none}
   .lamp.on{color:var(--read)}
-  .lamp.on::before{background:var(--live);box-shadow:0 0 8px var(--live)}
-  .lamp.warn::before{background:var(--hot)}
+  .lamp.on::before{background:var(--live);box-shadow:0 0 6px var(--live)}
+  .lamp.blue.on::before{background:var(--blue);box-shadow:0 0 6px var(--blue)}
 
-  main{max-width:1020px;margin:0 auto;padding:22px;display:grid;gap:22px}
-  section{background:var(--strip);border:1px solid var(--rule);border-radius:4px;padding:18px 20px}
-  section.wall{background:#0E1115}
+  main{max-width:1080px;margin:0 auto;padding:12px;display:grid;gap:12px}
+  .card{background:linear-gradient(180deg,#313434,var(--panel));border:1px solid var(--rule-dark);
+        border-radius:4px;padding:10px 12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  .card > .lbl:first-child{display:block;margin-bottom:8px}
+  .head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .head .lbl{margin:0}
 
-  /* ── the light wall ─────────────────────────────────────────────── */
-  #wall{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:12px}
-  .tile{border:1px solid var(--rule);border-radius:3px;overflow:hidden;background:#080A0D}
-  .tile .face{height:96px;background:#0A0C10}
-  .tile canvas{display:block;width:100%;height:20px;border-top:1px solid var(--rule);
-               border-bottom:1px solid var(--rule)}
-  .tile .foot{padding:7px 9px}
-  .tile .nm{font-family:var(--f-display);font-size:13px;letter-spacing:.1em;text-transform:uppercase;
-            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tile .lvl{height:3px;background:#1A2029;margin-top:6px}
-  .tile .lvl i{display:block;height:100%;background:var(--live);width:0}
-  .empty{color:var(--legend);font-size:14px;padding:22px 0}
+  /* ── the light wall: silver decks ───────────────────────────────── */
+  #wall{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px}
+  .deck{
+    background:linear-gradient(180deg,var(--silver-hi) 0%,var(--silver) 38%,
+                #B7BABA 72%,var(--silver-lo) 100%);
+    border:1px solid #7E8181;border-radius:3px;padding:6px 6px 5px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 2px 0 rgba(255,255,255,.35),
+               inset 0 -1px 0 rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.55);
+    position:relative;overflow:hidden}
+  /* brushed metal: any stronger than this and it buzzes */
+  .deck::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.5) 0 1px,rgba(0,0,0,.5) 1px 2px);
+    opacity:.035}
+  .deck .meter{background:linear-gradient(180deg,#F5EEDC,var(--vu-face));border-radius:2px;
+    padding:1px;box-shadow:inset 0 1px 3px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.7);
+    border:1px solid #A9A392}
+  .deck .vu{display:block;width:100%;height:52px}
+  /* the window and the trail sit in one recessed bay, like a tape window */
+  .deck .bay{background:var(--inset);border-radius:2px;padding:3px;margin:4px 0 5px;
+    box-shadow:inset 0 2px 5px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.5)}
+  .deck .win{height:26px;border-radius:1px;background:#0B0C0C}
+  .deck canvas{display:block;width:100%;height:9px;border-radius:1px;margin-top:3px;
+    background:#0B0C0C;opacity:.75}
+  .deck .leds{display:flex;gap:3px;margin:0 0 5px;padding:3px;border-radius:2px;
+    background:#7E8282;box-shadow:inset 0 1px 3px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.55)}
+  .deck .leds i{flex:1;height:5px;border-radius:3px;background:#5E6262;
+    box-shadow:inset 0 1px 1px rgba(0,0,0,.5)}
+  .deck .nm{font-family:var(--f-cond);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--engrave);text-shadow:0 1px 0 rgba(255,255,255,.7);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .empty{color:var(--legend);font-size:12px;padding:14px 0}
 
-  /* ── signal chain ───────────────────────────────────────────────── */
-  .chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--rule);
-         border:1px solid var(--rule);border-radius:3px;overflow:hidden}
-  .link{background:var(--strip);padding:12px 14px}
-  .link h3{font-family:var(--f-display);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
-           color:var(--legend);margin:0 0 8px;font-weight:500}
-  .big{font-family:var(--f-mono);font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
-  .unit{font-size:12px;color:var(--legend);margin-left:3px}
-  .sub{font-family:var(--f-mono);font-size:12px;color:var(--legend);margin-top:6px}
-  #spec{display:flex;align-items:flex-end;gap:2px;height:40px}
-  #spec i{flex:1;background:var(--live);height:1px;opacity:.85}
+  /* ── signal strip ───────────────────────────────────────────────── */
+  .chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+    background:var(--rule-dark);border:1px solid var(--rule-dark);border-radius:3px;overflow:hidden}
+  .link{background:linear-gradient(180deg,#343737,#2A2C2C);padding:8px 10px}
+  .link .lbl{display:block;margin-bottom:5px}
+  .big{font-family:var(--f-mono);font-size:20px;line-height:1;font-variant-numeric:tabular-nums}
+  .unit{font-size:10px;color:var(--legend);margin-left:2px}
+  .sub{font-family:var(--f-mono);font-size:10px;color:var(--legend);margin-top:4px}
+  #spec{display:flex;align-items:flex-end;gap:2px;height:30px;background:var(--inset);
+    border-radius:2px;padding:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,.8)}
+  #spec i{flex:1;background:linear-gradient(0deg,var(--live),#7FA524);height:1px;border-radius:1px}
 
-  /* ── rows / controls ────────────────────────────────────────────── */
-  .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 0;
-       border-bottom:1px solid rgba(35,42,50,.55)}
+  /* ── rows and controls ──────────────────────────────────────────── */
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 0;
+    border-bottom:1px solid rgba(69,72,72,.4)}
   .row:last-child{border-bottom:0}
-  .row > label:first-child,.fieldname{flex:0 0 210px;color:var(--legend);font-size:14px}
-  .fieldname{display:block;margin-bottom:8px}
-  .grow{flex:1;min-width:150px}
-  input[type=text],select{background:#0A0D11;color:var(--read);border:1px solid var(--rule);
-       border-radius:3px;padding:7px 9px;font:14px var(--f-body)}
-  input[type=text]{width:160px}
-  input[type=range]{flex:1;min-width:130px;accent-color:var(--live)}
-  input[type=checkbox]{accent-color:var(--live);width:15px;height:15px}
-  .val{font-family:var(--f-mono);font-size:13px;width:46px;text-align:right;color:var(--read)}
-  button{background:transparent;color:var(--read);border:1px solid var(--rule);border-radius:3px;
-         padding:8px 15px;font:600 13px/1 var(--f-body);letter-spacing:.03em;cursor:pointer}
-  button:hover:not(:disabled){border-color:var(--live);color:var(--live)}
-  button.primary{background:var(--live);border-color:var(--live);color:#05130D}
-  button.primary:hover:not(:disabled){color:#05130D;filter:brightness(1.08)}
+  .row > label:first-child,.fieldname{flex:0 0 180px;color:var(--legend);font-size:12px}
+  .fieldname{display:block;margin-bottom:5px}
+  .grow{flex:1;min-width:120px}
+  input[type=text],select{background:var(--inset);color:var(--read);border:1px solid var(--rule-dark);
+    border-radius:2px;padding:5px 7px;font:12px var(--f-body);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+  input[type=text]{width:150px}
+  input[type=range]{flex:1;min-width:110px;accent-color:var(--blue);height:18px}
+  input[type=checkbox]{accent-color:var(--live);width:14px;height:14px}
+  .val{font-family:var(--f-mono);font-size:12px;width:40px;text-align:right}
+  button{background:linear-gradient(180deg,#3E4141,#2E3131);color:var(--read);
+    border:1px solid var(--rule-dark);border-radius:2px;padding:6px 12px;
+    font:600 11px/1 var(--f-body);letter-spacing:.04em;cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  button:hover:not(:disabled){border-color:var(--blue);color:#fff}
+  button.on{background:linear-gradient(180deg,#A9C433,#8FAA24);color:#1B2205;border-color:#6E8519;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+  button:active:not(:disabled){box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
   button:disabled{opacity:.45;cursor:default}
-  .note{color:var(--legend);font-size:13px;margin:8px 0 0}
-  .head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-  .head .legend{margin:0}
-  .toggle{color:var(--legend);font-size:13px;display:flex;align-items:center;gap:7px;cursor:pointer}
+  .note{color:var(--legend);font-size:11px;margin:5px 0 0}
+  .toggle{color:var(--legend);font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer}
+  .state{font-family:var(--f-mono);font-size:11px;color:var(--legend)}
 
   /* ── palette board ──────────────────────────────────────────────── */
-  .board{border:1px solid var(--rule);border-radius:3px;padding:10px;background:#0A0D11}
-  .board.off{opacity:.4;pointer-events:none}
-  .board input[type=text]{width:100%;margin-bottom:9px}
-  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:7px;
-            max-height:230px;overflow:auto}
-  .sw{border:1px solid var(--rule);border-radius:3px;padding:0;cursor:pointer;background:#0B0E12;
-      text-align:left;overflow:hidden}
-  .sw .bars{display:flex;height:22px}
+  .board{border:1px solid var(--rule-dark);border-radius:2px;padding:7px;background:#232525;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+  .board.off{opacity:.35;pointer-events:none}
+  .board input[type=text]{width:100%;margin-bottom:6px}
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:5px;
+    max-height:180px;overflow:auto}
+  .sw{border:1px solid var(--rule-dark);border-radius:2px;padding:0;cursor:pointer;
+    background:#1E2020;text-align:left;overflow:hidden}
+  .sw .bars{display:flex;height:16px}
   .sw .bars i{flex:1}
-  .sw .t{display:flex;align-items:center;gap:5px;padding:5px 6px;font-size:12px;color:var(--legend);
-         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sw[aria-pressed=true]{border-color:var(--live)}
+  .sw .t{display:flex;align-items:center;gap:4px;padding:3px 5px;font-size:10px;color:var(--legend);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sw[aria-pressed=true]{border-color:var(--live);box-shadow:0 0 0 1px var(--live)}
   .sw[aria-pressed=true] .t{color:var(--read)}
-  .sw .tick{font-family:var(--f-mono);font-size:11px;color:var(--live);margin-left:auto}
+  .sw .tick{font-family:var(--f-mono);font-size:9px;color:var(--live);margin-left:auto}
 
-  /* ── senders ────────────────────────────────────────────────────── */
-  .senders{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
-  .sender{border:1px solid var(--rule);border-radius:3px;padding:14px}
-  .sender h3{font-family:var(--f-display);font-size:15px;letter-spacing:.12em;text-transform:uppercase;
-             margin:0 0 6px;font-weight:600}
-  .sender p{color:var(--legend);font-size:13px;margin:0 0 12px}
-  .sender a{display:inline-block;text-decoration:none;color:var(--read);border:1px solid var(--rule);
-            border-radius:3px;padding:7px 13px;font-size:13px;font-weight:600}
-  .sender a:hover{border-color:var(--live);color:var(--live)}
-  .sender a[aria-disabled=true]{opacity:.45;pointer-events:none}
+  /* ── senders and footer ─────────────────────────────────────────── */
+  .logos{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+  .logo{display:flex;flex-direction:column;align-items:center;gap:5px;text-decoration:none;
+    background:linear-gradient(180deg,#343737,#2A2C2C);border:1px solid var(--rule-dark);
+    border-radius:3px;padding:9px 12px;min-width:88px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  .logo:hover{border-color:var(--blue)}
+  .logo img{height:24px;width:auto;filter:brightness(0) invert(.72);transition:filter .15s}
+  .logo:hover img{filter:none}
+  .logo span{font-family:var(--f-cond);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--legend)}
+  .logo:hover span{color:var(--read)}
+  footer{border-top:1px solid var(--rule-dark);padding:12px;text-align:center;
+    color:#6E7474;font-size:11px;background:#191B1B}
+  footer .logos{justify-content:center;margin-top:9px}
+  footer .logo{background:none;border:0;box-shadow:none;padding:5px 8px;min-width:0}
+  footer .logo img{height:18px}
 
-  footer{color:var(--legend);font-size:12px;text-align:center;padding:20px;border-top:1px solid var(--rule)}
-
-  @media (max-width:560px){
+  @media (max-width:640px){
+    main{padding:8px;gap:8px}
+    #wall{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
     .row > label:first-child{flex:1 0 100%}
-    h1{font-size:18px}
+    .row{padding:6px 0}
+    h1{font-size:14px}
+    .lamps{width:100%;margin-left:0}
+    header{flex-wrap:wrap}
   }
-  @media (prefers-reduced-motion:reduce){
-    *{transition:none !important}
-  }
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
 </style>
 </head>
 <body>
 <header>
   <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-    <rect x="4" y="18" width="4" height="9" fill="#33E1A0"/>
-    <rect x="11" y="11" width="4" height="16" fill="#33E1A0"/>
-    <rect x="18" y="4" width="4" height="23" fill="#33E1A0"/>
-    <rect x="25" y="15" width="4" height="12" fill="#33E1A0"/>
+    <rect x="4" y="18" width="4" height="9" fill="#C6E33C"/>
+    <rect x="11" y="11" width="4" height="16" fill="#C6E33C"/>
+    <rect x="18" y="4" width="4" height="23" fill="#C6E33C"/>
+    <rect x="25" y="15" width="4" height="12" fill="#C6E33C"/>
   </svg>
   <h1>TuneThatHue</h1>
   <div class="lamps">
-    <span class="lamp" id="l-conn">panel</span>
-    <span class="lamp" id="l-rx">receiving</span>
-    <span class="lamp" id="l-out">streaming</span>
+    <span class="lamp blue" id="l-conn">panel</span>
+    <span class="lamp" id="l-rx">audio</span>
+    <span class="lamp" id="l-out">output</span>
   </div>
 </header>
 
 <main>
-  <!-- ── THE LIGHT WALL ─────────────────────────────────────────── -->
-  <section class="wall">
+  <section class="card">
     <div class="head">
-      <p class="legend">Light wall <span id="areaName" class="mono" style="letter-spacing:0;text-transform:none"></span></p>
-      <span class="mono" style="font-size:12px;color:var(--legend)" id="fps">— fps</span>
+      <p class="lbl">Lights <span id="areaName" class="mono" style="letter-spacing:0;text-transform:none"></span></p>
+      <span class="mono" style="font-size:10px;color:var(--legend)" id="fps">—</span>
     </div>
     <div id="wall"></div>
-    <p class="note" id="wallNote">Turn the output on to watch the frames.</p>
-    <p class="note">The face holds the peak for a moment so a single-frame flash stays
-      visible; the strip under it is the last two seconds, unheld.</p>
+    <p class="note" id="wallNote">Turn the output on.</p>
   </section>
 
-  <!-- ── SIGNAL CHAIN ───────────────────────────────────────────── -->
-  <section>
-    <p class="legend">Signal chain</p>
+  <section class="card">
     <div class="chain">
       <div class="link">
-        <h3>1 · Audio in</h3>
+        <span class="lbl">Audio</span>
         <div id="spec"></div>
-        <div class="sub" id="rate">— KB/s · — pkt/s</div>
+        <div class="sub" id="rate">—</div>
       </div>
       <div class="link">
-        <h3>2 · Beat</h3>
+        <span class="lbl">Beat</span>
         <div class="big"><span id="bpm">—</span><span class="unit">BPM</span></div>
-        <div class="sub"><span id="beats">0</span> beats · <span id="peaks">0</span> peaks</div>
+        <div class="sub"><span id="beats">0</span> beats</div>
       </div>
       <div class="link">
-        <h3>3 · Engine</h3>
-        <div class="big"><span id="renders">0</span></div>
-        <div class="sub"><span id="rps">—</span> frames/s rendered</div>
+        <span class="lbl">Engine</span>
+        <div class="big"><span id="rps">—</span><span class="unit">fps</span></div>
+        <div class="sub"><span id="renders">0</span> frames</div>
       </div>
       <div class="link">
-        <h3>4 · Bridge</h3>
+        <span class="lbl">Bridge</span>
         <div class="big"><span id="lit">0</span><span class="unit">lit</span></div>
-        <div class="sub" id="outState">output off</div>
+        <div class="sub" id="outState">off</div>
       </div>
     </div>
   </section>
 
-  <!-- ── SOURCES ────────────────────────────────────────────────── -->
-  <section>
-    <p class="legend">Sources</p>
-    <p class="note" style="margin:0 0 12px">Where the audio comes from. Leave as many on as you
-      like — one drives the lights at a time, and another takes over a couple of seconds after it
-      goes quiet. <span id="driving"></span></p>
+  <section class="card">
+    <p class="lbl">Sources <span id="driving" class="state" style="text-transform:none;letter-spacing:0"></span></p>
     <div class="row">
-      <label>Sender (VBAN)</label>
-      <span class="mono" id="src-vban" style="font-size:13px;color:var(--legend)">idle</span>
-      <span class="grow"></span>
-      <span class="mono" style="font-size:12px;color:var(--legend)">UDP 6980</span>
+      <label>Sender</label>
+      <span class="state" id="src-vban">idle</span>
+      <span class="grow"></span><span class="state">UDP 6980</span>
     </div>
     <div class="row">
       <label for="ssDevice">On the network</label>
-      <label class="toggle" style="flex:none"><input type="checkbox" id="ssDevice"> Announce this box</label>
-      <span class="mono" id="src-sendspin" style="font-size:13px;color:var(--legend)">off</span>
+      <label class="toggle" style="flex:none"><input type="checkbox" id="ssDevice"> Announce</label>
+      <span class="state" id="src-sendspin">off</span>
     </div>
-    <p class="note">Announced, a Sendspin server such as Music Assistant finds the box by itself and
-      sends it the audio it has already analysed — no sender to install, and the box can join a
-      group of speakers.</p>
     <div class="row">
-      <label for="snapHost">Snapcast server</label>
-      <input type="text" id="snapHost" placeholder="address of the snapserver">
+      <label for="snapHost">Snapcast</label>
+      <input type="text" id="snapHost" placeholder="server address">
       <button id="snapBtn">Join</button>
-      <span class="mono" id="src-snapcast" style="font-size:13px;color:var(--legend)">off</span>
+      <span class="state" id="src-snapcast">off</span>
     </div>
-    <p class="note">Joins a Snapcast group and takes the group's audio. Any transport codec works
-      except <strong>opus</strong>, which Snapcast sends without a container.</p>
     <div class="row">
-      <label for="slimDevice">As a Squeezebox</label>
+      <label for="slimDevice">Squeezebox</label>
       <label class="toggle" style="flex:none"><input type="checkbox" id="slimDevice"> Appear as a player</label>
-      <span class="mono" id="src-slimproto" style="font-size:13px;color:var(--legend)">off</span>
+      <span class="state" id="src-slimproto">off</span>
     </div>
-    <p class="note">Finds a Logitech Media Server or Music Assistant by itself and appears in it as
-      a player, ready to be put in a sync group. Any output codec works.</p>
     <div class="row">
-      <label for="dlnaDevice">As a DLNA speaker</label>
-      <label class="toggle" style="flex:none"><input type="checkbox" id="dlnaDevice"> Appear as a renderer</label>
-      <span class="mono" id="src-dlna" style="font-size:13px;color:var(--legend)">off</span>
+      <label for="dlnaDevice">DLNA</label>
+      <label class="toggle" style="flex:none"><input type="checkbox" id="dlnaDevice"> Appear as a speaker</label>
+      <span class="state" id="src-dlna">off</span>
     </div>
-    <p class="note">Shows up wherever a phone, a hi-fi app or Music Assistant looks for a network
-      speaker. Send it anything — flac, mp3, aac, ogg, opus, alac, wma or wav.</p>
   </section>
 
-  <!-- ── BRIDGE ─────────────────────────────────────────────────── -->
-  <section>
-    <p class="legend">Hue bridge</p>
+  <section class="card">
+    <p class="lbl">Bridge</p>
     <div class="row">
-      <label for="host">Bridge address</label>
+      <label for="host">Address</label>
       <input type="text" id="host" placeholder="10.0.0.x">
       <button id="pairBtn">Pair</button>
-      <span class="mono" id="pairedState" style="font-size:12px;color:var(--legend)">not paired</span>
+      <span class="state" id="pairedState">not paired</span>
     </div>
-    <p class="note" id="pairMsg">Leave the address blank to search the network. Press the round button on
-      the bridge within 30 seconds of clicking Pair.</p>
     <div class="row">
-      <label for="area">Entertainment area</label>
+      <label for="area">Area</label>
       <select id="area" class="grow"></select>
-      <button id="outBtn" class="primary">Turn on</button>
+      <button id="outBtn" class="on">Turn on</button>
     </div>
+    <p class="note" id="pairMsg">Leave the address blank to search. Press the bridge button within 30 s.</p>
     <p class="note" id="outMsg"></p>
   </section>
 
-  <!-- ── SETTINGS (generated from the provider) ─────────────────── -->
-  <section>
+  <section class="card">
     <div class="head">
-      <p class="legend">Settings</p>
+      <p class="lbl">Settings</p>
       <label class="toggle"><input type="checkbox" id="showAdvanced"> Advanced</label>
     </div>
-    <p class="note" style="margin:0 0 12px">Generated from the Music Assistant provider's own sources, so
-      every setting here means what it means there.</p>
     <div id="schemaHost"></div>
   </section>
 
-  <!-- ── CALIBRATION ────────────────────────────────────────────── -->
-  <section>
-    <p class="legend">Latency calibration</p>
-    <p class="note" style="margin:0 0 12px">Open this page <strong>on the machine that captures the
-      audio</strong>. The click below goes out through that machine, arrives here as sound, and flashes the
-      lights. Raise the delay until the flash lands on the click.</p>
+  <section class="card">
+    <p class="lbl">Latency</p>
+    <p class="note" style="margin:0 0 8px">Open this page on the machine that captures the audio.
+      Raise the delay until the flash lands on the click.</p>
     <div class="row">
       <label>Metronome</label>
-      <button id="metroBtn">Start click</button>
-      <span class="mono" id="metroBeat" style="color:var(--legend)">—</span>
-      <span class="grow"></span>
-      <span class="mono" style="color:var(--legend)">120 BPM · 4/4</span>
+      <button id="metroBtn">Start</button>
+      <span class="state" id="metroBeat">—</span>
+      <span class="grow"></span><span class="state">120 BPM · 4/4</span>
     </div>
     <div class="row">
       <label for="latency">Light delay</label>
@@ -286,38 +292,38 @@
     </div>
   </section>
 
-  <!-- ── SENDERS ────────────────────────────────────────────────── -->
-  <section>
-    <p class="legend">Get the senders</p>
-    <p class="note" style="margin:0 0 14px">Something has to send audio to this box. Pick whichever matches
-      how you listen.</p>
-    <div class="senders">
-      <div class="sender">
-        <h3>Sound capture</h3>
-        <p>Sends whatever is playing on the computer. Works with any player.</p>
-        <a href="#" id="dl-soundrecorder" aria-disabled="true">Not in this build</a>
-      </div>
-      <div class="sender">
-        <h3>Winamp</h3>
-        <p>Visualisation plug-in. Sends straight from the player, no capture device.</p>
-        <a href="#" id="dl-winamp" aria-disabled="true">Not in this build</a>
-      </div>
-      <div class="sender">
-        <h3>foobar2000</h3>
-        <p>Output component. Same idea, for foobar.</p>
-        <a href="#" id="dl-foobar" aria-disabled="true">Not in this build</a>
-      </div>
+  <section class="card">
+    <p class="lbl">Senders</p>
+    <div class="logos">
+      <a class="logo" id="dl-soundrecorder" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
+        <img src="logos/windows.svg" alt=""><span>Windows</span></a>
+      <a class="logo" id="dl-macos" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
+        <img src="logos/macos.svg" alt=""><span>macOS</span></a>
+      <a class="logo" id="dl-winamp" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
+        <img src="logos/winamp.png" alt=""><span>Winamp</span></a>
+      <a class="logo" id="dl-foobar" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
+        <img src="logos/foobar2000.svg" alt=""><span>foobar2000</span></a>
+      <a class="logo" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener">
+        <img src="logos/aimp.svg" alt=""><span>AIMP</span></a>
     </div>
-    <p class="note" id="dlNote"></p>
   </section>
 </main>
 
 <footer>
   TuneThatHue &copy; 2025–2026 Silas Mariusz Grzybacz · <a href="https://devspark.pl">devspark.pl</a><br>
-  published: <a href="https://forum.qnap.net.pl/download/tunethathue.1113/">forum.qnap.net.pl</a>
-  · qnap app repo: <a href="https://www.myqnap.org">myqnap.org</a>
+  <a href="https://forum.qnap.net.pl/download/tunethathue.1113/">forum.qnap.net.pl</a> ·
+  <a href="https://www.myqnap.org">myqnap.org</a> ·
+  <a href="https://github.com/silasmariusz/TuneThatHue">github</a>
+  <div class="logos">
+    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/winamp.png" alt="Winamp"></a>
+    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/foobar2000.svg" alt="foobar2000"></a>
+    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/aimp.svg" alt="AIMP"></a>
+    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/windows.svg" alt="Windows"></a>
+    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/macos.svg" alt="macOS"></a>
+    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/dlna.svg" alt="DLNA"></a>
+    <a class="logo" href="https://github.com/silasmariusz/TuneThatHue" target="_blank" rel="noopener"><img src="logos/raspberrypi.svg" alt="Raspberry Pi"></a>
+  </div>
 </footer>
-
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -352,13 +358,11 @@ async function poll(){
   lamp($('l-out'), s.output === 'hue');
   $('bpm').textContent = s.bpm ? s.bpm.toFixed(1) : '—';
   $('beats').textContent = s.beats;
-  $('peaks').textContent = s.peaks;
   $('renders').textContent = s.renders;
   $('lit').textContent = s.lit;
-  $('outState').textContent = s.output === 'hue' ? ('streaming · ' + (s.area || '')) : 'output off';
-  $('driving').textContent = s.driving ? ('Right now: ' + s.driving + '.') : '';
-  $('src-vban').textContent = s.receiving
-    ? ((s.format || 'receiving') + ' · ' + s.packets + ' pkt') : 'idle';
+  $('outState').textContent = s.output === 'hue' ? (s.area || 'streaming') : 'off';
+  $('driving').textContent = s.driving ? ('· ' + s.driving) : '';
+  $('src-vban').textContent = s.receiving ? (s.format || 'receiving') : 'idle';
   const ss = s.sendspin;
   $('src-sendspin').textContent = !ss ? 'off'
     : ss.connected ? ((ss.streaming ? 'playing · ' : 'connected · ') + (ss.server || 'server'))
@@ -388,8 +392,7 @@ async function poll(){
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
   if (prev && s.t > prev.t){
     const dt = s.t - prev.t;
-    $('rate').textContent = ((s.bytes - prev.bytes) / 1024 / dt).toFixed(1) + ' KB/s · '
-                          + ((s.packets - prev.packets) / dt).toFixed(0) + ' pkt/s';
+    $('rate').textContent = ((s.bytes - prev.bytes) / 1024 / dt).toFixed(0) + ' KB/s';
     $('rps').textContent = ((s.renders - prev.renders) / dt).toFixed(0);
   }
   prev = s;
@@ -400,6 +403,26 @@ async function poll(){
    loop. The strip under each tile keeps the last two seconds of that light,
    so a flash you would otherwise miss stays readable. */
 const TRAIL_S = 2, TRAIL_HZ = 20, TRAIL_N = TRAIL_S * TRAIL_HZ;
+const LED_COUNT = 8;
+// Green through amber, two red at the top and never more.
+const LED_COLOURS = ['#8FBF2E','#8FBF2E','#A8CC2F','#C6E33C','#D8C133','#E2A032','#D8452F','#D8452F'];
+// The meter face never changes, so it is markup: an arc, ticks, a red zone in the
+// last fifth, and a needle on a pivot.
+const VU_SVG = `<svg class="vu" viewBox="0 0 100 52" aria-hidden="true">
+  <path d="M14 46 A38 38 0 0 1 86 46" fill="none" stroke="#8A857A" stroke-width="1"/>
+  <path d="M69 20 A38 38 0 0 1 86 46" fill="none" stroke="#C0402C" stroke-width="1.6"/>
+  <g stroke="#6A665D" stroke-width="1">
+    <line x1="15" y1="43" x2="18" y2="40"/><line x1="27" y1="27" x2="29" y2="31"/>
+    <line x1="50" y1="21" x2="50" y2="25"/><line x1="73" y1="27" x2="71" y2="31"/>
+    <line x1="85" y1="43" x2="82" y2="40"/>
+  </g>
+  <text x="50" y="14" font-size="7" fill="#7A756A" text-anchor="middle" letter-spacing="1.5">VU</text>
+  <g class="needle" style="transform-origin:50px 47px;transform:rotate(-52deg);
+       transition:transform .28s cubic-bezier(.22,.9,.3,1)">
+    <line x1="50" y1="47" x2="50" y2="24" stroke="#2A2824" stroke-width="1.3"/>
+    <circle cx="50" cy="47" r="2.6" fill="#3A3833"/>
+  </g>
+</svg>`;
 let tiles = new Map();       // channel id -> {face, ctx, lvl, hist}
 let frames = 0, fpsMark = 0;
 
@@ -408,22 +431,25 @@ function buildWall(lights){
   wall.innerHTML = '';
   tiles = new Map();
   if (!lights.length){
-    wall.innerHTML = '<p class="empty">No lights yet — pair a bridge and turn the output on.</p>';
+    wall.innerHTML = '<p class="empty">No lights yet.</p>';
     return;
   }
   for (const l of lights){
-    const t = document.createElement('div'); t.className = 'tile';
-    t.innerHTML = '<div class="face"></div><canvas height="20"></canvas>'
-                + '<div class="foot"><div class="nm"></div><div class="lvl"><i></i></div></div>';
+    const t = document.createElement('div'); t.className = 'deck';
+    t.innerHTML = '<div class="meter">' + VU_SVG + '</div>'
+      + '<div class="bay"><div class="win"></div><canvas height="9"></canvas></div>'
+      + '<div class="leds">' + '<i></i>'.repeat(LED_COUNT) + '</div>'
+      + '<div class="nm"></div>';
     t.querySelector('.nm').textContent = l.name;
     wall.appendChild(t);
     const cv = t.querySelector('canvas');
     cv.width = TRAIL_N;                       // one column per sample; CSS stretches it
     tiles.set(l.id, {
-      face: t.querySelector('.face'),
+      win: t.querySelector('.win'),
+      needle: t.querySelector('.needle'),
+      leds: [...t.querySelectorAll('.leds i')],
       ctx: cv.getContext('2d'),
-      lvl: t.querySelector('.lvl i'),
-      hist: [], hold: [0, 0, 0]
+      hist: [], hold: [0, 0, 0], vu: 0
     });
   }
 }
@@ -442,15 +468,30 @@ function onFrame(list){
     const css = 'rgb(' + r + ',' + g + ',' + b + ')';
     t.hold = [Math.max(r, t.hold[0] * HOLD_DECAY), Math.max(g, t.hold[1] * HOLD_DECAY),
               Math.max(b, t.hold[2] * HOLD_DECAY)];
-    t.face.style.background = 'rgb(' + t.hold.map(Math.round).join(',') + ')';
-    t.lvl.style.width = Math.round(Math.max(r, g, b) * 100 / 255) + '%';
+    const held = t.hold.map(Math.round);
+    // The window glows with the colour rather than being painted with it, the way a
+    // lamp behind smoked glass looks.
+    t.win.style.background = 'rgb(' + held.join(',') + ')';
+    t.win.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,.55), 0 0 10px rgba('
+      + held.join(',') + ',.35)';
+    const level = Math.max(r, g, b) / 255;
+    // Rise fast, fall slow: a needle has mass, and that is the whole point of a VU.
+    t.vu = level > t.vu ? level : t.vu * 0.86 + level * 0.14;
+    if (t.needle) t.needle.style.transform = 'rotate(' + (-52 + t.vu * 104) + 'deg)';
+    const lit = Math.round(t.vu * LED_COUNT);
+    t.leds.forEach((led, i) => {
+      const on = i < lit;
+      led.style.background = on ? LED_COLOURS[i] : '#5E6262';
+      led.style.boxShadow = on ? '0 0 5px ' + LED_COLOURS[i]
+                               : 'inset 0 1px 1px rgba(0,0,0,.5)';
+    });
     t.hist.push(css);
     if (t.hist.length > TRAIL_N) t.hist.shift();
     if (REDUCED) continue;                    // colour still updates; the trail stops moving
     const c = t.ctx;
-    c.clearRect(0, 0, TRAIL_N, 20);
+    c.clearRect(0, 0, TRAIL_N, 9);
     const off = TRAIL_N - t.hist.length;
-    for (let i = 0; i < t.hist.length; i++){ c.fillStyle = t.hist[i]; c.fillRect(off + i, 0, 1, 20); }
+    for (let i = 0; i < t.hist.length; i++){ c.fillStyle = t.hist[i]; c.fillRect(off + i, 0, 1, 9); }
   }
 }
 
@@ -469,8 +510,7 @@ setInterval(() => {
   const now = performance.now();
   if (fpsMark){ $('fps').textContent = (frames * 1000 / (now - fpsMark)).toFixed(0) + ' fps'; }
   fpsMark = now; frames = 0;
-  $('wallNote').textContent = tiles.size
-    ? '' : 'Turn the output on to watch the frames.';
+  $('wallNote').textContent = tiles.size ? '' : 'Turn the output on.';
 }, 1000);
 
 /* ══ settings, generated from the provider's own entries ═════════════ */
@@ -516,7 +556,7 @@ function renderSchema(){
     if (!e.applicable) continue;
     if (e.type === 'divider'){
       const h = document.createElement('p');
-      h.className = 'legend'; h.style.margin = '22px 0 10px';
+      h.className = 'lbl'; h.style.margin = '14px 0 7px'; h.style.display = 'block';
       h.textContent = e.label; host.appendChild(h); continue;
     }
     if (e.type === 'label'){
@@ -740,7 +780,7 @@ let curOutput = 'none';
 function reflectOutput(on){
   curOutput = on ? 'hue' : 'none';
   $('outBtn').textContent = on ? 'Turn off' : 'Turn on';
-  $('outBtn').className = on ? '' : 'primary';
+  $('outBtn').className = on ? '' : 'on';
 }
 $('outBtn').onclick = async () => {
   const turningOn = curOutput !== 'hue';
@@ -824,20 +864,15 @@ $('latency').onchange = () => {
 };
 
 /* ══ senders ═════════════════════════════════════════════════════════ */
-const RELEASES = 'https://github.com/silasmariusz/TuneThatHue/releases';
 async function loadDownloads(){
+  // Every logo already links to the releases page. When this build carries the file
+  // itself, point at that instead, so a box with no internet can still hand it over.
   let have = [];
   try { have = await (await fetch(API + 'api/downloads')).json(); } catch(e){ /* offline box */ }
-  const byId = new Map(have.map(d => [d.id, d]));
-  for (const id of ['soundrecorder', 'winamp', 'foobar']){
-    const a = $('dl-' + id), d = byId.get(id);
-    if (!d) continue;
-    a.href = API + 'download/' + id;
-    a.removeAttribute('aria-disabled');
-    a.textContent = 'Download · ' + (d.size / 1048576).toFixed(1) + ' MB';
+  for (const d of have){
+    const a = $('dl-' + d.id);
+    if (a) a.href = API + 'download/' + d.id;
   }
-  $('dlNote').innerHTML = have.length === 3 ? ''
-    : 'Anything marked “not in this build” is on the <a href="' + RELEASES + '">releases page</a>.';
 }
 
 loadConfig();

@@ -84,6 +84,38 @@ A written style guide comes with it, so the page can grow without drifting: colo
 type sizes, border and shadow recipes, spacing, and what a panel, a meter and a button
 are made of.
 
+## 4. WLED, both directions
+
+Both are doable, and the second one is more interesting than it sounds.
+
+**Out: drive WLED strips as well as Hue.** WLED takes real-time colour over UDP - the
+DRGB and DNRGB protocols on port 21324, and DDP on 4048 - and the engine already produces
+a colour per light on every frame. Sending those frames to a strip instead of, or
+alongside, a bridge is a transport, not a new engine. The one design question is mapping:
+a Hue area is a handful of lamps with positions, a strip is hundreds of pixels in a line,
+so a strip has to be treated as a run of segments rather than one lamp.
+
+**In: take audio features from a WLED device.** The audio-reactive WLED build broadcasts
+what its microphone hears - volume and FFT bins - over UDP as Audio Sync packets. Reading
+those makes an ESP32 with a microphone into a source: no computer in the room, no sender
+to install, just a small board listening to the air. It is the same shape as the Sendspin
+input, where somebody else does the analysis and we paint.
+
+## 5. Docker
+
+A container is a good fit: the daemon is Python with one binary dependency, and the
+protocols it uses (mDNS, SSDP, broadcast discovery) all want `--network host`, which is
+one line in the run command.
+
+- A `Dockerfile` and a multi-architecture build with buildx: `amd64`, `arm64`, `armv7`.
+- Published to **GitHub Container Registry** and **Docker Hub** under our own name.
+
+Worth being exact about one thing: "Docker Official Images" is a specific programme
+curated by Docker, and it is for things like `nginx` and `postgres`. What an independent
+project can realistically get is a normal Docker Hub repository, and after that an
+application to Docker-Sponsored Open Source, which removes pull limits and adds a badge.
+So the plan is: publish properly, then apply.
+
 ## Branch and history
 
 This work stays on `network-device` until the four inputs and the decoders are merged

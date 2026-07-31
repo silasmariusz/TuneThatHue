@@ -496,6 +496,9 @@ def create_app(
     app.add_routes(
         [
             web.get("/", index),
+            # The panel's logos. Served from the package so the page needs nothing from
+            # the internet - a NAS in a rack may have none.
+            web.static("/logos", str(RESOURCES / "logos")),
             web.get("/api/status", status),
             web.get("/api/config", config),
             web.post("/api/pair", pair),
