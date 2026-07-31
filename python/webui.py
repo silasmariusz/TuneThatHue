@@ -309,12 +309,37 @@ def create_app(
             headers={"Cache-Control": "no-store, must-revalidate", "Pragma": "no-cache"},
         )
 
+    def _section() -> dict[str, Any]:
+        """
+        What the engine says it is hearing: the tempo grid and the section it is in.
+
+        Read straight off the analyzer's own structure detector rather than tracked
+        again here, so the lamps on the panel show what the effects are actually acting
+        on. Reading it changes nothing: the effects code stays the byte-for-byte copy of
+        Music Assistant's that it has to be.
+        """
+        try:
+            state = daemon.analyzer._structure.section()  # noqa: SLF001 - read-only
+        except Exception:  # noqa: BLE001 - the panel must not depend on internals
+            return {}
+        # The engine counts beats from zero and also returns zero for "no grid yet", so
+        # a panel reading it raw would print 0/4 and flash the bar lamp on the wrong
+        # beat. Counted from one here, and zero kept to mean only "nothing locked on".
+        anchored = state.bpm > 0
+        return {
+            "section": state.state,
+            "beat_in_bar": (state.beat_in_bar + 1) if anchored else 0,
+            "bar_phase": round(state.bar_phase, 3),
+            "intensity": round(state.intensity, 3),
+        }
+
     async def status(_req: web.Request) -> web.Response:
         s = daemon.stats
         receiving = (time.monotonic() - daemon.last_packet_mono) < 2.0 if daemon.last_packet_mono else False
         return web.json_response(
             {
                 "t": time.monotonic(),
+                **_section(),
                 "packets": s.packets,
                 "bytes": s.bytes,
                 "spectra": s.frames,
@@ -412,6 +437,23 @@ def create_app(
         return web.json_response(
             {"running": pair_state["running"], "result": pair_state["result"]}
         )
+
+    async def unpair(_req: web.Request) -> web.Response:
+        """
+        Forget the bridge.
+
+        Pressing the lit Pair key is how this is reached, so it has to do what that
+        implies: stop the lights first, then drop the credentials. Leaving them behind
+        would show an unpaired panel that quietly still had the keys to the bridge.
+        """
+        await daemon.apply_output("none", None)
+        _persist_section(config_path, "bridge", {
+            "username": "PASTE-AFTER-PAIRING",
+            "clientkey": "PASTE-AFTER-PAIRING",
+            "host": "",
+        })
+        daemon.apply_config()
+        return web.json_response({"paired": False})
 
     async def output(req: web.Request) -> web.Response:
         data = await req.json()
@@ -530,6 +572,7 @@ def create_app(
             web.get("/api/config", config),
             web.post("/api/pair", pair),
             web.get("/api/pair-status", pair_status),
+            web.post("/api/unpair", unpair),
             web.post("/api/output", output),
             web.post("/api/settings", settings),
             web.get("/api/preview", preview_stream),

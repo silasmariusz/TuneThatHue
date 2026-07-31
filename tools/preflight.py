@@ -66,6 +66,15 @@ for index, script in enumerate(scripts):
     check(f"script {index + 1} carries no stylesheet",
           stray is None, stray.group(0).strip() if stray else "")
 
+# Reaching for an element that a rewrite removed throws on the line that reaches, which
+# takes out everything after it in the same function. That has happened; this catches it.
+ids = set(re.findall(r"\bid=\"([\w-]+)\"", html))
+wanted = set(re.findall(r"\$\('([\w-]+)'\)", html))
+# ids the script creates as it goes rather than finding in the markup
+made = set(re.findall(r"\.id\s*=\s*'([\w-]+)'", html))
+missing = sorted(wanted - ids - made)
+check("every $('...') has an element", not missing, ", ".join(missing))
+
 print("manifests")
 for manifest in sorted(ROOT.rglob("plugin.json")):
     if "runtime" in manifest.parts or "venv" in manifest.parts:

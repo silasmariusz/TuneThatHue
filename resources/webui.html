@@ -319,9 +319,8 @@ input[type=range]::-moz-range-thumb{width:24px;height:15px;border-radius:3px;bor
 .unit{font-family:var(--f-display);font-size:10px;letter-spacing:.12em;
       text-transform:uppercase;color:var(--ink-soft)}
 
-/* status readouts printed next to controls (JS colours these var(--legend)) */
-#src-vban,#src-sendspin,#src-snapcast,#src-slimproto,#src-dlna,#pairedState,#metroBeat{
-      font-size:12px !important}
+/* No readouts printed next to controls any more: a key shows its own state, and
+   hovering it says how that connection is getting on. */
 
 /* ══ PALETTE BOARD — cue-point pads ══════════════════════════════════ */
 .board{margin-top:4px}
@@ -407,17 +406,74 @@ a.brand:hover{color:var(--read)}
   box-shadow:inset 0 1px 4px rgba(0,0,0,.9), 0 0 8px rgba(255,184,104,.14)}
 
 /* Traktor's keys: a switch you press, not a box you tick. Dark and dead until it is
-   doing something, then lit from inside. */
-.key{min-width:52px;padding:5px 11px;border-radius:2px;cursor:pointer;
-  font:600 10px/1 var(--f-cond);letter-spacing:.16em;text-transform:uppercase;
+   doing something, then lit from inside.
+
+   Every switch on this panel follows this and nothing else has to be written down:
+   a dark key is off, a lit key is on, and the colour says what kind of on it is.
+       blue   listening to something
+       green  linked to something
+       amber  light is going out
+   Pressing a lit key turns that thing off. There is no separate label repeating what
+   the key is already showing. */
+.key{display:inline-flex;align-items:center;gap:7px;
+  min-width:52px;padding:5px 11px;border-radius:2px;cursor:pointer;
+  font:600 10px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;
   color:#8A9298;background:linear-gradient(180deg,#3A4046,#272B30);border:1px solid #000;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 rgba(255,255,255,.35)}
 .key:hover{color:#C6CCD1}
+.key:active{box-shadow:inset 0 2px 5px rgba(0,0,0,.55)}
+.key svg{width:13px;height:13px;flex:none;opacity:.85}
+.key[aria-pressed=true] svg{opacity:1}
+
+/* blue - listening */
 .key[aria-pressed=true]{color:#06202F;
   background:linear-gradient(180deg,#5FBCEC,#2E82BC);border-color:#1E5C88;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 0 8px rgba(60,154,217,.45)}
 .key[aria-pressed=true]:hover{color:#06202F}
-.key:active{box-shadow:inset 0 2px 5px rgba(0,0,0,.55)}
+/* green - linked */
+.key.k-link[aria-pressed=true]{color:#04231A;
+  background:linear-gradient(180deg,#5EE2AE,#26A97A);border-color:#177A57;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 0 8px rgba(51,225,160,.45)}
+/* amber - light going out */
+.key.k-out[aria-pressed=true]{color:#231503;
+  background:linear-gradient(180deg,#F7A945,#DE7A1D);border-color:#9E5410;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 0 10px rgba(240,134,47,.45)}
+/* waiting on something outside our control - the bridge button, a scan */
+.key.k-wait{color:#231503;background:linear-gradient(180deg,#F7C845,#DEA61D);
+  border-color:#9E7410;animation:keywait 1s steps(1) infinite}
+@keyframes keywait{50%{background:linear-gradient(180deg,#6A5A2E,#3A3320);color:#C9B278}}
+.key.k-bad{color:#2A0A0A;background:linear-gradient(180deg,#F07C6E,#C9402C);
+  border-color:#8A2A1C}
+@media(prefers-reduced-motion:reduce){.key.k-wait{animation:none}}
+
+/* an IPv4 field that only takes an IPv4: four octets, each 0-255, machined into one
+   frame so it reads as a single control. Typing a dot jumps to the next octet, and a
+   pasted address fills all four. */
+.ipv4{display:inline-flex;align-items:center;gap:2px;padding:3px 7px;
+  background:#101317;border:1px solid #000;border-radius:3px;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.5)}
+.ipv4 input{width:2.6em;padding:1px 0;text-align:center;border:0;background:transparent;
+  color:var(--read);font-family:var(--f-mono);font-size:13px;
+  font-variant-numeric:tabular-nums;box-shadow:none;border-radius:0}
+.ipv4 input:focus{outline:none;background:rgba(240,134,47,.14)}
+.ipv4 input::-webkit-outer-spin-button,.ipv4 input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0}
+.ipv4 b{color:var(--ink-soft);font-weight:400}
+.ipv4.bad{border-color:#8A2A1C;box-shadow:inset 0 2px 4px rgba(0,0,0,.7),0 0 6px rgba(201,64,44,.5)}
+
+/* indicator lamps: what the engine says it is hearing, right now. Each one is a real
+   detection the engine makes - nothing here is decoration. */
+.leds{display:inline-flex;gap:10px;align-items:flex-end}
+.led{display:flex;flex-direction:column;align-items:center;gap:4px;
+  font:600 8px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-soft)}
+.led i{width:9px;height:9px;border-radius:50%;background:#14181C;
+  border:1px solid #000;display:block;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.9);transition:box-shadow .09s,background .09s}
+.led.on i{background:var(--lamp,#33E1A0);
+  box-shadow:0 0 7px var(--lamp,#33E1A0),inset 0 -1px 1px rgba(0,0,0,.3)}
+.led.l-bar{--lamp:#2FA8DE} .led.l-rise{--lamp:#FFB020}
+.led.l-drop{--lamp:#F0862F} .led.l-break{--lamp:#AEB6BD}
 </style>
 </head>
 <body>
@@ -448,6 +504,20 @@ a.brand:hover{color:var(--read)}
       <path fill="currentColor" d="M6 12v8h5l7 6V6l-7 6H6z"/>
       <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             d="M21.5 12.5a5 5 0 0 1 0 7M25 9.5a10 10 0 0 1 0 13"/>
+    </symbol>
+    <symbol id="sym-play" viewBox="0 0 32 32">
+      <path d="M11 7.5 25 16 11 24.5Z" fill="currentColor"/>
+    </symbol>
+    <symbol id="sym-vban" viewBox="0 0 32 32">
+      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            d="M4 16h3l3-7 4 14 4-11 3 8 2-4h5"/>
+    </symbol>
+    <symbol id="sym-wled" viewBox="0 0 32 32">
+      <rect x="3" y="12" width="26" height="8" rx="2" fill="none" stroke="currentColor"
+            stroke-width="2"/>
+      <circle cx="9" cy="16" r="1.8" fill="currentColor"/>
+      <circle cx="16" cy="16" r="1.8" fill="currentColor"/>
+      <circle cx="23" cy="16" r="1.8" fill="currentColor"/>
     </symbol>
     <symbol id="sym-snapcast" viewBox="0 0 32 32">
       <rect x="6" y="7" width="20" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -579,35 +649,53 @@ a.brand:hover{color:var(--read)}
     <section class="module">
       <div class="rail"><h2 class="legend">Sources</h2></div>
       <div class="plate dark">
-        <p class="note" style="margin:0 0 10px">Where the audio comes from. Leave as many on as you
-          like — one drives the lights at a time, and another takes over a couple of seconds after it
-          goes quiet. <span id="driving"></span></p>
         <div class="row">
-          <label>Sender (VBAN)</label>
-          <span class="mono" id="src-vban" style="font-size:13px;color:var(--legend)">idle</span>
+          <button class="key" id="ssDevice" aria-pressed="false">
+            <svg aria-hidden="true"><use href="#sym-sendspin"/></svg>Sendspin</button>
+          <button class="key" id="slimDevice" aria-pressed="false">
+            <svg aria-hidden="true"><use href="#sym-squeezebox"/></svg>Squeezebox</button>
+          <button class="key" id="dlnaDevice" aria-pressed="false">
+            <svg aria-hidden="true"><use href="#sym-dlna"/></svg>DLNA</button>
+          <button class="q" data-hint="Sources|A lit key means we are on the network as that kind of player,
+            waiting to be picked. Leave as many on as you like: one drives the lights at a time, and another
+            takes over a couple of seconds after it goes quiet.">?</button>
+        </div>
+        <div class="row">
+          <button class="key" id="snapBtn" aria-pressed="false">
+            <svg aria-hidden="true"><use href="#sym-snapcast"/></svg>Snapcast</button>
+          <div class="ipv4" id="snapGroup">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, first number">
+            <b>.</b>
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="second number">
+            <b>.</b>
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="third number">
+            <b>.</b>
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="fourth number">
+          </div>
+          <button class="q" data-hint="Snapcast|Snapcast works the other way round: we go to the server rather
+            than wait to be found, so it needs the server's address.">?</button>
           <span class="grow"></span>
-          <span class="mono" style="font-size:12px;color:var(--legend)">UDP 6980</span>
+          <span class="led l-beat" id="ledVban"><i></i>VBAN</span>
+          <button class="q" data-hint="VBAN|Always listening on UDP 6980. Lights up when a player plug-in is
+            sending. Nothing to switch on.">?</button>
         </div>
         <div class="row">
-          <label for="ssDevice">On the network</label>
-          <button class="key" id="ssDevice" aria-pressed="false">Announce</button>
-          <span class="mono" id="src-sendspin" style="font-size:13px;color:var(--legend)">off</span>
-        </div>
-        <div class="row">
-          <label for="snapHost">Snapcast server</label>
-          <input type="text" id="snapHost" placeholder="address of the snapserver">
-          <button id="snapBtn">Join</button>
-          <span class="mono" id="src-snapcast" style="font-size:13px;color:var(--legend)">off</span>
-        </div>
-        <div class="row">
-          <label for="slimDevice">As a Squeezebox</label>
-          <button class="key" id="slimDevice" aria-pressed="false">Player</button>
-          <span class="mono" id="src-slimproto" style="font-size:13px;color:var(--legend)">off</span>
-        </div>
-        <div class="row">
-          <label for="dlnaDevice">As a DLNA speaker</label>
-          <button class="key" id="dlnaDevice" aria-pressed="false">Renderer</button>
-          <span class="mono" id="src-dlna" style="font-size:13px;color:var(--legend)">off</span>
+          <button class="key k-out" id="wledBtn" aria-pressed="false">
+            <svg aria-hidden="true"><use href="#sym-wled"/></svg>WLED</button>
+          <div class="ipv4" id="wledGroup">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, first number">
+            <b>.</b>
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="second number">
+            <b>.</b>
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="third number">
+            <b>.</b>
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="fourth number">
+          </div>
+          <input type="number" id="wledPixels" min="1" max="1500" step="1" value="60"
+                 aria-label="how many LEDs" style="width:5.5em">
+          <span class="unit">leds</span>
+          <button class="q" data-hint="WLED|An LED strip lit from the same frames as the bridge. The strip is cut
+            into as many pieces as the room has lamps, so a chase across the room runs along it.">?</button>
         </div>
       </div>
     </section>
@@ -618,19 +706,24 @@ a.brand:hover{color:var(--read)}
         <div class="rail"><h2 class="legend">Hue bridge</h2></div>
         <div class="plate dark">
           <div class="row">
-            <label for="host">Bridge address</label>
-            <input type="text" id="host" placeholder="10.0.0.x">
-            <button id="pairBtn">Pair</button>
-            <span class="mono" id="pairedState" style="font-size:12px;color:var(--legend)">not paired</span>
+            <div class="ipv4" id="hostGroup">
+              <input type="text" inputmode="numeric" maxlength="3" aria-label="bridge address, first number">
+              <b>.</b>
+              <input type="text" inputmode="numeric" maxlength="3" aria-label="second number">
+              <b>.</b>
+              <input type="text" inputmode="numeric" maxlength="3" aria-label="third number">
+              <b>.</b>
+              <input type="text" inputmode="numeric" maxlength="3" aria-label="fourth number">
+            </div>
+            <button class="key k-link" id="pairBtn" aria-pressed="false">Pair</button>
+            <button class="q" data-hint="Pair|Lit green once the bridge has let us in. Leave the address empty
+              to find it on the network. Press it while it is green to forget the bridge.">?</button>
+            <select id="area" class="grow" aria-label="room"></select>
+            <button class="key k-out" id="outBtn" aria-pressed="false">
+              <svg aria-hidden="true"><use href="#sym-play"/></svg>Sync</button>
+            <button class="q" data-hint="Sync|Amber while the lights are following the music. The room is
+              chosen next to it.">?</button>
           </div>
-          <p class="note" id="pairMsg">Leave the address blank to search the network. Press the round button on
-            the bridge within 30 seconds of clicking Pair.</p>
-          <div class="row">
-            <label for="area">Entertainment area</label>
-            <select id="area" class="grow"></select>
-            <button id="outBtn" class="primary">Turn on</button>
-          </div>
-          <p class="note" id="outMsg"></p>
         </div>
       </section>
 
@@ -638,20 +731,30 @@ a.brand:hover{color:var(--read)}
       <section class="module">
         <div class="rail"><h2 class="legend">Latency calibration</h2></div>
         <div class="plate dark">
-          <p class="note" style="margin:0 0 10px">Open this page <strong>on the machine that captures the
-            audio</strong>. The click below goes out through that machine, arrives here as sound, and flashes the
-            lights. Raise the delay until the flash lands on the click.</p>
           <div class="row">
-            <label>Metronome</label>
-            <button id="metroBtn">Start click</button>
-            <span class="mono" id="metroBeat" style="color:var(--legend)">—</span>
+            <button class="key k-out" id="metroBtn" aria-pressed="false">
+              <svg aria-hidden="true"><use href="#sym-play"/></svg>Click</button>
+            <button class="q" data-hint="Click|Play this on the machine that captures the audio. It goes out as
+              sound, comes back through the capture, and flashes the lights. Raise the delay until the flash
+              lands on the click.">?</button>
+            <span class="oled" id="oledBpm">---.- BPM</span>
+            <span class="oled" id="oledBeat">-/4</span>
             <span class="grow"></span>
-            <span class="mono" style="font-size:12px;color:var(--legend)">120 BPM · 4/4</span>
+            <div class="leds">
+              <span class="led l-beat" id="ledBeat"><i></i>Beat</span>
+              <span class="led l-bar" id="ledBar"><i></i>Bar</span>
+              <span class="led l-rise" id="ledRise"><i></i>Rise</span>
+              <span class="led l-drop" id="ledDrop"><i></i>Drop</span>
+              <span class="led l-break" id="ledBreak"><i></i>Break</span>
+            </div>
+            <button class="q" data-hint="Lamps|What the engine is hearing right now. Beat and bar come from the
+              tempo grid; rise, drop and break are the sections it reacts to. If these do not light, the effects
+              have nothing to work with.">?</button>
           </div>
           <div class="row">
-            <label for="latency">Light delay</label>
+            <label for="latency">Delay</label>
             <input type="range" id="latency" min="0" max="500" step="5" value="0">
-            <span class="val" id="latencyVal">0</span><span class="unit">ms</span>
+            <span class="oled" id="latencyVal">0 ms</span>
           </div>
         </div>
       </section>
@@ -862,16 +965,79 @@ const spec = $('spec');
 for (let i = 0; i < 17; i++) spec.appendChild(document.createElement('i'));
 const bars = [...spec.children];
 let prev = null;
-// Once the user clicks the switch, stop letting the poll overwrite it: the daemon takes
-// a moment to bind the port and the box would tick itself back off in between.
+// Once the user presses a key, stop letting the poll overwrite it: the daemon takes a
+// moment to bind the port and the key would flick itself back off in between.
 let ssTouched = false;
 let snapTouched = false;
 let slimTouched = false;
 let dlnaTouched = false;
+let wledTouched = false;
+
+// Hovering a key says how that connection is getting on. It replaces a line of
+// text per source that was there whether anything was wrong or not.
+function title(id, text){ const el = $(id); if (el) el.title = text; }
+let outTouched = false;
 
 function lamp(el, on, warn){
   el.className = 'lamp' + (on ? ' on' : '') + (warn ? ' warn' : '');
 }
+
+/* ── indicator lamps ──────────────────────────────────────────────────
+   A lamp lit for one poll is a lamp nobody sees: at five polls a second a beat lands
+   between two of them as often as not. So a beat latches the lamp on and it releases a
+   moment later, which is what makes it read as a flash rather than a flicker. */
+const held = {};
+function flash(id, on, ms){
+  const el = $(id); if (!el) return;
+  const now = performance.now();
+  if (on) held[id] = now + (ms || 90);
+  el.classList.toggle('on', (held[id] || 0) > now);
+}
+function steady(id, on){
+  const el = $(id); if (el) el.classList.toggle('on', !!on);
+}
+
+/* Four octets in one frame, so an address can only ever be an address. */
+function ipGet(id){
+  const parts = [...$(id).querySelectorAll('input')].map(i => i.value.trim());
+  return parts.every(p => p !== '') ? parts.join('.') : '';
+}
+function ipSet(id, value){
+  const boxes = [...$(id).querySelectorAll('input')];
+  const parts = String(value || '').split('.');
+  boxes.forEach((box, i) => { box.value = /^\d{1,3}$/.test(parts[i] || '') ? parts[i] : ''; });
+}
+function ipValid(id){
+  const parts = [...$(id).querySelectorAll('input')].map(i => i.value.trim());
+  if (parts.every(p => p === '')) return true;              // empty means "go and find it"
+  return parts.every(p => /^\d{1,3}$/.test(p) && +p <= 255);
+}
+function wireIp(id){
+  const group = $(id); if (!group) return;
+  const boxes = [...group.querySelectorAll('input')];
+  boxes.forEach((box, i) => {
+    box.oninput = () => {
+      // Only digits, never above 255, and full octets move on by themselves.
+      box.value = box.value.replace(/[^0-9]/g, '').slice(0, 3);
+      if (+box.value > 255) box.value = '255';
+      group.classList.toggle('bad', !ipValid(id));
+      if (box.value.length === 3 && i < 3) boxes[i + 1].focus();
+    };
+    box.onkeydown = e => {
+      if (e.key === '.' || e.key === 'Tab' && !e.shiftKey && box.value && i < 3){
+        if (e.key === '.'){ e.preventDefault(); boxes[Math.min(i + 1, 3)].focus(); }
+      }
+      // Backspace on an empty box steps back, the way an address field should.
+      if (e.key === 'Backspace' && !box.value && i > 0){ e.preventDefault(); boxes[i - 1].focus(); }
+    };
+    box.onpaste = e => {
+      const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+      if (text.includes('.')){ e.preventDefault(); ipSet(id, text.trim()); group.classList.toggle('bad', !ipValid(id)); }
+    };
+    box.onfocus = () => box.select();
+  });
+}
+['hostGroup', 'snapGroup', 'wledGroup'].forEach(wireIp);
 
 async function poll(){
   let s;
@@ -885,34 +1051,54 @@ async function poll(){
   $('renders').textContent = s.renders;
   $('lit').textContent = s.lit;
   $('outState').textContent = s.output === 'hue' ? ('streaming · ' + (s.area || '')) : 'output off';
-  $('driving').textContent = s.driving ? ('Right now: ' + s.driving + '.') : '';
-  $('src-vban').textContent = s.receiving
-    ? ((s.format || 'receiving') + ' · ' + s.packets + ' pkt') : 'idle';
+  if (!outTouched) setKey('outBtn', s.output === 'hue');
+
+  // The keys say whether we are on that network as a player; hovering one says how it
+  // is getting on, so a failure has somewhere to go without a line of prose.
   const ss = s.sendspin;
-  $('src-sendspin').textContent = !ss ? 'off'
-    : ss.connected ? ((ss.streaming ? 'playing · ' : 'connected · ') + (ss.server || 'server'))
-    : 'announced as "' + ss.name + '" — waiting for a server';
   if (!ssTouched) setKey('ssDevice', !!ss);
+  title('ssDevice', !ss ? 'off'
+    : ss.connected ? ((ss.streaming ? 'playing from ' : 'connected to ') + (ss.server || 'a server'))
+    : 'on the network as "' + ss.name + '", waiting to be picked');
   const sn = s.snapcast;
-  $('src-snapcast').textContent = !sn ? 'off'
-    : !sn.connected ? ('connecting to ' + sn.host + '…')
-    : !sn.codec_supported ? ('codec is "' + sn.codec + '" — set the server to pcm')
-    : (sn.format + ' · ' + sn.chunks + ' chunks');
-  if (!snapTouched && sn && !$('snapHost').value) $('snapHost').value = sn.host;
-  if (!snapTouched) $('snapBtn').textContent = sn ? 'Leave' : 'Join';
+  if (!snapTouched) setKey('snapBtn', !!sn);
+  if (!snapTouched && sn && !ipGet('snapGroup')) ipSet('snapGroup', sn.host);
+  title('snapBtn', !sn ? 'off'
+    : !sn.connected ? ('connecting to ' + sn.host)
+    : !sn.codec_supported ? ('the server is sending ' + sn.codec + ', which we cannot decode')
+    : (sn.format + ' · ' + sn.chunks + ' chunks'));
   const sl = s.slimproto;
-  $('src-slimproto').textContent = !sl ? 'off'
-    : sl.error && !sl.connected ? sl.error
-    : !sl.connected ? 'looking for a server…'
-    : sl.playing ? (sl.format + ' · playing')
-    : ('registered with ' + (sl.server_name || sl.server));
   if (!slimTouched) setKey('slimDevice', !!sl);
+  title('slimDevice', !sl ? 'off'
+    : sl.error && !sl.connected ? sl.error
+    : !sl.connected ? 'looking for a server'
+    : sl.playing ? (sl.format + ' · playing')
+    : ('registered with ' + (sl.server_name || sl.server)));
   const dl = s.dlna;
-  $('src-dlna').textContent = !dl ? 'off'
+  if (!dlnaTouched) setKey('dlnaDevice', !!dl);
+  title('dlnaDevice', !dl ? 'off'
     : dl.playing ? (dl.format + ' · playing' + (dl.controller ? ' from ' + dl.controller : ''))
     : dl.error ? dl.error
-    : 'announced as "' + dl.name + '"';
-  if (!dlnaTouched) setKey('dlnaDevice', !!dl);
+    : 'on the network as "' + dl.name + '"');
+  const wl = s.wled;
+  if (!wledTouched) setKey('wledBtn', !!(wl && wl.enabled));
+  if (!wledTouched && wl && !ipGet('wledGroup')) ipSet('wledGroup', wl.host);
+  title('wledBtn', !wl ? 'off'
+    : wl.error ? wl.error : (wl.pixels + ' leds · ' + wl.frames + ' frames'));
+
+  // The engine's own reading of the music, so what is on the panel is what the effects
+  // are acting on. A beat arriving between two polls still shows: `flash` latches it.
+  $('oledBpm').textContent = s.bpm ? s.bpm.toFixed(1) + ' BPM' : '---.- BPM';
+  $('oledBeat').textContent = s.beat_in_bar ? s.beat_in_bar + '/4' : '-/4';
+  const beatsMoved = prev ? s.beats > prev.beats : false;
+  flash('ledBeat', beatsMoved);
+  flash('ledBar', beatsMoved && s.beat_in_bar === 1, 140);
+  steady('ledRise', s.section === 'rise');
+  steady('ledDrop', s.section === 'drop' || s.section === 'sustain');
+  steady('ledBreak', s.section === 'break');
+  steady('ledVban', s.receiving);
+  title('ledVban', s.receiving ? ((s.format || 'receiving') + ' · ' + s.packets + ' pkt')
+                               : 'nothing arriving on UDP 6980');
   paintMeters(s.level_l || 0, s.level_r || 0);
   const sp = s.spectrum || [];
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
@@ -1010,8 +1196,8 @@ let latencyMirror = null;   // set while the Debug & tuning row exists
 
 async function loadConfig(){
   const c = await (await fetch(API + 'api/config')).json();
-  $('pairedState').textContent = c.paired ? ('paired · ' + c.host) : 'not paired';
-  if (c.host && !$('host').value) $('host').value = c.host;
+  reflectPaired(!!c.paired);
+  if (c.host && !ipGet('hostGroup')) ipSet('hostGroup', c.host);
   const sel = $('area'); sel.innerHTML = '';
   const areas = c.areas && c.areas.length ? c.areas : (c.area ? [c.area] : []);
   for (const a of areas){
@@ -1032,7 +1218,7 @@ async function loadConfig(){
   const entry = SCHEMA.find(e => e.key === 'hue_latency_ms');
   if (entry && entry.range){ $('latency').min = entry.range[0]; $('latency').max = entry.range[1]; }
   const lat = VALUES.hue_latency_ms ?? (entry ? entry.default : null);
-  if (lat !== null && lat !== undefined){ $('latency').value = lat; $('latencyVal').textContent = lat; }
+  if (lat !== null && lat !== undefined){ $('latency').value = lat; $('latencyVal').textContent = lat + ' ms'; }
 }
 
 function renderSchema(){
@@ -1218,7 +1404,7 @@ function buildRow(e){
       // The calibration card drives the same value; a stale second slider would read
       // as two different settings.
       if (e.key === 'hue_latency_ms'){
-        $('latency').value = el.value; $('latencyVal').textContent = el.value;
+        $('latency').value = el.value; $('latencyVal').textContent = el.value + ' ms';
       }
     };
     if (e.key === 'hue_latency_ms') latencyMirror = v => { el.value = v; out.textContent = v; };
@@ -1242,14 +1428,39 @@ $('ssDevice').onclick = async () => {
 
 $('snapBtn').onclick = async () => {
   snapTouched = true;
-  const leaving = $('snapBtn').textContent === 'Leave';
-  $('snapBtn').disabled = true;
-  await apply(leaving
-    ? {snapcast_enabled: false}
-    : {snapcast_enabled: true, snapcast_host: $('snapHost').value.trim()});
-  $('snapBtn').textContent = leaving ? 'Join' : 'Leave';
-  $('snapBtn').disabled = false;
+  const want = !keyOn('snapBtn');
+  if (want && !ipGet('snapGroup')){
+    // Snapcast is the one source we go to rather than wait for, so without an address
+    // there is nothing to press. Say so where the press happened.
+    $('snapGroup').classList.add('bad');
+    $('snapGroup').querySelector('input').focus();
+    snapTouched = false;
+    return;
+  }
+  setKey('snapBtn', want);
+  await apply(want ? {snapcast_enabled: true, snapcast_host: ipGet('snapGroup')}
+                   : {snapcast_enabled: false});
   snapTouched = false;
+};
+
+/* WLED is an output, not a source, but it is switched exactly the same way. */
+$('wledBtn').onclick = async () => {
+  wledTouched = true;
+  const want = !keyOn('wledBtn');
+  if (want && !ipGet('wledGroup')){
+    $('wledGroup').classList.add('bad');
+    $('wledGroup').querySelector('input').focus();
+    wledTouched = false;
+    return;
+  }
+  setKey('wledBtn', want);
+  await apply(want ? {wled_enabled: true, wled_host: ipGet('wledGroup'),
+                      wled_pixels: parseInt($('wledPixels').value) || 60}
+                   : {wled_enabled: false});
+  wledTouched = false;
+};
+$('wledPixels').onchange = () => {
+  if (keyOn('wledBtn')) apply({wled_pixels: parseInt($('wledPixels').value) || 60});
 };
 
 $('slimDevice').onclick = async () => {
@@ -1276,49 +1487,84 @@ async function apply(patch){
 let curOutput = 'none';
 function reflectOutput(on){
   curOutput = on ? 'hue' : 'none';
-  $('outBtn').textContent = on ? 'Turn off' : 'Turn on';
-  $('outBtn').className = on ? '' : 'primary';
+  setKey('outBtn', on);
 }
+
+/* A key that failed says so on itself for a moment and then goes back to what it was.
+   There is nowhere else for it to say it, and nowhere else is needed. */
+function keyFailed(id, text, back){
+  const el = $(id);
+  el.classList.add('k-bad');
+  el.lastChild.textContent = text;
+  el.title = text;
+  setTimeout(() => { el.classList.remove('k-bad'); el.lastChild.textContent = back; }, 2200);
+}
+
 $('outBtn').onclick = async () => {
   const turningOn = curOutput !== 'hue';
+  outTouched = true;
+  setKey('outBtn', turningOn);              // answer the press at once
   $('outBtn').disabled = true;
-  $('outMsg').textContent = turningOn ? 'Opening the stream…' : 'Stopping…';
   try {
     const res = await (await fetch(API + 'api/output', {method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({mode: turningOn ? 'hue' : 'none', area: $('area').value})})).json();
     if (res.ok){
       reflectOutput(res.output === 'hue');
-      $('outMsg').textContent = res.output === 'hue' ? ('Streaming to ' + res.area) : 'Output off';
+      title('outBtn', res.output === 'hue' ? ('lights following the music in ' + res.area)
+                                           : 'lights left alone');
       loadConfig();
-    } else $('outMsg').textContent = res.error;
-  } catch(e){ $('outMsg').textContent = String(e); }
+    } else { reflectOutput(!turningOn); keyFailed('outBtn', 'failed', 'Sync'); title('outBtn', res.error); }
+  } catch(e){ reflectOutput(!turningOn); keyFailed('outBtn', 'failed', 'Sync'); title('outBtn', String(e)); }
   $('outBtn').disabled = false;
+  outTouched = false;
 };
 
+/* The Pair key is green when we hold the bridge's credentials, and pressing it green
+   gives them back. In between it blinks amber, which is the panel asking for the one
+   thing it cannot do itself: somebody walking over and pressing the round button. */
+function reflectPaired(on){
+  setKey('pairBtn', on);
+  $('pairBtn').lastChild.textContent = on ? 'Paired' : 'Pair';
+  title('pairBtn', on ? 'press to forget this bridge' : 'not paired');
+}
+
 $('pairBtn').onclick = async () => {
-  const host = $('host').value.trim();
-  $('pairBtn').disabled = true;
-  $('pairMsg').textContent = 'Press the round button on the bridge now — waiting up to 30 seconds.';
+  if (keyOn('pairBtn')){
+    $('pairBtn').disabled = true;
+    try {
+      await fetch(API + 'api/unpair', {method:'POST'});
+      reflectPaired(false); reflectOutput(false); loadConfig();
+    } catch(e){ keyFailed('pairBtn', 'failed', 'Paired'); }
+    $('pairBtn').disabled = false;
+    return;
+  }
+  if (!ipValid('hostGroup')){ $('hostGroup').classList.add('bad'); return; }
+  const host = ipGet('hostGroup');             // empty is allowed: then we go and look
+  const btn = $('pairBtn');
+  btn.disabled = true; btn.classList.add('k-wait');
+  btn.lastChild.textContent = 'Press ●';
+  title('pairBtn', 'press the round button on the bridge, within 30 seconds');
+  const done = (ok, why) => {
+    btn.disabled = false; btn.classList.remove('k-wait');
+    if (ok){ reflectPaired(true); loadConfig(); }
+    else { reflectPaired(false); keyFailed('pairBtn', 'no answer', 'Pair'); title('pairBtn', why); }
+  };
   // Pairing runs in the background and the browser polls, so no request is held
   // open long enough for the QNAP app-proxy to mangle it.
   try {
     await fetch(API + 'api/pair', {method:'POST', headers:{'Content-Type':'application/json'},
                                    body: JSON.stringify({host})});
-  } catch(e){ $('pairMsg').textContent = String(e); $('pairBtn').disabled = false; return; }
+  } catch(e){ done(false, String(e)); return; }
   const t0 = Date.now();
   const timer = setInterval(async () => {
     try {
       const st = await (await fetch(API + 'api/pair-status')).json();
       if (!st.running && st.result){
-        clearInterval(timer); $('pairBtn').disabled = false;
-        $('pairMsg').textContent = st.result.ok
-          ? ('Paired. Areas: ' + (st.result.areas || []).join(', '))
-          : ('Pairing failed: ' + st.result.error);
-        if (st.result.ok) loadConfig();
+        clearInterval(timer);
+        done(st.result.ok, st.result.ok ? '' : st.result.error);
       } else if (Date.now() - t0 > 45000){
-        clearInterval(timer); $('pairBtn').disabled = false;
-        $('pairMsg').textContent = 'No answer from the bridge.';
+        clearInterval(timer); done(false, 'the bridge never answered');
       }
     } catch(e){ /* keep polling */ }
   }, 1500);
@@ -1331,8 +1577,7 @@ let audio = null, metro = null, beat = 0;
 $('metroBtn').onclick = () => {
   if (metro){
     clearInterval(metro); metro = null; beat = 0;
-    $('metroBtn').textContent = 'Start click';
-    $('metroBeat').textContent = '—';
+    setKey('metroBtn', false);
     return;
   }
   audio = audio || new (window.AudioContext || window.webkitAudioContext)();
@@ -1345,14 +1590,13 @@ $('metroBtn').onclick = () => {
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
     osc.connect(g).connect(audio.destination);
     osc.start(t); osc.stop(t + 0.07);
-    $('metroBeat').textContent = (beat % 4) + 1 + ' / 4';
     beat++;
   };
   click();
   metro = setInterval(click, 500);              // 120 BPM
-  $('metroBtn').textContent = 'Stop click';
+  setKey('metroBtn', true);
 };
-$('latency').oninput = () => { $('latencyVal').textContent = $('latency').value; };
+$('latency').oninput = () => { $('latencyVal').textContent = $('latency').value + ' ms'; };
 $('latency').onchange = () => {
   const v = parseInt($('latency').value);
   VALUES.hue_latency_ms = v;
