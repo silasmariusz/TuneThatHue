@@ -121,7 +121,43 @@ New `tools/beat_bench.py` (+ `tools/make_clicks.py`), venv-runnable, no daemon n
 | 2 | I5 counter fix (TTH `structure.py`/webui, then MA copy) | perfect-grid replay yields strictly 1,2,3,4 for entire tracks; live check on Muzyka add-on |
 | 3 | I6 tuning, optionally I7 | beat F-measure ≥ 0.90 trance / ≥ 0.80 house vs reference; DJ-mix transitions re-lock < 8 s without octave flips |
 
-## 7. Notes
+## 7. Results (2026-07-31 — executed)
+
+Fidelity check first: `sync_effects.py --check` = 15/15 in sync, server HEAD == origin PR tip.
+The copy was faithful; every symptom came from the code paths below.
+
+Baseline (`runs/base-*`) vs after fixes (`runs/fixed-synth`, `runs/final-trance`), 180 s/track:
+
+| Metric | Synthetic before | after | Trance corpus before | after |
+|---|---|---|---|---|
+| duplicate rate (S1) | 0.29 | **0.00** | 0.25 | **0.00** |
+| beat F-measure ±70 ms | 0.45 | **0.91** (clicks ≈0.99) | — | — |
+| downbeat moves (S2, total) | 854* | 33 | 5678* | 265 |
+| tempo ok | 12/14 | 12/14 (two octave cases left) | 25/26 | 25/26 |
+| counter on a PERFECT grid | breaks several times/track | **0 bad transitions** | — | — |
+
+*before-numbers include index-renumbering artifacts; the after-metric counts musical moves only,
+so the real improvement is larger than the ratio suggests.
+
+Implemented: I1 (emission frontier + resume guard), I2 (period blend + phase snap onto the old
+grid), I3 (absolute-frame downbeat identity + 3-vote hysteresis + clear-win margin `_BAR_MARGIN`),
+I4 (16-bar coast window, `coasting` property), I5 (schedule-driven `beat_in_bar`/`bar_phase` in
+structure.py, EMA as fallback only). Tests: `tests/` — 27 passing, the sync-fidelity guard runs
+`sync_effects.py --check` on every pytest run. Mirrored to MA: commit `e65306d51` on
+`hue-color-output` (PR #4853), explanation comment posted.
+
+Live verification (DEV NAS 10.100.200.11, installed `TuneThatHue_0.9.3.qpkg`, signed, built on
+.10): streamed a synthetic 128 BPM click over VBAN for 75 s while polling `/api/status` every
+1.5 s. Result: bpm steady at 127.9, **154 beats emitted for 154 expected** (the pre-fix daemon
+would have pushed ~460), `beat_in_bar` cycling 1..4 with `bar_phase` consistent with it in every
+sample, lights rendering throughout.
+
+Still open (deliberate): octave-prior picks half tempo at 150/185 BPM on clicks (xfail'd,
+tracked as I6); trance-corpus lock coverage 65 % counts `locked` only — emission continues
+through coasting, so perceived coverage is higher; on real music the "1" still moves
+occasionally where the accent is genuinely ambiguous (8 moves / 3 min on the worst track).
+
+## 8. Notes
 
 - No extra analysis skill needed: the loaded music-production skill's references already cover
   librosa/Beat This internals; the bench implements standard mir_eval metrics locally.
