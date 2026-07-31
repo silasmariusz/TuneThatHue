@@ -96,6 +96,9 @@ _SETTING_MAP: dict[str, tuple[str, str]] = {
     # Our own settings, not the provider's: the network-device input.
     "sendspin_device": ("sendspin", "device"),
     "sendspin_device_name": ("sendspin", "device_name"),
+    "snapcast_enabled": ("snapcast", "enabled"),
+    "snapcast_host": ("snapcast", "host"),
+    "snapcast_name": ("snapcast", "name"),
     "palette_rotate": ("effects.rotation", "enabled"),
     "palette_rotate_list": ("effects.rotation", "list"),
     "palette_rotate_beats": ("effects.rotation", "beats"),
@@ -183,6 +186,24 @@ async def _apply_sendspin_device(daemon: "tth_phase2.Phase2Daemon") -> None:
         daemon.sendspin = device
 
 
+async def _apply_snapcast(daemon: "tth_phase2.Phase2Daemon") -> None:
+    """Start, stop or re-point the Snapcast input to match the config."""
+    host = str(daemon.cfg.get_value("snapcast_host") or "").strip()
+    name = str(daemon.cfg.get_value("snapcast_name") or "TuneThatHue")
+    wanted = bool(daemon.cfg.get_value("snapcast_enabled")) and bool(host)
+    running = daemon.snapcast
+    if running is not None and (not wanted or running.host != host or running.name != name):
+        await running.stop()
+        daemon.snapcast = None
+        running = None
+    if wanted and running is None:
+        from snapcast_client import SnapcastClient  # noqa: PLC0415 - optional input
+
+        client = SnapcastClient(host, daemon.on_chunk, name=name)
+        await client.start()
+        daemon.snapcast = client
+
+
 def _bridge_paired(config_path: Path) -> tuple[bool, str, str]:
     """Return (paired, host, area) from the toml without exposing secrets."""
     try:
@@ -243,6 +264,7 @@ def create_app(
                 # The second input, when it is running: who is connected and whether
                 # anything is playing to us.
                 "sendspin": daemon.sendspin.status() if daemon.sendspin is not None else None,
+                "snapcast": daemon.snapcast.status() if daemon.snapcast is not None else None,
             }
         )
 
@@ -353,6 +375,8 @@ def create_app(
         daemon.apply_config()
         if "sendspin_device" in data or "sendspin_device_name" in data:
             await _apply_sendspin_device(daemon)
+        if any(k.startswith("snapcast_") for k in data):
+            await _apply_snapcast(daemon)
         return web.json_response(
             {"ok": True, "applied": sorted(k for k in data if k not in unknown), "ignored": unknown}
         )

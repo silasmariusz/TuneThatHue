@@ -211,6 +211,15 @@
     <p class="note">Announced, a Sendspin server such as Music Assistant finds the box by itself and
       sends it the audio it has already analysed — no sender to install, and the box can join a
       group of speakers.</p>
+    <div class="row">
+      <label for="snapHost">Snapcast server</label>
+      <input type="text" id="snapHost" placeholder="address of the snapserver">
+      <button id="snapBtn">Join</button>
+      <span class="mono" id="src-snapcast" style="font-size:13px;color:var(--legend)">off</span>
+    </div>
+    <p class="note">Joins a Snapcast group and takes the group's audio. Set the snapserver's
+      transport codec to <strong>pcm</strong> — this client reads raw samples and cannot decode
+      flac.</p>
   </section>
 
   <!-- ── BRIDGE ─────────────────────────────────────────────────── -->
@@ -312,6 +321,7 @@ let prev = null;
 // Once the user clicks the switch, stop letting the poll overwrite it: the daemon takes
 // a moment to bind the port and the box would tick itself back off in between.
 let ssTouched = false;
+let snapTouched = false;
 
 function lamp(el, on, warn){
   el.className = 'lamp' + (on ? ' on' : '') + (warn ? ' warn' : '');
@@ -337,6 +347,13 @@ async function poll(){
     : ss.connected ? ((ss.streaming ? 'playing · ' : 'connected · ') + (ss.server || 'server'))
     : 'announced as "' + ss.name + '" — waiting for a server';
   if (!ssTouched) $('ssDevice').checked = !!ss;
+  const sn = s.snapcast;
+  $('src-snapcast').textContent = !sn ? 'off'
+    : !sn.connected ? ('connecting to ' + sn.host + '…')
+    : !sn.codec_supported ? ('codec is "' + sn.codec + '" — set the server to pcm')
+    : (sn.format + ' · ' + sn.chunks + ' chunks');
+  if (!snapTouched && sn && !$('snapHost').value) $('snapHost').value = sn.host;
+  if (!snapTouched) $('snapBtn').textContent = sn ? 'Leave' : 'Join';
   const sp = s.spectrum || [];
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
   if (prev && s.t > prev.t){
@@ -658,6 +675,18 @@ function buildRow(e){
 $('ssDevice').onchange = async () => {
   ssTouched = true;
   await apply({sendspin_device: $('ssDevice').checked});
+};
+
+$('snapBtn').onclick = async () => {
+  snapTouched = true;
+  const leaving = $('snapBtn').textContent === 'Leave';
+  $('snapBtn').disabled = true;
+  await apply(leaving
+    ? {snapcast_enabled: false}
+    : {snapcast_enabled: true, snapcast_host: $('snapHost').value.trim()});
+  $('snapBtn').textContent = leaving ? 'Join' : 'Leave';
+  $('snapBtn').disabled = false;
+  snapTouched = false;
 };
 
 $('showAdvanced').onchange = renderSchema;

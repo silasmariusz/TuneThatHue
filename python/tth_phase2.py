@@ -179,7 +179,6 @@ class VbanAudio(asyncio.DatagramProtocol):
             return
         self.stats.packets += 1
         self.stats.bytes += len(payload)
-        self.stats.format = f"{sample_rate} Hz / {channels}ch / int16"
         self.on_chunk(payload, sample_rate, channels)
 
 
@@ -229,6 +228,8 @@ class Phase2Daemon:
         # Optional second input: a Sendspin server that found us over mDNS and sends
         # already-extracted features. Set up in main() when [sendspin] device is on.
         self.sendspin: Any = None
+        # Third input: a Snapcast group. Raw PCM, so it shares the VBAN path.
+        self.snapcast: Any = None
         # Preview subscribers. The panel watches the exact frames the bridge gets, so
         # the tee sits after render and is capped well under the render rate - a browser
         # cannot use 30 fps and the queue must never become the slow path.
@@ -369,6 +370,9 @@ class Phase2Daemon:
 
     def on_chunk(self, pcm: bytes, sample_rate: int, channels: int) -> None:
         mono_now = time.monotonic()
+        # Reported here rather than in the VBAN reader, because Snapcast feeds the same
+        # entry point and the panel would otherwise show no format at all for it.
+        self.stats.format = f"{sample_rate} Hz / {channels}ch / int16"
         self._ensure_extractor(sample_rate, channels)
         if self.extractor is None:
             return  # no feature extractor (numpy missing) - drop the audio quietly
@@ -749,11 +753,24 @@ async def main() -> None:
             print(f"[sendspin] could not start device mode: {err}")
             daemon.sendspin = None
 
+    # Third input: join a Snapcast group and take the group's audio.
+    snap_host = str(daemon.cfg.get_value("snapcast_host") or "").strip()
+    if daemon.cfg.get_value("snapcast_enabled") and snap_host:
+        from snapcast_client import SnapcastClient  # noqa: PLC0415 - optional input
+
+        daemon.snapcast = SnapcastClient(
+            snap_host, daemon.on_chunk,
+            name=str(daemon.cfg.get_value("snapcast_name") or "TuneThatHue"),
+        )
+        await daemon.snapcast.start()
+
     try:
         await asyncio.gather(daemon.render_loop(), daemon.stats_loop())
     finally:
         if daemon.sendspin is not None:
             await daemon.sendspin.stop()
+        if daemon.snapcast is not None:
+            await daemon.snapcast.stop()
         transport.close()
         if webui_runner is not None:
             await webui_runner.cleanup()

@@ -1,5 +1,12 @@
 # hue-box configuration. Copy to hue-box.toml and fill in your values.
-# The [effects]/[pulse]/[strobe] keys mirror the Music Assistant provider
+# The [snapcast]
+# Join a Snapcast group. Leave host empty to stay off. The snapserver must be set to
+# the "pcm" transport codec - this client reads raw samples and cannot decode flac.
+enabled = false
+host = ""
+name = "TuneThatHue"
+
+[effects]/[pulse]/[strobe] keys mirror the Music Assistant provider
 # settings 1:1 so a tuned MA setup can be transplanted here directly.
 
 [bridge]
