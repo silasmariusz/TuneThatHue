@@ -291,17 +291,12 @@ main>.panel+.panel{margin-top:0}
 .mtr .vuwrap svg{height:100%;width:auto}
 .ledcol{height:100%}
 .mirror{transform:scaleX(-1)}
-.mirror .mtr-cap{transform:scaleX(-1)}
-/* the face is mirrored on purpose; its printing is not */
-.mirror .face-print{transform:scaleX(-1);transform-origin:60px 24px}
 
 /* the analog meter: a black face with an orange lamp behind it, the way a deck's
    meter looks with the light on */
 .mtr{display:grid;height:100%}
-.vuwrap{height:100%;border-radius:3px;padding:4px;background:#07080A;
-  border:1px solid #000;
-  box-shadow:inset 0 0 22px rgba(240,134,47,.20), inset 0 2px 6px rgba(0,0,0,.9),
-             0 1px 0 rgba(255,255,255,.45)}
+.vuwrap{height:100%;border-radius:3px;padding:0;background:#000;border:1px solid #000;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.45);overflow:hidden}
 .vuwrap svg{display:block;height:100%;width:auto}
 .mtr-cap{font-family:var(--f-cond);font-size:9px;letter-spacing:.2em;color:var(--ink-soft)}
 
@@ -339,11 +334,11 @@ main>.panel+.panel{margin-top:0}
 
 /* ══ ROWS — a channel strip line on the faceplate ════════════════════ */
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0}
-/* a key at the end of a row is pushed to the right edge and given the same width
-   as every other one, so they read as a column of controls rather than as buttons
-   stopping wherever the field before them happened to end */
-.row>.key:last-child{margin-left:auto}
-.plate.dark .row .ipv4{flex:1 1 auto}
+/* Only in the bridge card, where Pair and Sync are meant to line up down one edge.
+   Written unscoped the first time, it threw the last key of every row on the page to
+   the far right and left a hole in the middle of Sources. */
+#bridgeCard .row>.key:last-child{margin-left:auto}
+#bridgeCard .row .ipv4{flex:1 1 auto}
 .row>label:first-child{flex:0 0 148px;font-family:var(--f-display);font-size:11.5px;
       font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
 label.fieldname{display:block;margin:14px 0 8px;font-family:var(--f-display);font-size:11.5px;
@@ -513,13 +508,31 @@ a.brand:hover{color:var(--read)}
 /* the label is what changes; give it one width so the key never resizes */
 .key .lb{min-width:5.2em;text-align:center}
 
+/* Sources on a grid: the switch, then what that source needs to be told. Three columns
+   of the same width, so the card is filled by the controls rather than by a gap. */
+.srcs{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.srcs>.key{width:100%}
+.srcs .ipv4{width:100%}
+.srcnote{display:flex;align-items:center;gap:6px;justify-self:end;
+  font-family:var(--f-display);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--print-light-2)}
+.srcnote input[type=number]{width:4.5em}
+.srcvban{grid-column:1 / -1;flex-direction:row;gap:8px;justify-content:flex-start;
+  padding-top:4px;border-top:1px solid rgba(255,255,255,.06)}
+@media(max-width:560px){
+  .srcs{grid-template-columns:1fr}
+  .srcnote{justify-self:start}
+}
+
 /* Real logos, used as the files they are. Only the colour is ours: greyscale and dimmed
    so a row of marks from five different brands reads as one printed strip, then full
    brightness on hover. Their aspect ratios differ wildly, so height is fixed and width
    follows - which is how a logo strip works and why square glyphs looked wrong. */
 .brand img{height:17px;width:auto;max-width:104px;display:block;
   filter:grayscale(1) brightness(1.7) opacity(.55);transition:filter .12s linear}
-.brand:hover img{filter:grayscale(1) brightness(2.2) opacity(.95)}
+/* at rest they are one printed strip; hovering one shows the mark as its owner
+   draws it, in its own colours */
+.brand:hover img{filter:none}
 /* Snapcast, Squeezebox, Sendspin, Linux: no logo was supplied, so the name is set as a
    wordmark rather than a picture invented for it. */
 .brand.word{font:600 10px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;
@@ -620,7 +633,6 @@ a.brand:hover{color:var(--read)}
 
   <section class="panel">
     data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second. The rate on the right is what is arriving on the wire.">
-    <div class="pnl-head"><span class="legend">Audio in</span><span class="sub" id="rate">&mdash;</span></div>
     <div class="screen lcd wide" id="scr-spec"><div id="spec"></div><i class="nosig">No signal</i></div>
     <div class="deck">
       <div class="dcol">
@@ -641,7 +653,7 @@ a.brand:hover{color:var(--read)}
         </div>
         <div class="ledcol" id="led-l"></div>
         <div class="ledcol mirror" id="led-r"></div>
-        <div class="mtr mirror">
+        <div class="mtr">
           <div class="vuwrap" id="vu-r"></div>
         </div>
       </div>
@@ -664,46 +676,50 @@ a.brand:hover{color:var(--read)}
     <section class="module">
       <div class="rail"><h2 class="legend">Sources</h2><button class="q" data-hint="Sources|A lit key means we are on the network as that kind of player, waiting to be picked. Leave as many on as you like: one drives the lights at a time, and another takes over a couple of seconds after it goes quiet.">?</button></div>
       <div class="plate dark">
-        <div class="row">
-          <button class="key" id="ssDevice" aria-pressed="false">Sendspin</button>
-          <button class="key" id="slimDevice" aria-pressed="false">Squeezebox</button>
-          <button class="key" id="dlnaDevice" aria-pressed="false">DLNA</button>
-        </div>
-        <div class="row">
-          <button class="key" id="snapBtn" aria-pressed="false">Snapcast</button>
+        <div class="srcs">
+          <button class="key" id="ssDevice" aria-pressed="false"
+            data-hint="Sendspin|Music Assistant's own protocol. Switch it on and this box appears in Music Assistant as somewhere to send a stream.">Sendspin</button>
+          <button class="key" id="slimDevice" aria-pressed="false"
+            data-hint="Squeezebox|Announces this box as a Squeezebox player, so a Logitech Media Server or Music Assistant can pick it.">Squeezebox</button>
+          <button class="key" id="dlnaDevice" aria-pressed="false"
+            data-hint="DLNA|Announces this box as a DLNA speaker, so anything that can cast to a renderer can send to it.">DLNA</button>
+
+          <button class="key" id="snapBtn" aria-pressed="false"
+            data-hint="Snapcast|The one source we go to rather than wait for, so it needs the server's address.">Snapcast</button>
           <div class="ipv4" id="snapGroup">
-            <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, first number">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, first">
             <b>.</b>
-            <input type="text" inputmode="numeric" maxlength="3" aria-label="second number">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, second">
             <b>.</b>
-            <input type="text" inputmode="numeric" maxlength="3" aria-label="third number">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, third">
             <b>.</b>
-            <input type="text" inputmode="numeric" maxlength="3" aria-label="fourth number">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="snapcast server, fourth">
           </div>
-          <span class="grow"></span>
-          <span class="led l-beat" id="ledVban"><i></i>VBAN</span>
-        </div>
-        <div class="row">
-          <button class="key k-out" id="wledBtn" aria-pressed="false">WLED</button>
+          <span class="unit srcnote">server</span>
+
+          <button class="key k-out" id="wledBtn" aria-pressed="false"
+            data-hint="WLED|An LED strip lit from the same frames as the bridge. The strip is cut into as many pieces as the room has lamps, so a chase across the room runs along it.">WLED</button>
           <div class="ipv4" id="wledGroup">
-            <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, first number">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, first">
             <b>.</b>
-            <input type="text" inputmode="numeric" maxlength="3" aria-label="second number">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, second">
             <b>.</b>
-            <input type="text" inputmode="numeric" maxlength="3" aria-label="third number">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, third">
             <b>.</b>
-            <input type="text" inputmode="numeric" maxlength="3" aria-label="fourth number">
+            <input type="text" inputmode="numeric" maxlength="3" aria-label="WLED strip, fourth">
           </div>
-          <input type="number" id="wledPixels" min="1" max="1500" step="1" value="60"
-                 aria-label="how many LEDs" style="width:5.5em">
-          <span class="unit">leds</span>
+          <span class="srcnote"><input type="number" id="wledPixels" min="1" max="1500"
+            step="1" value="60" aria-label="how many LEDs"><span class="unit">leds</span></span>
+
+          <span class="led l-beat srcvban" id="ledVban"
+            data-hint="VBAN|Always listening on UDP 6980. Lights when a player plug-in or a sound-capture sender is sending. There is nothing to switch on."><i></i>VBAN &middot; UDP 6980</span>
         </div>
       </div>
     </section>
 
     <div class="stack">
       <!-- ── BRIDGE ────────────────────────────────────────────────── -->
-      <section class="module">
+      <section class="module" id="bridgeCard">
         <div class="rail"><h2 class="legend">Hue bridge</h2><button class="q" data-hint="Hue bridge|Where the light goes. Pair once, pick the room, then Sync. Pair is green while we hold the bridge&#39;s credentials, and pressing it green gives them back. Leave the address empty to find the bridge on the network.">?</button></div>
         <div class="plate dark">
           <div class="row">
@@ -809,7 +825,7 @@ a.brand:hover{color:var(--read)}
         <span class="eyebrow">Runs on</span>
         <div class="brandrow">
           <a class="brand" href="https://www.qnap.com" target="_blank" rel="noopener" title="QNAP NAS"
-             ><img data-logo="qnap.svg" alt="QNAP"></a>
+             ><img data-logo="qnap-q.svg" alt="QNAP"></a>
           <a class="brand" href="https://www.raspberrypi.com" target="_blank" rel="noopener"
              title="Raspberry Pi"><img data-logo="raspberrypi.svg" alt="Raspberry Pi"></a>
           <a class="brand word" href="https://ubuntu.com" target="_blank" rel="noopener">Linux</a>
@@ -907,28 +923,46 @@ function ledColour(i){
   return '#33E1A0';
 }
 
-const VU_FACE = `<svg viewBox="0 0 120 76" aria-hidden="true">
-  <defs>
-    <radialGradient id="lamp" cx="50%" cy="88%" r="72%">
-      <stop offset="0%" stop-color="#F0862F" stop-opacity=".30"/>
-      <stop offset="100%" stop-color="#F0862F" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <rect width="120" height="76" fill="#0A0B0D"/>
-  <rect width="120" height="76" fill="url(#lamp)"/>
-  <path d="M16 62 A46 46 0 0 1 104 62" fill="none" stroke="#6B5334" stroke-width="1"/>
-  <path d="M83 30 A46 46 0 0 1 104 62" fill="none" stroke="#E5533B" stroke-width="1.6"/>
-  <g stroke="#7A6242" stroke-width="1">
-    <line x1="17" y1="58" x2="21" y2="55"/><line x1="31" y1="39" x2="34" y2="43"/>
-    <line x1="60" y1="31" x2="60" y2="36"/><line x1="89" y1="39" x2="86" y2="43"/>
-    <line x1="103" y1="58" x2="99" y2="55"/>
-  </g>
-  <text x="60" y="24" font-size="7" fill="#8A6B45" text-anchor="middle" letter-spacing="2"
-        class="face-print">VU</text>
-  <g class="needle" style="transform-origin:60px 63px;transform:rotate(-50deg);
-       transition:transform .26s cubic-bezier(.22,.9,.3,1)">
-    <line x1="60" y1="63" x2="60" y2="34" stroke="#FFD9A8" stroke-width="1.4"/>
-    <circle cx="60" cy="63" r="3" fill="#2A2018"/>
+const VU_FACE = `<svg viewBox="0 0 200 122" aria-hidden="true">
+  <rect width="200" height="122" fill="#000"/>
+  <path d="M53.16 77.87 A86.0 86.0 0 0 1 115.76 65.46" fill="none" stroke="#EFDFA6" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M115.76 65.46 A86.0 86.0 0 0 1 146.84 77.87" fill="none" stroke="#C7302B" stroke-width="5.0" stroke-linecap="butt"/>
+  <line x1="53.16" y1="77.87" x2="47.71" y2="69.49" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="41.18" y="59.42" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">−20</text>
+  <line x1="71.34" y1="68.92" x2="68.00" y2="59.49" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="64.00" y="48.18" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">10</text>
+  <line x1="80.36" y1="66.27" x2="78.08" y2="56.54" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="75.34" y="44.85" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">7</text>
+  <line x1="87.66" y1="64.89" x2="86.22" y2="54.99" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="84.50" y="43.12" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">5</text>
+  <line x1="96.24" y1="64.08" x2="95.80" y2="54.09" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="95.27" y="42.10" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">3</text>
+  <line x1="106.93" y1="64.28" x2="107.73" y2="54.31" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="108.70" y="42.35" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">1</text>
+  <line x1="115.76" y1="65.46" x2="117.59" y2="55.63" stroke="#EFDFA6" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="119.79" y="43.83" fill="#EFDFA6" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
+  <line x1="124.90" y1="67.68" x2="127.80" y2="58.11" stroke="#C7302B" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="131.27" y="46.63" fill="#C7302B" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">1</text>
+  <line x1="135.55" y1="71.69" x2="139.69" y2="62.59" stroke="#C7302B" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="144.65" y="51.66" fill="#C7302B" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">3</text>
+  <line x1="146.84" y1="77.87" x2="152.29" y2="69.49" stroke="#C7302B" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="158.82" y="59.42" fill="#C7302B" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">+5</text>
+  <line x1="61.76" y1="72.97" x2="59.09" y2="67.59" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="76.05" y1="67.40" x2="74.38" y2="61.64" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="84.24" y1="65.46" x2="83.14" y2="59.56" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="92.09" y1="64.36" x2="91.53" y2="58.39" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="101.49" y1="64.01" x2="101.59" y2="58.01" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="111.36" y1="64.75" x2="112.15" y2="58.81" stroke="#EFDFA6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="120.60" y1="66.50" x2="122.04" y2="60.68" stroke="#C7302B" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="130.25" y1="69.49" x2="132.36" y2="63.88" stroke="#C7302B" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="141.31" y1="74.57" x2="144.19" y2="69.31" stroke="#C7302B" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M64.05 94.65 A66.0 66.0 0 0 1 112.10 85.12" fill="none" stroke="#EFDFA6" stroke-width="1.4" stroke-linecap="round"/>
+  <text x="68.41" y="101.36" fill="#EFDFA6" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">0</text>
+  <text x="94.33" y="92.28" fill="#EFDFA6" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">50</text>
+  <text x="110.63" y="92.98" fill="#EFDFA6" font-size="10" font-weight="600" text-anchor="middle" dominant-baseline="middle" class="face-print">100%</text>
+  <text x="100.0" y="110" fill="#EFDFA6" font-size="19" font-weight="700" text-anchor="middle" letter-spacing="1" class="face-print">VU</text>
+  <g class="needle" style="transform-origin:100.0px 150.0px;transform:rotate(-33.0deg);transition:transform .26s cubic-bezier(.22,.9,.3,1)">
+    <line x1="100.0" y1="150.0" x2="100.0" y2="50.0" stroke="#EFDFA6" stroke-width="1.8" stroke-linecap="round"/>
   </g>
 </svg>`;
 
@@ -948,7 +982,7 @@ function paintMeters(left, right){
       ? target : meterState[side] * 0.80 + target * 0.20;
     const v = Math.max(0, Math.min(1, meterState[side]));
     const needle = $('vu-' + side).querySelector('.needle');
-    if (needle) needle.style.transform = 'rotate(' + (-50 + v * 100) + 'deg)';
+    if (needle) needle.style.transform = 'rotate(' + (-33.0 + v * 66.0) + 'deg)';
     const lit = Math.round(v * LED_ROWS);
     [...$('led-' + side).children].forEach((led, i) => {
       const on = i < lit;
@@ -1112,8 +1146,6 @@ async function poll(){
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
   if (prev && s.t > prev.t){
     const dt = s.t - prev.t;
-    $('rate').textContent = ((s.bytes - prev.bytes) / 1024 / dt).toFixed(1) + ' KB/s · '
-                          + ((s.packets - prev.packets) / dt).toFixed(0) + ' pkt/s';
   }
   prev = s;
 }
