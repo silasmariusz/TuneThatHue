@@ -240,6 +240,8 @@ class Phase2Daemon:
         self.slimproto: Any = None
         # Fifth input: a UPnP renderer other things push audio to.
         self.dlna: Any = None
+        # A second output: the same frames, sent to a WLED strip as well as the bridge.
+        self.wled: Any = None
         # Which input is currently driving. Two sources feeding the engine at once is
         # not "both work" - they re-anchor each other's timeline and the beat tracker
         # never locks, so the lights go dead. First to speak wins; the others are
@@ -561,6 +563,8 @@ class Phase2Daemon:
                 self.stats.lit += 1
             if self.session is not None:  # live: set/cleared by apply_output()
                 self.session.send(cmds)
+            if self.wled is not None:
+                self.wled.send(cmds)
             self.publish_frame(cmds)
 
     async def stats_loop(self) -> None:
@@ -869,6 +873,18 @@ async def main() -> None:
         )
         await daemon.slimproto.start()
 
+    # A second output: a WLED strip, painted from the same frames as the bridge.
+    wled_host = str(daemon.cfg.get_value("wled_host") or "").strip()
+    if daemon.cfg.get_value("wled_enabled") and wled_host:
+        from wled_output import WledOutput  # noqa: PLC0415 - optional output
+
+        daemon.wled = WledOutput(
+            wled_host,
+            int(float(str(daemon.cfg.get_value("wled_pixels") or 60))),
+            name=str(daemon.cfg.get_value("wled_name") or "WLED"),
+        )
+        daemon.wled.start()
+
     # Fifth input: appear as a UPnP/DLNA renderer.
     if daemon.cfg.get_value("dlna_enabled"):
         from dlna_renderer import DlnaRenderer  # noqa: PLC0415 - optional input
@@ -895,6 +911,8 @@ async def main() -> None:
             await daemon.slimproto.stop()
         if daemon.dlna is not None:
             await daemon.dlna.stop()
+        if daemon.wled is not None:
+            daemon.wled.stop()
         transport.close()
         if webui_runner is not None:
             await webui_runner.cleanup()

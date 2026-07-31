@@ -20,6 +20,13 @@ enabled = false
 name = "TuneThatHue"
 port = 8930
 
+[wled]
+# Send the same frames to a WLED strip as well as the bridge. The strip is divided into
+# as many segments as the area has lamps, so a chase across the room runs along it.
+enabled = false
+host = ""
+pixels = 60
+
 [effects]/[pulse]/[strobe] keys mirror the Music Assistant provider
 # settings 1:1 so a tuned MA setup can be transplanted here directly.
 

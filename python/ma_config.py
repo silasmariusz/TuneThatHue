@@ -21,7 +21,7 @@ from typing import Any
 
 # [effects] holds the base look; the strobe/VFX and pulse blocks mirror the provider's
 # own grouping. Anything absent falls back to the engine's own default.
-_SECTIONS = ("effects", "strobe", "pulse", "bridge", "sendspin", "snapcast", "slimproto", "dlna")
+_SECTIONS = ("effects", "strobe", "pulse", "bridge", "sendspin", "snapcast", "slimproto", "dlna", "wled")
 
 # hue-box.toml spells a couple of keys more naturally than the provider's CONF_* value.
 # Both are accepted so existing config files keep working.

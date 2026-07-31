@@ -104,6 +104,9 @@ _SETTING_MAP: dict[str, tuple[str, str]] = {
     "slimproto_name": ("slimproto", "name"),
     "dlna_enabled": ("dlna", "enabled"),
     "dlna_name": ("dlna", "name"),
+    "wled_enabled": ("wled", "enabled"),
+    "wled_host": ("wled", "host"),
+    "wled_pixels": ("wled", "pixels"),
     "palette_rotate": ("effects.rotation", "enabled"),
     "palette_rotate_list": ("effects.rotation", "list"),
     "palette_rotate_beats": ("effects.rotation", "beats"),
@@ -251,6 +254,24 @@ async def _apply_dlna(daemon: "tth_phase2.Phase2Daemon") -> None:
         daemon.dlna = renderer
 
 
+def _apply_wled(daemon: "tth_phase2.Phase2Daemon") -> None:
+    """Start, stop or re-point the WLED output to match the config."""
+    host = str(daemon.cfg.get_value("wled_host") or "").strip()
+    pixels = int(float(str(daemon.cfg.get_value("wled_pixels") or 60)))
+    wanted = bool(daemon.cfg.get_value("wled_enabled")) and bool(host)
+    running = daemon.wled
+    if running is not None and (not wanted or running.host != host or running.pixels != pixels):
+        running.stop()
+        daemon.wled = None
+        running = None
+    if wanted and running is None:
+        from wled_output import WledOutput  # noqa: PLC0415 - optional output
+
+        device = WledOutput(host, pixels)
+        device.start()
+        daemon.wled = device
+
+
 def _bridge_paired(config_path: Path) -> tuple[bool, str, str]:
     """Return (paired, host, area) from the toml without exposing secrets."""
     try:
@@ -319,6 +340,7 @@ def create_app(
                 "snapcast": daemon.snapcast.status() if daemon.snapcast is not None else None,
                 "slimproto": daemon.slimproto.status() if daemon.slimproto is not None else None,
                 "dlna": daemon.dlna.status() if daemon.dlna is not None else None,
+                "wled": daemon.wled.status() if daemon.wled is not None else None,
             }
         )
 
@@ -435,6 +457,8 @@ def create_app(
             await _apply_slimproto(daemon)
         if any(k.startswith("dlna_") for k in data):
             await _apply_dlna(daemon)
+        if any(k.startswith("wled_") for k in data):
+            _apply_wled(daemon)
         return web.json_response(
             {"ok": True, "applied": sorted(k for k in data if k not in unknown), "ignored": unknown}
         )
