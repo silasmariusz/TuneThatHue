@@ -3,7 +3,10 @@
 # the provider. Git's autocrlf would rewrite line endings on checkout, which alone
 # would make every file differ from its counterpart and break the whole point.
 # Pin them to LF, whatever the machine is configured to do.
-effects/hue_fx/** text eol=lf
+# This covers effects/ma_provider/** too: those are the provider's own files carried
+# here as the reference to sync against, and CRLF in the working copy made every one
+# of them read as drift (found 2026-07-31, after they were added without a rule).
+effects/** text eol=lf
 effects/MANIFEST.sha256 text eol=lf
 
 # The daemon and its resources also run on Linux (QNAP, Pi) - keep them LF too.
