@@ -182,7 +182,7 @@ async def _apply_sendspin_device(daemon: "tth_phase2.Phase2Daemon") -> None:
     if wanted and running is None:
         from sendspin_device import SendspinDevice  # noqa: PLC0415 - optional input
 
-        device = SendspinDevice(daemon.analyzer, name)
+        device = SendspinDevice(daemon.analyzer, name, claim=daemon.claim)
         try:
             await device.start()
         except Exception as err:  # noqa: BLE001 - report it, do not take the daemon down
@@ -204,7 +204,7 @@ async def _apply_snapcast(daemon: "tth_phase2.Phase2Daemon") -> None:
     if wanted and running is None:
         from snapcast_client import SnapcastClient  # noqa: PLC0415 - optional input
 
-        client = SnapcastClient(host, daemon.on_chunk, name=name)
+        client = SnapcastClient(host, daemon.audio_input("snapcast"), name=name)
         await client.start()
         daemon.snapcast = client
 
@@ -224,7 +224,7 @@ async def _apply_slimproto(daemon: "tth_phase2.Phase2Daemon") -> None:
     if wanted and running is None:
         from slimproto_player import SlimprotoPlayer  # noqa: PLC0415 - optional input
 
-        player = SlimprotoPlayer(daemon.on_chunk, name=name, host=host)
+        player = SlimprotoPlayer(daemon.audio_input("slimproto"), name=name, host=host)
         await player.start()
         daemon.slimproto = player
 
@@ -242,7 +242,7 @@ async def _apply_dlna(daemon: "tth_phase2.Phase2Daemon") -> None:
         from dlna_renderer import DlnaRenderer  # noqa: PLC0415 - optional input
 
         port = int(float(str(daemon.cfg.get_value("dlna_port") or 8930)))
-        renderer = DlnaRenderer(daemon.on_chunk, name=name, port=port)
+        renderer = DlnaRenderer(daemon.audio_input("dlna"), name=name, port=port)
         try:
             await renderer.start()
         except Exception as err:  # noqa: BLE001 - a busy port must not take us down
@@ -308,6 +308,8 @@ def create_app(
                 "streaming": daemon.session is not None,
                 "area": daemon.area_name,
                 "receiving": receiving,
+                # Which input is currently driving, so the panel can show it.
+                "driving": daemon._source,
                 # The second input, when it is running: who is connected and whether
                 # anything is playing to us.
                 "sendspin": daemon.sendspin.status() if daemon.sendspin is not None else None,

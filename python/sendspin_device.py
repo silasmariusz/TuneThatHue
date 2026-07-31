@@ -80,9 +80,13 @@ class SendspinDevice:
         name: str,
         *,
         on_change: Callable[[], None] | None = None,
+        claim: Callable[[str], bool] | None = None,
         port: int = 8928,
     ) -> None:
         self.analyzer = analyzer
+        # Asks the daemon whether this input may drive right now. Two sources feeding
+        # the engine at once fight over its timeline.
+        self._claim = claim
         self.name = name
         self.port = port
         self._on_change = on_change
@@ -195,6 +199,8 @@ class SendspinDevice:
 
     def _on_frames(self, frames: list[VisualizerFrame]) -> None:
         """Apply a batch of extracted frames - the same calls the VBAN path makes."""
+        if self._claim is not None and not self._claim("sendspin"):
+            return
         beats: list[BeatTiming] = []
         for frame in frames:
             # A beat frame carries only its downbeat flag; it is not a spectrum frame.

@@ -121,6 +121,8 @@ FEATURE_RATE_HZ = 20
 RENDER_RATE_HZ = 30
 DEFAULT_RENDER_AHEAD_MS = 200  # used until the config supplies "Light latency (ms)"
 RESYNC_GAP_S = 2.0
+# How long an input has to be silent before another may take the lights.
+TAKEOVER_GAP_S = 2.0
 # Preview frame rate pushed to the browser. The render loop runs at 30 Hz; a panel
 # cannot use that and the tee must never become the slow path.
 PREVIEW_RATE_HZ = 20
@@ -234,6 +236,12 @@ class Phase2Daemon:
         self.slimproto: Any = None
         # Fifth input: a UPnP renderer other things push audio to.
         self.dlna: Any = None
+        # Which input is currently driving. Two sources feeding the engine at once is
+        # not "both work" - they re-anchor each other's timeline and the beat tracker
+        # never locks, so the lights go dead. First to speak wins; the others are
+        # ignored until it has been quiet for TAKEOVER_GAP_S.
+        self._source = ""
+        self._source_seen = 0.0
         # Preview subscribers. The panel watches the exact frames the bridge gets, so
         # the tee sits after render and is capped well under the render rate - a browser
         # cannot use 30 fps and the queue must never become the slow path.
@@ -243,6 +251,37 @@ class Phase2Daemon:
         # lights. apply_config() replaces it with "Light latency (ms)" from the file.
         self.render_ahead_us = DEFAULT_RENDER_AHEAD_MS * 1000
         self.config_path: Path | None = None
+
+    def claim(self, source: str) -> bool:
+        """
+        May ``source`` drive the engine right now?
+
+        Whoever is already driving keeps it until it stops sending. That makes the
+        answer stable while music is playing and lets a different input take over a
+        couple of seconds after the previous one goes quiet.
+        """
+        now = time.monotonic()
+        if self._source and self._source != source and (now - self._source_seen) < TAKEOVER_GAP_S:
+            return False
+        if self._source != source:
+            print(f"[input] {source} is now driving the lights")
+            self._source = source
+            # A new source means a new timeline; drop the old grid rather than beating
+            # to the last one's tempo.
+            self.anchor_us = None
+            self.analyzer.clear_beats()
+            if self.tracker is not None:
+                self.tracker.reset()
+        self._source_seen = now
+        return True
+
+    def audio_input(self, source: str):
+        """An on_chunk for one input, that only gets through while that input is driving."""
+        def feed(pcm: bytes, sample_rate: int, channels: int) -> None:
+            if self.claim(source):
+                self.on_chunk(pcm, sample_rate, channels)
+
+        return feed
 
     def now_us(self) -> int:
         return int(self.loop.time() * 1_000_000)
@@ -738,7 +777,7 @@ async def main() -> None:
         webui_runner = await start_webui(daemon, args.config, do_pair, args.webui_port)
 
     transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
-        lambda: VbanAudio(daemon.on_chunk, daemon.stats),
+        lambda: VbanAudio(daemon.audio_input("vban"), daemon.stats),
         local_addr=("0.0.0.0", args.port),
     )
     print(f"[vban] listening on UDP {args.port} - start Winamp with the TuneThatHue DSP plugin")
@@ -750,7 +789,7 @@ async def main() -> None:
         from sendspin_device import SendspinDevice  # noqa: PLC0415 - optional input
 
         name = str(daemon.cfg.get_value("sendspin_device_name") or "TuneThatHue")
-        daemon.sendspin = SendspinDevice(daemon.analyzer, name)
+        daemon.sendspin = SendspinDevice(daemon.analyzer, name, claim=daemon.claim)
         try:
             await daemon.sendspin.start()
         except Exception as err:  # noqa: BLE001 - a busy port must not stop the daemon
@@ -763,7 +802,7 @@ async def main() -> None:
         from snapcast_client import SnapcastClient  # noqa: PLC0415 - optional input
 
         daemon.snapcast = SnapcastClient(
-            snap_host, daemon.on_chunk,
+            snap_host, daemon.audio_input("snapcast"),
             name=str(daemon.cfg.get_value("snapcast_name") or "TuneThatHue"),
         )
         await daemon.snapcast.start()
@@ -773,7 +812,7 @@ async def main() -> None:
         from slimproto_player import SlimprotoPlayer  # noqa: PLC0415 - optional input
 
         daemon.slimproto = SlimprotoPlayer(
-            daemon.on_chunk,
+            daemon.audio_input("slimproto"),
             name=str(daemon.cfg.get_value("slimproto_name") or "TuneThatHue"),
             host=str(daemon.cfg.get_value("slimproto_host") or "").strip(),
         )
@@ -784,7 +823,7 @@ async def main() -> None:
         from dlna_renderer import DlnaRenderer  # noqa: PLC0415 - optional input
 
         daemon.dlna = DlnaRenderer(
-            daemon.on_chunk,
+            daemon.audio_input("dlna"),
             name=str(daemon.cfg.get_value("dlna_name") or "TuneThatHue"),
             port=int(float(str(daemon.cfg.get_value("dlna_port") or 8930))),
         )

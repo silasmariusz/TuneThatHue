@@ -195,8 +195,9 @@
   <!-- ── SOURCES ────────────────────────────────────────────────── -->
   <section>
     <p class="legend">Sources</p>
-    <p class="note" style="margin:0 0 12px">Where the audio comes from. Both can run at once —
-      whichever is sending drives the lights.</p>
+    <p class="note" style="margin:0 0 12px">Where the audio comes from. Leave as many on as you
+      like — one drives the lights at a time, and another takes over a couple of seconds after it
+      goes quiet. <span id="driving"></span></p>
     <div class="row">
       <label>Sender (VBAN)</label>
       <span class="mono" id="src-vban" style="font-size:13px;color:var(--legend)">idle</span>
@@ -357,6 +358,7 @@ async function poll(){
   $('renders').textContent = s.renders;
   $('lit').textContent = s.lit;
   $('outState').textContent = s.output === 'hue' ? ('streaming · ' + (s.area || '')) : 'output off';
+  $('driving').textContent = s.driving ? ('Right now: ' + s.driving + '.') : '';
   $('src-vban').textContent = s.receiving
     ? ((s.format || 'receiving') + ' · ' + s.packets + ' pkt') : 'idle';
   const ss = s.sendspin;
