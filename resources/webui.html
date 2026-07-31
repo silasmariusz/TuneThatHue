@@ -165,10 +165,45 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
 }
 
 /* ══ SIGNAL CHAIN — four decks in sequence ═══════════════════════════ */
-/* ══ signal chain: two stacked readouts, the meters, two more readouts ══════ */
-.chain{display:grid;gap:10px;grid-template-columns:1fr;align-items:stretch}
-@media(min-width:900px){.chain{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}}
-.chain .col{display:grid;gap:10px;align-content:start}
+/* ══ signal chain: audio across the top, meters, then three counters ═══════ */
+.chain{display:grid;grid-template-columns:1fr;gap:9px}
+.trio{display:grid;grid-template-columns:1fr;gap:9px}
+@media(min-width:720px){.trio{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lcd.wide{height:44px}
+
+.meters{display:grid;grid-template-columns:repeat(4,auto);gap:9px;justify-content:center}
+.mirror{transform:scaleX(-1)}
+.mirror .mtr-cap{transform:scaleX(-1)}
+.mirror .face-print{transform:scaleX(-1);transform-origin:60px 24px}
+
+/* the analog face: black glass with an orange lamp behind it */
+.mtr{display:flex;flex-direction:column;align-items:center;gap:3px}
+.vuwrap{width:178px;border-radius:3px;padding:4px;background:#07080A;border:1px solid #000;
+  box-shadow:inset 0 0 24px rgba(240,134,47,.20), inset 0 2px 6px rgba(0,0,0,.9),
+             0 1px 0 rgba(255,255,255,.45)}
+.vuwrap svg{display:block;width:100%;height:96px}
+.mtr-cap{font-family:var(--f-cond);font-size:9px;letter-spacing:.2em;color:var(--ink-soft)}
+
+/* the ladder, matched to the face so the pair reads as one instrument */
+.ledcol{display:flex;flex-direction:column-reverse;gap:2px;padding:5px 4px;width:22px;
+  height:106px;background:#07080A;border:1px solid #000;border-radius:3px;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.45)}
+.ledcol i{flex:1;min-height:3px;border-radius:1px;background:#1A1E20}
+
+/* the "?" that carries what used to be a paragraph */
+.q{width:15px;height:15px;padding:0;margin-left:6px;border-radius:50%;
+  font:700 10px/1 var(--f-body);background:#C3C7CA;color:#3A4046;border:1px solid #9AA0A4;
+  cursor:help;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+.q:hover{background:var(--accent);color:#2A1405;border-color:#8A4A12}
+.rail .q{background:#3A4046;color:var(--rail-dim);border-color:#000}
+.rail .q:hover{background:var(--accent);color:#2A1405}
+.link h3 .sub{margin-left:auto;font-size:10.5px}
+
+/* only the signal chain is metal; every other module is Traktor's dark */
+.plate.dark{background:linear-gradient(180deg,#23272B,#1B1E22);color:var(--read);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.plate.dark .legend,.plate.dark label,.plate.dark .note{color:var(--rail-dim)}
+.plate.dark .row-label,.plate.dark .fieldname{color:var(--rail-dim)}
 
 .meters{display:grid;grid-template-columns:repeat(4,auto);gap:8px;justify-content:center;
   align-items:stretch}
@@ -205,8 +240,6 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
 .cap-a{background:var(--deck-a)} .cap-b{background:var(--deck-b)}
 .cap-c{background:var(--deck-c)} .cap-d{background:var(--deck-d)}
 @media(min-width:760px){
-  .link:not(:last-child)::after{content:"▸";position:absolute;top:2px;right:-9px;
-      font-size:11px;color:var(--ink-soft)}
 }
 .lcd{height:52px;display:flex;align-items:center;justify-content:center;padding:6px 10px}
 .big{font-family:var(--f-mono);font-variant-numeric:tabular-nums;
@@ -343,6 +376,8 @@ footer{margin-top:8px;border-top:1px solid #000;
 .ftr-logos{display:flex;flex-wrap:wrap;gap:22px 36px;align-items:flex-start;
       padding-bottom:16px;margin-bottom:14px;border-bottom:1px solid #23272C}
 .brandset{display:flex;flex-direction:column;gap:9px}
+a.brand{text-decoration:none}
+a.brand:hover{color:var(--read)}
 .eyebrow{font-family:var(--f-display);font-size:9.5px;font-weight:600;
       letter-spacing:.22em;text-transform:uppercase;color:#5C646C}
 .brandrow{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
@@ -371,6 +406,18 @@ footer{margin-top:8px;border-top:1px solid #000;
   padding:2px 7px;letter-spacing:.06em;
   box-shadow:inset 0 1px 4px rgba(0,0,0,.9), 0 0 8px rgba(255,184,104,.14)}
 
+/* Traktor's keys: a switch you press, not a box you tick. Dark and dead until it is
+   doing something, then lit from inside. */
+.key{min-width:52px;padding:5px 11px;border-radius:2px;cursor:pointer;
+  font:600 10px/1 var(--f-cond);letter-spacing:.16em;text-transform:uppercase;
+  color:#8A9298;background:linear-gradient(180deg,#3A4046,#272B30);border:1px solid #000;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 rgba(255,255,255,.35)}
+.key:hover{color:#C6CCD1}
+.key[aria-pressed=true]{color:#06202F;
+  background:linear-gradient(180deg,#5FBCEC,#2E82BC);border-color:#1E5C88;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 0 8px rgba(60,154,217,.45)}
+.key[aria-pressed=true]:hover{color:#06202F}
+.key:active{box-shadow:inset 0 2px 5px rgba(0,0,0,.55)}
 </style>
 </head>
 <body>
@@ -402,6 +449,40 @@ footer{margin-top:8px;border-top:1px solid #000;
       <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             d="M21.5 12.5a5 5 0 0 1 0 7M25 9.5a10 10 0 0 1 0 13"/>
     </symbol>
+    <symbol id="sym-snapcast" viewBox="0 0 32 32">
+      <rect x="6" y="7" width="20" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="16" cy="17" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="16" cy="11" r="1.6" fill="currentColor"/>
+    </symbol>
+    <symbol id="sym-dlna" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            d="M7.5 7.5a12 12 0 0 0 0 17M24.5 7.5a12 12 0 0 1 0 17"/>
+    </symbol>
+    <symbol id="sym-squeezebox" viewBox="0 0 32 32">
+      <rect x="4" y="9" width="24" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="7.5" y="12.5" width="11" height="7" rx="1" fill="currentColor"/>
+      <circle cx="24" cy="16" r="2" fill="currentColor"/>
+    </symbol>
+    <symbol id="sym-sendspin" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="16" cy="16" r="3" fill="currentColor"/>
+      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            d="M16 3.5a12.5 12.5 0 0 1 11 6.5"/>
+    </symbol>
+    <symbol id="sym-qnap" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path fill="currentColor" d="M18 19h7.5l3 6H21z"/>
+    </symbol>
+    <symbol id="sym-linux" viewBox="0 0 32 32">
+      <path fill="currentColor" d="M16 3c-3.6 0-5.4 2.8-5.4 6.4 0 2.4.4 3.6-.6 5.4-1.2 2.1-3.4 4.6-3.4 7.3 0 1.6 1 2.4 2.4 2.4 1 0 1.6.6 2.2 1.6.8 1.3 2.5 2.4 4.8 2.4s4-1.1 4.8-2.4c.6-1 1.2-1.6 2.2-1.6 1.4 0 2.4-.8 2.4-2.4 0-2.7-2.2-5.2-3.4-7.3-1-1.8-.6-3-.6-5.4C21.4 5.8 19.6 3 16 3Z"/>
+      <circle cx="13.2" cy="10" r="1.6" fill="var(--chassis-2)"/>
+      <circle cx="18.8" cy="10" r="1.6" fill="var(--chassis-2)"/>
+    </symbol>
+    <symbol id="sym-rpi" viewBox="0 0 32 32">
+      <path fill="currentColor" d="M16 8c2.6 0 4.7 1.3 5.8 3.2 2.3.4 3.9 2.2 3.9 4.5 0 1.4-.6 2.7-1.6 3.6.2 2.6-2 5-5.2 5.5-.7 1-1.7 1.6-2.9 1.6s-2.2-.6-2.9-1.6c-3.2-.5-5.4-2.9-5.2-5.5-1-.9-1.6-2.2-1.6-3.6 0-2.3 1.6-4.1 3.9-4.5C11.3 9.3 13.4 8 16 8Z"/>
+      <path fill="currentColor" d="M13.4 3.6c1.2.3 2 1.3 2.3 2.4.4-1.1 1.2-2.1 2.4-2.4-.1 1.3-.8 2.4-1.8 3h-1.1c-1-.6-1.7-1.7-1.8-3Z"/>
+    </symbol>
   </defs>
 </svg>
 
@@ -432,7 +513,7 @@ footer{margin-top:8px;border-top:1px solid #000;
       <span class="sp"></span>
       <span class="oled" id="fps">—</span>
     </div>
-    <div class="plate">
+    <div class="plate dark">
       <div class="screen wallscreen">
         <div id="wall"></div>
       </div>
@@ -447,36 +528,46 @@ footer{margin-top:8px;border-top:1px solid #000;
     <div class="rail"><h2 class="legend">Signal chain</h2></div>
     <div class="plate">
       <div class="chain">
-        <div class="col">
-          <div class="link">
-            <h3><b class="cap cap-a">A</b>Audio in</h3>
-            <div class="screen lcd"><div id="spec"></div></div>
-            <div class="sub" id="rate">— KB/s</div>
-          </div>
-          <div class="link">
-            <h3><b class="cap cap-b">B</b>Beat</h3>
-            <div class="screen lcd"><div class="big"><span id="bpm">—</span><span class="unit">BPM</span></div></div>
-            <div class="sub"><span id="beats">0</span> beats</div>
-          </div>
+        <div class="link">
+          <h3><b class="cap cap-a">A</b>Audio in
+            <button class="q" data-hint="Audio in|The spectrum as the engine sees it: 17 bands, twenty times a second. The rate underneath is what is arriving on the wire.">?</button>
+            <span class="sub" id="rate">—</span>
+          </h3>
+          <div class="screen lcd wide"><div id="spec"></div></div>
         </div>
 
         <div class="meters">
-          <div class="mtr"><div class="vuwrap" id="vu-l"></div><span class="mtr-cap">L</span></div>
+          <div class="mtr">
+            <div class="vuwrap" id="vu-l"></div><span class="mtr-cap">L</span>
+          </div>
           <div class="ledcol" id="led-l"></div>
           <div class="ledcol mirror" id="led-r"></div>
-          <div class="mtr mirror"><div class="vuwrap" id="vu-r"></div><span class="mtr-cap">R</span></div>
+          <div class="mtr mirror">
+            <div class="vuwrap" id="vu-r"></div><span class="mtr-cap">R</span>
+          </div>
         </div>
 
-        <div class="col">
+        <div class="trio">
           <div class="link">
-            <h3><b class="cap cap-c">C</b>Engine</h3>
-            <div class="screen lcd"><div class="big"><span id="renders">0</span></div></div>
-            <div class="sub"><span id="rps">—</span> frames/s</div>
+            <h3><b class="cap cap-b">B</b>Beat
+              <button class="q" data-hint="Beat|Tempo read from the audio. Every effect fires on this grid, so if the number is wrong the lights will be too.">?</button>
+              <span class="sub"><span id="beats">0</span> beats</span>
+            </h3>
+            <div class="screen lcd"><div class="big"><span id="bpm">—</span><span class="unit">BPM</span></div></div>
           </div>
           <div class="link">
-            <h3><b class="cap cap-d">D</b>Bridge</h3>
+            <h3><b class="cap cap-c">C</b>Engine
+              <button class="q" data-hint="Engine|Frames rendered since the daemon started, and the rate it is managing now. Thirty a second is the target.">?</button>
+              <span class="sub" id="rps">—</span>
+            </h3>
+            <div class="screen lcd"><div class="big"><span id="renders">0</span></div></div>
+          </div>
+          <div class="link">
+            <h3><b class="cap cap-d">D</b>Bridge
+              <button class="q" data-hint="Bridge|Frames that carried light, and the area they went to. Zero while the output is off.">?</button>
+              <span class="sub" id="outState">off</span>
+            </h3>
             <div class="screen lcd"><div class="big"><span id="lit">0</span><span class="unit">lit</span></div></div>
-            <div class="sub" id="outState">output off</div>
           </div>
         </div>
       </div>
@@ -487,35 +578,35 @@ footer{margin-top:8px;border-top:1px solid #000;
     <!-- ── SOURCES ─────────────────────────────────────────────────── -->
     <section class="module">
       <div class="rail"><h2 class="legend">Sources</h2></div>
-      <div class="plate">
+      <div class="plate dark">
         <p class="note" style="margin:0 0 10px">Where the audio comes from. Leave as many on as you
           like — one drives the lights at a time, and another takes over a couple of seconds after it
           goes quiet. <span id="driving"></span></p>
         <div class="row">
-          <label data-hint="Sender|A plug-in for Winamp, foobar2000 or AIMP, or the Sound Capture app, sending audio here on UDP 6980. You give the sender this machine’s address.">Sender (VBAN)</label>
+          <label>Sender (VBAN)</label>
           <span class="mono" id="src-vban" style="font-size:13px;color:var(--legend)">idle</span>
           <span class="grow"></span>
           <span class="mono" style="font-size:12px;color:var(--legend)">UDP 6980</span>
         </div>
         <div class="row">
-          <label data-hint="Sendspin|The box announces itself and a Sendspin server such as Music Assistant finds it, then sends audio it has already analysed. No sender to install, and it can join a group of players." for="ssDevice">On the network</label>
-          <label class="toggle" style="flex:none"><input type="checkbox" id="ssDevice"> Announce this box</label>
+          <label for="ssDevice">On the network</label>
+          <button class="key" id="ssDevice" aria-pressed="false">Announce</button>
           <span class="mono" id="src-sendspin" style="font-size:13px;color:var(--legend)">off</span>
         </div>
         <div class="row">
-          <label data-hint="Snapcast|Give it a snapserver address and it joins as a client, then follows whatever group it is put in. Every transport codec works except opus, which Snapcast sends without a container." for="snapHost">Snapcast server</label>
+          <label for="snapHost">Snapcast server</label>
           <input type="text" id="snapHost" placeholder="address of the snapserver">
           <button id="snapBtn">Join</button>
           <span class="mono" id="src-snapcast" style="font-size:13px;color:var(--legend)">off</span>
         </div>
         <div class="row">
-          <label data-hint="Squeezebox|Finds a Logitech Media Server or Music Assistant by broadcast and appears there as a player, ready for a sync group. Plays flac, mp3, aac, opus and wav." for="slimDevice">As a Squeezebox</label>
-          <label class="toggle" style="flex:none"><input type="checkbox" id="slimDevice"> Appear as a player</label>
+          <label for="slimDevice">As a Squeezebox</label>
+          <button class="key" id="slimDevice" aria-pressed="false">Player</button>
           <span class="mono" id="src-slimproto" style="font-size:13px;color:var(--legend)">off</span>
         </div>
         <div class="row">
-          <label data-hint="DLNA|Shows up wherever a phone, a hi-fi app or Music Assistant looks for a network speaker. Send it anything: flac, mp3, aac, ogg, opus, alac, wma or wav." for="dlnaDevice">As a DLNA speaker</label>
-          <label class="toggle" style="flex:none"><input type="checkbox" id="dlnaDevice"> Appear as a renderer</label>
+          <label for="dlnaDevice">As a DLNA speaker</label>
+          <button class="key" id="dlnaDevice" aria-pressed="false">Renderer</button>
           <span class="mono" id="src-dlna" style="font-size:13px;color:var(--legend)">off</span>
         </div>
       </div>
@@ -525,7 +616,7 @@ footer{margin-top:8px;border-top:1px solid #000;
       <!-- ── BRIDGE ────────────────────────────────────────────────── -->
       <section class="module">
         <div class="rail"><h2 class="legend">Hue bridge</h2></div>
-        <div class="plate">
+        <div class="plate dark">
           <div class="row">
             <label for="host">Bridge address</label>
             <input type="text" id="host" placeholder="10.0.0.x">
@@ -546,7 +637,7 @@ footer{margin-top:8px;border-top:1px solid #000;
       <!-- ── CALIBRATION ───────────────────────────────────────────── -->
       <section class="module">
         <div class="rail"><h2 class="legend">Latency calibration</h2></div>
-        <div class="plate">
+        <div class="plate dark">
           <p class="note" style="margin:0 0 10px">Open this page <strong>on the machine that captures the
             audio</strong>. The click below goes out through that machine, arrives here as sound, and flashes the
             lights. Raise the delay until the flash lands on the click.</p>
@@ -574,37 +665,10 @@ footer{margin-top:8px;border-top:1px solid #000;
       <span class="sp"></span>
       <label class="toggle"><input type="checkbox" id="showAdvanced"> Advanced</label>
     </div>
-    <div class="plate">
+    <div class="plate dark">
       <p class="note" style="margin:0 0 10px">Generated from the Music Assistant provider's own sources, so
         every setting here means what it means there.</p>
       <div id="schemaHost"></div>
-    </div>
-  </section>
-
-  <!-- ── SENDERS ───────────────────────────────────────────────────── -->
-  <section class="module">
-    <div class="rail"><h2 class="legend">Get the senders</h2></div>
-    <div class="plate">
-      <p class="note" style="margin:0 0 12px">Something has to send audio to this box. Pick whichever matches
-        how you listen.</p>
-      <div class="senders">
-        <div class="sender">
-          <h3><svg aria-hidden="true"><use href="#sym-capture"/></svg>Sound capture</h3>
-          <p>Sends whatever is playing on the computer. Works with any player.</p>
-          <a href="#" id="dl-soundrecorder" aria-disabled="true">Not in this build</a>
-        </div>
-        <div class="sender">
-          <h3><svg aria-hidden="true"><use href="#sym-winamp"/></svg>Winamp</h3>
-          <p>Visualisation plug-in. Sends straight from the player, no capture device.</p>
-          <a href="#" id="dl-winamp" aria-disabled="true">Not in this build</a>
-        </div>
-        <div class="sender">
-          <h3><svg aria-hidden="true"><use href="#sym-foobar"/></svg>foobar2000</h3>
-          <p>Output component. Same idea, for foobar.</p>
-          <a href="#" id="dl-foobar" aria-disabled="true">Not in this build</a>
-        </div>
-      </div>
-      <p class="note" id="dlNote"></p>
     </div>
   </section>
 </main>
@@ -615,25 +679,40 @@ footer{margin-top:8px;border-top:1px solid #000;
       <div class="brandset">
         <span class="eyebrow">Player plug-ins</span>
         <div class="brandrow">
-          <span class="brand" title="Winamp"><svg aria-hidden="true"><use href="#sym-winamp"/></svg>Winamp</span>
-          <span class="brand" title="foobar2000"><svg aria-hidden="true"><use href="#sym-foobar"/></svg>foobar2000</span>
-          <span class="brand" title="AIMP"><svg aria-hidden="true"><use href="#sym-aimp"/></svg>AIMP</span>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="Winamp"><svg aria-hidden="true"><use href="#sym-winamp"/></svg>Winamp</a>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="foobar2000"><svg aria-hidden="true"><use href="#sym-foobar"/></svg>foobar2000</a>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="AIMP"><svg aria-hidden="true"><use href="#sym-aimp"/></svg>AIMP</a>
         </div>
       </div>
       <div class="brandset">
         <span class="eyebrow">Sound capture</span>
         <div class="brandrow">
-          <span class="brand" title="Windows"><svg aria-hidden="true"><use href="#sym-windows"/></svg>Windows</span>
-          <span class="brand" title="macOS"><svg aria-hidden="true"><use href="#sym-macos"/></svg>macOS</span>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="Windows"><svg aria-hidden="true"><use href="#sym-windows"/></svg>Windows</a>
+          <a class="brand" href="https://github.com/silasmariusz/TuneThatHue/releases" target="_blank" rel="noopener" title="macOS"><svg aria-hidden="true"><use href="#sym-macos"/></svg>macOS</a>
         </div>
       </div>
       <div class="brandset">
         <span class="eyebrow">Protocols</span>
         <div class="brandrow">
-          <!-- drop a 14×14 svg inside each .proto-slot when the icons are ready -->
-          <span class="proto" id="proto-snapcast"><span class="proto-slot" aria-hidden="true"></span>snapcast</span>
-          <span class="proto" id="proto-dlna"><span class="proto-slot" aria-hidden="true"></span>dlna</span>
-          <span class="proto" id="proto-squeezebox"><span class="proto-slot" aria-hidden="true"></span>squeezebox</span>
+          <a class="brand" href="https://github.com/badaix/snapcast" target="_blank" rel="noopener"
+             title="Snapcast"><svg aria-hidden="true"><use href="#sym-snapcast"/></svg>Snapcast</a>
+          <a class="brand" href="https://www.dlna.org" target="_blank" rel="noopener"
+             title="DLNA"><svg aria-hidden="true"><use href="#sym-dlna"/></svg>DLNA</a>
+          <a class="brand" href="https://github.com/Logitech/slimserver" target="_blank" rel="noopener"
+             title="Squeezebox"><svg aria-hidden="true"><use href="#sym-squeezebox"/></svg>Squeezebox</a>
+          <a class="brand" href="https://github.com/Sendspin/spec" target="_blank" rel="noopener"
+             title="Sendspin"><svg aria-hidden="true"><use href="#sym-sendspin"/></svg>Sendspin</a>
+        </div>
+      </div>
+      <div class="brandset">
+        <span class="eyebrow">Runs on</span>
+        <div class="brandrow">
+          <a class="brand" href="https://www.qnap.com" target="_blank" rel="noopener"
+             title="QNAP NAS"><svg aria-hidden="true"><use href="#sym-qnap"/></svg>QNAP</a>
+          <a class="brand" href="https://www.raspberrypi.com" target="_blank" rel="noopener"
+             title="Raspberry Pi"><svg aria-hidden="true"><use href="#sym-rpi"/></svg>Raspberry Pi</a>
+          <a class="brand" href="https://ubuntu.com" target="_blank" rel="noopener"
+             title="Linux"><svg aria-hidden="true"><use href="#sym-linux"/></svg>Linux</a>
         </div>
       </div>
     </div>
@@ -650,6 +729,10 @@ footer{margin-top:8px;border-top:1px solid #000;
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
+/* A key reports its state through aria-pressed, so the styling and the reading of it
+   are the same thing and cannot drift apart. */
+const keyOn = id => $(id).getAttribute('aria-pressed') === 'true';
+const setKey = (id, on) => $(id).setAttribute('aria-pressed', String(on));
 // Resolve API calls under the current page's path prefix. Behind the QNAP app-proxy the
 // page is at /TuneThatHue (NO trailing slash), so normalise to exactly one trailing
 // slash. A leading-slash absolute path would hit the NAS panel root and return HTML.
@@ -809,7 +892,7 @@ async function poll(){
   $('src-sendspin').textContent = !ss ? 'off'
     : ss.connected ? ((ss.streaming ? 'playing · ' : 'connected · ') + (ss.server || 'server'))
     : 'announced as "' + ss.name + '" — waiting for a server';
-  if (!ssTouched) $('ssDevice').checked = !!ss;
+  if (!ssTouched) setKey('ssDevice', !!ss);
   const sn = s.snapcast;
   $('src-snapcast').textContent = !sn ? 'off'
     : !sn.connected ? ('connecting to ' + sn.host + '…')
@@ -823,13 +906,13 @@ async function poll(){
     : !sl.connected ? 'looking for a server…'
     : sl.playing ? (sl.format + ' · playing')
     : ('registered with ' + (sl.server_name || sl.server));
-  if (!slimTouched) $('slimDevice').checked = !!sl;
+  if (!slimTouched) setKey('slimDevice', !!sl);
   const dl = s.dlna;
   $('src-dlna').textContent = !dl ? 'off'
     : dl.playing ? (dl.format + ' · playing' + (dl.controller ? ' from ' + dl.controller : ''))
     : dl.error ? dl.error
     : 'announced as "' + dl.name + '"';
-  if (!dlnaTouched) $('dlnaDevice').checked = !!dl;
+  if (!dlnaTouched) setKey('dlnaDevice', !!dl);
   paintMeters(s.level_l || 0, s.level_r || 0);
   const sp = s.spectrum || [];
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
@@ -1150,9 +1233,11 @@ function buildRow(e){
   return row;
 }
 
-$('ssDevice').onchange = async () => {
+$('ssDevice').onclick = async () => {
   ssTouched = true;
-  await apply({sendspin_device: $('ssDevice').checked});
+  const want = !keyOn('ssDevice');
+  setKey('ssDevice', want);                 // answer the press at once; the poll confirms it
+  await apply({sendspin_device: want});
 };
 
 $('snapBtn').onclick = async () => {
@@ -1167,14 +1252,18 @@ $('snapBtn').onclick = async () => {
   snapTouched = false;
 };
 
-$('slimDevice').onchange = async () => {
+$('slimDevice').onclick = async () => {
   slimTouched = true;
-  await apply({slimproto_enabled: $('slimDevice').checked});
+  const want = !keyOn('slimDevice');
+  setKey('slimDevice', want);                 // answer the press at once; the poll confirms it
+  await apply({slimproto_enabled: want});
 };
 
-$('dlnaDevice').onchange = async () => {
+$('dlnaDevice').onclick = async () => {
   dlnaTouched = true;
-  await apply({dlna_enabled: $('dlnaDevice').checked});
+  const want = !keyOn('dlnaDevice');
+  setKey('dlnaDevice', want);                 // answer the press at once; the poll confirms it
+  await apply({dlna_enabled: want});
 };
 
 $('showAdvanced').onchange = renderSchema;
@@ -1274,24 +1363,24 @@ $('latency').onchange = () => {
 /* ══ senders ═════════════════════════════════════════════════════════ */
 const RELEASES = 'https://github.com/silasmariusz/TuneThatHue/releases';
 async function loadDownloads(){
+  // The footer marks link to the releases page. When this build happens to carry a
+  // sender itself, point that mark at the local copy so a box with no way out to the
+  // internet can still hand it over.
   let have = [];
   try { have = await (await fetch(API + 'api/downloads')).json(); } catch(e){ /* offline box */ }
-  const byId = new Map(have.map(d => [d.id, d]));
-  for (const id of ['soundrecorder', 'winamp', 'foobar']){
-    const a = $('dl-' + id), d = byId.get(id);
-    if (!d) continue;
-    a.href = API + 'download/' + id;
-    a.removeAttribute('aria-disabled');
-    a.textContent = 'Download · ' + (d.size / 1048576).toFixed(1) + ' MB';
+  const marks = {soundrecorder: 'Windows', winamp: 'Winamp', foobar: 'foobar2000'};
+  for (const d of have){
+    const title = marks[d.id];
+    const a = title && document.querySelector('a.brand[title="' + title + '"]');
+    if (a) a.href = API + 'download/' + d.id;
   }
-  $('dlNote').innerHTML = have.length === 3 ? ''
-    : 'Anything marked “not in this build” is on the <a href="' + RELEASES + '">releases page</a>.';
 }
 
-loadConfig();
 loadDownloads();
 openPreview();
-poll(); setInterval(poll, 1000);
+poll();
+// Five a second: a needle updated once a second is a picture of a needle.
+setInterval(poll, 200);
 </script>
 </body>
 </html>
