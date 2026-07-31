@@ -220,6 +220,14 @@
     <p class="note">Joins a Snapcast group and takes the group's audio. Set the snapserver's
       transport codec to <strong>pcm</strong> — this client reads raw samples and cannot decode
       flac.</p>
+    <div class="row">
+      <label for="slimDevice">As a Squeezebox</label>
+      <label class="toggle" style="flex:none"><input type="checkbox" id="slimDevice"> Appear as a player</label>
+      <span class="mono" id="src-slimproto" style="font-size:13px;color:var(--legend)">off</span>
+    </div>
+    <p class="note">Finds a Logitech Media Server or Music Assistant by itself and appears in it as
+      a player, ready to be put in a sync group. Set that player's output codec to
+      <strong>wav</strong> — it reads uncompressed samples and cannot decode flac or mp3.</p>
   </section>
 
   <!-- ── BRIDGE ─────────────────────────────────────────────────── -->
@@ -322,6 +330,7 @@ let prev = null;
 // a moment to bind the port and the box would tick itself back off in between.
 let ssTouched = false;
 let snapTouched = false;
+let slimTouched = false;
 
 function lamp(el, on, warn){
   el.className = 'lamp' + (on ? ' on' : '') + (warn ? ' warn' : '');
@@ -354,6 +363,13 @@ async function poll(){
     : (sn.format + ' · ' + sn.chunks + ' chunks');
   if (!snapTouched && sn && !$('snapHost').value) $('snapHost').value = sn.host;
   if (!snapTouched) $('snapBtn').textContent = sn ? 'Leave' : 'Join';
+  const sl = s.slimproto;
+  $('src-slimproto').textContent = !sl ? 'off'
+    : sl.error && !sl.connected ? sl.error
+    : !sl.connected ? 'looking for a server…'
+    : sl.playing ? (sl.format + ' · playing')
+    : ('registered with ' + (sl.server_name || sl.server));
+  if (!slimTouched) $('slimDevice').checked = !!sl;
   const sp = s.spectrum || [];
   bars.forEach((b, i) => { b.style.height = (1 + Math.min(100, (sp[i] || 0) * 100 / 65535)) + '%'; });
   if (prev && s.t > prev.t){
@@ -687,6 +703,11 @@ $('snapBtn').onclick = async () => {
   $('snapBtn').textContent = leaving ? 'Join' : 'Leave';
   $('snapBtn').disabled = false;
   snapTouched = false;
+};
+
+$('slimDevice').onchange = async () => {
+  slimTouched = true;
+  await apply({slimproto_enabled: $('slimDevice').checked});
 };
 
 $('showAdvanced').onchange = renderSchema;

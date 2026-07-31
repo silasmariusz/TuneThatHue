@@ -6,6 +6,14 @@ enabled = false
 host = ""
 name = "TuneThatHue"
 
+[slimproto]
+# Appear as a Squeezebox player. The box finds the server itself with a broadcast, so
+# host can stay empty. Set that player's output codec to "wav" on the server side -
+# this player reads uncompressed samples and cannot decode flac or mp3.
+enabled = false
+host = ""
+name = "TuneThatHue"
+
 [effects]/[pulse]/[strobe] keys mirror the Music Assistant provider
 # settings 1:1 so a tuned MA setup can be transplanted here directly.
 

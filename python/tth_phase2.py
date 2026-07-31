@@ -230,6 +230,8 @@ class Phase2Daemon:
         self.sendspin: Any = None
         # Third input: a Snapcast group. Raw PCM, so it shares the VBAN path.
         self.snapcast: Any = None
+        # Fourth input: a Squeezebox player, found by broadcast. Also raw PCM.
+        self.slimproto: Any = None
         # Preview subscribers. The panel watches the exact frames the bridge gets, so
         # the tee sits after render and is capped well under the render rate - a browser
         # cannot use 30 fps and the queue must never become the slow path.
@@ -764,6 +766,17 @@ async def main() -> None:
         )
         await daemon.snapcast.start()
 
+    # Fourth input: appear as a Squeezebox player and take what the server sends.
+    if daemon.cfg.get_value("slimproto_enabled"):
+        from slimproto_player import SlimprotoPlayer  # noqa: PLC0415 - optional input
+
+        daemon.slimproto = SlimprotoPlayer(
+            daemon.on_chunk,
+            name=str(daemon.cfg.get_value("slimproto_name") or "TuneThatHue"),
+            host=str(daemon.cfg.get_value("slimproto_host") or "").strip(),
+        )
+        await daemon.slimproto.start()
+
     try:
         await asyncio.gather(daemon.render_loop(), daemon.stats_loop())
     finally:
@@ -771,6 +784,8 @@ async def main() -> None:
             await daemon.sendspin.stop()
         if daemon.snapcast is not None:
             await daemon.snapcast.stop()
+        if daemon.slimproto is not None:
+            await daemon.slimproto.stop()
         transport.close()
         if webui_runner is not None:
             await webui_runner.cleanup()

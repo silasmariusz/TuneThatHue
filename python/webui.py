@@ -99,6 +99,9 @@ _SETTING_MAP: dict[str, tuple[str, str]] = {
     "snapcast_enabled": ("snapcast", "enabled"),
     "snapcast_host": ("snapcast", "host"),
     "snapcast_name": ("snapcast", "name"),
+    "slimproto_enabled": ("slimproto", "enabled"),
+    "slimproto_host": ("slimproto", "host"),
+    "slimproto_name": ("slimproto", "name"),
     "palette_rotate": ("effects.rotation", "enabled"),
     "palette_rotate_list": ("effects.rotation", "list"),
     "palette_rotate_beats": ("effects.rotation", "beats"),
@@ -204,6 +207,26 @@ async def _apply_snapcast(daemon: "tth_phase2.Phase2Daemon") -> None:
         daemon.snapcast = client
 
 
+async def _apply_slimproto(daemon: "tth_phase2.Phase2Daemon") -> None:
+    """Start, stop or re-point the Squeezebox input to match the config."""
+    host = str(daemon.cfg.get_value("slimproto_host") or "").strip()
+    name = str(daemon.cfg.get_value("slimproto_name") or "TuneThatHue")
+    wanted = bool(daemon.cfg.get_value("slimproto_enabled"))
+    running = daemon.slimproto
+    if running is not None and (
+        not wanted or running.configured_host != host or running.name != name
+    ):
+        await running.stop()
+        daemon.slimproto = None
+        running = None
+    if wanted and running is None:
+        from slimproto_player import SlimprotoPlayer  # noqa: PLC0415 - optional input
+
+        player = SlimprotoPlayer(daemon.on_chunk, name=name, host=host)
+        await player.start()
+        daemon.slimproto = player
+
+
 def _bridge_paired(config_path: Path) -> tuple[bool, str, str]:
     """Return (paired, host, area) from the toml without exposing secrets."""
     try:
@@ -265,6 +288,7 @@ def create_app(
                 # anything is playing to us.
                 "sendspin": daemon.sendspin.status() if daemon.sendspin is not None else None,
                 "snapcast": daemon.snapcast.status() if daemon.snapcast is not None else None,
+                "slimproto": daemon.slimproto.status() if daemon.slimproto is not None else None,
             }
         )
 
@@ -377,6 +401,8 @@ def create_app(
             await _apply_sendspin_device(daemon)
         if any(k.startswith("snapcast_") for k in data):
             await _apply_snapcast(daemon)
+        if any(k.startswith("slimproto_") for k in data):
+            await _apply_slimproto(daemon)
         return web.json_response(
             {"ok": True, "applied": sorted(k for k in data if k not in unknown), "ignored": unknown}
         )
