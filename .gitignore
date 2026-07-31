@@ -60,3 +60,7 @@ qnap/icons/preview.png
 # ffmpeg. Build output, not source - the script fetches both.
 runtime/python-win/
 runtime/ffmpeg-*/
+
+runs/
+__pycache__/
+.pytest_cache/

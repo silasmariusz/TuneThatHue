@@ -60,6 +60,26 @@ _LOCK_THRESHOLD = 3.8
 # A new estimate must beat the running one by this much to re-latch the tempo,
 # so a single noisy window cannot yank a locked grid around.
 _RELATCH_MARGIN = 1.15
+# Grid continuity. An accepted estimate within this period drift of the running
+# grid is a REFINEMENT: the period is blended and the new phase snapped onto the
+# old grid (a +/-1-beat slip becomes impossible). Beyond it - or after the coast
+# deadline - it is a hard latch: a genuinely new grid.
+_REFINE_MAX_DRIFT = 0.08
+_PERIOD_BLEND = 0.30   # EMA weight of the new period measurement on refinement
+_PHASE_BLEND = 0.35    # fraction of the measured phase residual applied per estimate
+# The downbeat may move only after this many consecutive estimates agree on the
+# same new position - one noisy window must never flip the "1".
+_BAR_HYSTERESIS = 3
+# A downbeat measurement only counts as a vote when the winning bar position
+# beats the runner-up by this fraction; near-ties (grid slightly misaligned
+# over the long history) otherwise wobble between adjacent positions.
+_BAR_MARGIN = 0.15
+# After losing lock the last grid keeps emitting (pure extrapolation) for this
+# many bars, so a breakdown dims the music without killing the pulse.
+_COAST_BARS = 16
+# A re-based grid resumes emission no closer than this (in periods) to the last
+# emitted beat, so the near-twin of an already-fired beat cannot fire again.
+_RESUME_GUARD = 0.5
 
 
 class BeatTracker:
@@ -75,7 +95,17 @@ class BeatTracker:
         self.channels = max(1, int(channels))
         self.odf_rate = self.sample_rate / _HOP
         self._history = int(_HISTORY_S * self.odf_rate)
+        # Diagnostic tap for the bench/tests: called with a dict per estimate
+        # decision when set. Never used by the daemon; zero cost when None.
+        self.on_event = None
         self.reset()
+
+    def _notify(self, kind: str, **fields) -> None:
+        """Report a tracker decision to the diagnostic tap, if attached."""
+        if self.on_event is not None:
+            fields["kind"] = kind
+            fields["frame"] = self._frames_done
+            self.on_event(fields)
 
     def reset(self) -> None:
         """Forget all state (new stream, or a gap in the audio)."""
@@ -95,6 +125,17 @@ class BeatTracker:
         self._bar_offset: int = 0           # which beat of 4 is the downbeat
         self._beat_index: int | None = None # next beat to emit, in beats since phase
         self._frames_at_last_estimate = -10**9
+        # Emission frontier: absolute frame of the last emitted beat. A re-based
+        # grid resumes strictly past it, so no beat is ever handed out twice.
+        self._emitted_until: float = -1e18
+        # Committed downbeat identity as an absolute grid frame (survives phase
+        # re-basing), plus the hysteresis candidate for moving it.
+        self._downbeat_frame: float | None = None
+        self._bar_candidate: int | None = None
+        self._bar_candidate_count: int = 0
+        # Emission keeps extrapolating the last grid until this frame after the
+        # last accepted estimate (the breakdown coast window).
+        self._coast_until: float = -1e18
 
     # -- public API ----------------------------------------------------------
 
@@ -109,6 +150,15 @@ class BeatTracker:
     def locked(self) -> bool:
         """True while a beat grid is being tracked confidently."""
         return self._period is not None and self._confidence >= _LOCK_THRESHOLD
+
+    @property
+    def coasting(self) -> bool:
+        """True while emitting an extrapolated grid after losing lock."""
+        return (
+            not self.locked
+            and self._period is not None
+            and self._frames_done <= self._coast_until
+        )
 
     def process(self, pcm: bytes, chunk_start_us: int) -> list[SimpleNamespace]:
         """
@@ -237,6 +287,7 @@ class BeatTracker:
             # Nothing convincing - decay confidence but keep extrapolating the
             # old grid for a while, so a quiet bar does not kill the pulse.
             self._confidence *= 0.7
+            self._notify("est", accepted=False, reason="weak", conf=strength)
             return
 
         # Only re-latch when clearly better, or when the tempo barely moved
@@ -244,14 +295,48 @@ class BeatTracker:
         if self._period is not None and self._confidence >= _LOCK_THRESHOLD:
             drift = abs(period - self._period) / self._period
             if drift > 0.04 and strength < self._confidence * _RELATCH_MARGIN:
+                self._notify("est", accepted=False, reason="relatch", conf=strength)
                 return
 
-        self._period = period
+        # A drift within _REFINE_MAX_DRIFT of a still-coasting grid is a
+        # refinement of the SAME grid; anything else replaces it wholesale.
+        refine = (
+            self._period is not None
+            and abs(period - self._period) / self._period <= _REFINE_MAX_DRIFT
+            and self._frames_done <= self._coast_until
+        )
+        if refine:
+            prev_period = self._period
+            self._period = prev_period + _PERIOD_BLEND * (period - prev_period)
+        else:
+            prev_period = None
+            self._period = period
+            self._downbeat_frame = None
+            self._bar_candidate = None
+            self._bar_candidate_count = 0
         self._confidence = strength
-        self._update_phase()
+        self._update_phase(prev_period)
+        self._coast_until = self._frames_done + _COAST_BARS * 4 * self._period
+        self._notify(
+            "est",
+            accepted=True,
+            refine=bool(refine),
+            bpm=self.bpm,
+            conf=strength,
+            phase=self._phase,
+            period_frames=self._period,
+            downbeat_frame=self._downbeat_frame,
+        )
 
-    def _update_phase(self) -> None:
-        """Find which offset within the period the beats actually fall on."""
+    def _update_phase(self, prev_period: float | None = None) -> None:
+        """
+        Find which offset within the period the beats actually fall on.
+
+        With ``prev_period`` set this is a refinement of the running grid: the
+        measured phase is snapped onto the nearest beat of the OLD grid and only
+        a fraction of the residual is applied, so the pulse slides instead of
+        tearing and a +/-1-beat slip cannot happen.
+        """
         if not self._period:
             return
         period = self._period
@@ -282,22 +367,83 @@ class BeatTracker:
                 best_score, best_offset = s, int(off)
 
         tail_start = self._frames_done - n
-        self._phase = float(tail_start + best_offset)
+        phi_meas = float(tail_start + best_offset)
+        now_frame = self._frames_done
 
-        # Downbeat needs several bars, so it keeps using the long history.
-        beats = np.round(np.arange(best_offset % period, n_full, period)).astype(int)
-        beats = beats[beats < n_full]
+        if prev_period is None or self._beat_index is None:
+            self._phase = phi_meas
+        else:
+            # Refinement: re-express the old anchor on the beat nearest "now"
+            # (with the OLD period - projecting with the blended one would
+            # amplify the period delta), then snap the measurement onto that
+            # grid and glide a fraction of the residual.
+            phi_old = self._phase + round((now_frame - self._phase) / prev_period) * prev_period
+            k_star = round((phi_meas - phi_old) / period)
+            phi_pred = phi_old + k_star * period
+            self._phase = phi_pred + _PHASE_BLEND * (phi_meas - phi_pred)
+
+        # Downbeat needs several bars, so it keeps using the long history. The
+        # history beat grid is derived from the COMMITTED phase (not the raw
+        # measurement), so the env positions and the k0 index mapping agree -
+        # otherwise the measured bar position wobbles near beat boundaries.
+        hist_start = self._frames_done - n_full
+        first = self._phase + np.ceil((hist_start - self._phase) / period) * period - hist_start
+        beats = np.round(np.arange(first, n_full, period)).astype(int)
+        beats = beats[(beats >= 0) & (beats < n_full)]
+        measured_bar: int | None = None
         if beats.size >= 8:
             sums = [float(env_full[beats[b::4]].sum()) for b in range(4)]
-            # Express the winning bar position relative to the emission grid.
-            first_abs = (self._frames_done - n_full) + beats[0]
-            k0 = int(round((first_abs - self._phase) / period))
-            self._bar_offset = (int(np.argmax(sums)) + k0) % 4
+            ranked = sorted(sums, reverse=True)
+            # Vote only on a clear win; a near-tie is measurement noise.
+            if ranked[0] > 0 and (ranked[0] - ranked[1]) / ranked[0] >= _BAR_MARGIN:
+                # Express the winning bar position relative to the emission grid.
+                k0 = int(round((hist_start + beats[0] - self._phase) / period))
+                measured_bar = (int(np.argmax(sums)) + k0) % 4
+        self._commit_bar_offset(measured_bar, period)
 
-        # Restart emission from the first beat at or after "now".
-        now_frame = self._frames_done
-        k = int(np.ceil((now_frame - self._phase) / period))
-        self._beat_index = k
+        # Resume emission past the frontier: never re-emit a beat already handed
+        # out, and skip the near-twin of the last one on a re-based grid.
+        start = max(now_frame, self._emitted_until + _RESUME_GUARD * period)
+        self._beat_index = int(np.ceil((start - self._phase) / period))
+
+    def _commit_bar_offset(self, measured: int | None, period: float) -> None:
+        """
+        Keep the committed downbeat stable across re-estimates (hysteresis).
+
+        The committed "1" lives ONLY as an absolute grid frame
+        (``_downbeat_frame``) - never as an index relative to the phase, which
+        re-bases on every estimate and would make the numbering rotate. A
+        measured disagreement must repeat ``_BAR_HYSTERESIS`` times in a row
+        (same disagreement, in beats) before the downbeat moves.
+        """
+        if measured is None:
+            return
+        # The measured bar position as an absolute frame on the current grid.
+        k = int(np.ceil((self._frames_done - self._phase) / period))
+        k += (measured - k) % 4
+        proposal = self._phase + k * period
+
+        if self._downbeat_frame is None:
+            self._downbeat_frame = proposal
+            self._bar_candidate = None
+            self._bar_candidate_count = 0
+            return
+        bar = 4.0 * period
+        beats_off = int(round(((proposal - self._downbeat_frame) % bar) / period)) % 4
+        if beats_off == 0:
+            self._downbeat_frame = proposal  # same "1": refresh, killing drift
+            self._bar_candidate = None
+            self._bar_candidate_count = 0
+            return
+        if beats_off == self._bar_candidate:
+            self._bar_candidate_count += 1
+        else:
+            self._bar_candidate = beats_off
+            self._bar_candidate_count = 1
+        if self._bar_candidate_count >= _BAR_HYSTERESIS:
+            self._downbeat_frame = proposal
+            self._bar_candidate = None
+            self._bar_candidate_count = 0
 
     # -- emission ------------------------------------------------------------
 
@@ -315,7 +461,11 @@ class BeatTracker:
 
     def _emit(self) -> list[SimpleNamespace]:
         """Hand over any beats that fall inside the lookahead window."""
-        if not self.locked or self._period is None or self._beat_index is None:
+        if self._period is None or self._beat_index is None:
+            return []
+        # Locked, or coasting: a breakdown keeps the pulse extrapolating for a
+        # bounded number of bars instead of going silent and re-anchoring cold.
+        if not self.locked and self._frames_done > self._coast_until:
             return []
         out: list[SimpleNamespace] = []
         horizon = self._frames_done + _LOOKAHEAD_S * self.odf_rate
@@ -324,9 +474,15 @@ class BeatTracker:
             frame = self._phase + self._beat_index * self._period
             if frame > horizon:
                 break
-            is_downbeat = (self._beat_index % 4) == (self._bar_offset % 4)
+            if self._downbeat_frame is not None:
+                # Compare against the absolute committed "1", not an index: the
+                # phase re-bases on refinements and index numbering rotates.
+                is_downbeat = round((frame - self._downbeat_frame) / self._period) % 4 == 0
+            else:
+                is_downbeat = (self._beat_index % 4) == (self._bar_offset % 4)
             out.append(
                 SimpleNamespace(timestamp_us=self._frame_to_us(frame), is_downbeat=is_downbeat)
             )
+            self._emitted_until = frame
             self._beat_index += 1
         return out
