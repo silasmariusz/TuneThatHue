@@ -198,16 +198,16 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
    of it and the meters are a single cell stretched across the same height, so the top
    and bottom edges of all of it are the same two lines - by construction, not by
    nudging. Nothing here goes out of true when a font or a window size changes. */
-/* the input stage is one panel: what is arriving, then what it measures */
+/* the input stage is one panel: spectrum, then the needles across the full
+   width, then the four readings in one row (two-up on a phone) */
 .panel .screen.wide{margin-bottom:12px}
-.deck{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;height:136px}
-.dcol{display:grid;grid-template-rows:1fr 1fr;gap:12px;min-width:0}
+.deck{display:flex;flex-direction:column;gap:12px}
+.lcdrow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .cell{min-width:0;display:grid}
 .cell .screen{display:grid;place-items:center;height:100%}
-@media(max-width:860px){
-  .deck{grid-template-columns:1fr;height:auto;gap:12px}
-  .dcol{grid-template-rows:62px 62px}
-  .meters{order:-1;height:136px}
+@media(max-width:700px){
+  .lcdrow{grid-template-columns:1fr 1fr;gap:10px}
+  .meters{height:120px}
 }
 
 /* ── nothing coming in ────────────────────────────────────────────────────
@@ -287,20 +287,18 @@ main>.panel+.panel{margin-top:0}
 .plate.dark .row>label:first-child{color:var(--print-light)}
 .plate.dark label.fieldname{color:var(--print-light)}
 
-.meters{display:grid;grid-template-columns:repeat(4,auto);gap:8px;justify-content:center;
-  align-items:stretch;height:100%}
-.mtr{height:100%}
-.mtr .vuwrap{height:100%;display:grid}
-.mtr .vuwrap svg{height:100%;width:auto}
+.meters{display:grid;grid-template-columns:1fr auto auto 1fr;gap:8px;
+  align-items:stretch;height:150px}
 .ledcol{height:100%}
 .mirror{transform:scaleX(-1)}
 
-/* the analog meter: a black face with an orange lamp behind it, the way a deck's
-   meter looks with the light on */
-.mtr{display:grid;height:100%}
-.vuwrap{height:100%;border-radius:3px;padding:0;background:#000;border:1px solid #000;
+/* the analog meter: the whole width is black glass, the dial centred in it.
+   The SVG keeps its own proportions and the letterbox is the same black as the
+   face, so a wider window simply shows more glass. */
+.mtr{display:grid;height:100%;min-width:0}
+.vuwrap{height:100%;width:100%;border-radius:3px;padding:0;background:#000;border:1px solid #000;
   box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.45);overflow:hidden}
-.vuwrap svg{display:block;height:100%;width:auto}
+.vuwrap svg{display:block;width:100%;height:100%}
 .mtr-cap{font-family:var(--f-cond);font-size:9px;letter-spacing:.2em;color:var(--ink-soft)}
 
 /* LED column: Traktor's meter. Small segments, quiet until they are not. */
@@ -484,7 +482,9 @@ a.brand{text-decoration:none}
 a.brand:hover{color:var(--read)}
 .eyebrow{font-family:var(--f-display);font-size:9.5px;font-weight:600;
       letter-spacing:.22em;text-transform:uppercase;color:#5C646C}
-.brandrow{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+/* bottom-aligned, so every mark stands on one baseline; centring let the short
+   glyphs float against the wordmarks */
+.brandrow{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:7px;color:var(--print-light-2);
       font-family:var(--f-display);font-size:10.5px;letter-spacing:.1em;
       text-transform:uppercase;transition:color .15s}
@@ -620,6 +620,24 @@ a.brand:hover{color:var(--read)}
   box-shadow:0 0 7px var(--lamp,#33E1A0),inset 0 -1px 1px rgba(0,0,0,.3)}
 .led.l-bar{--lamp:#2FA8DE} .led.l-rise{--lamp:#FFB020}
 .led.l-drop{--lamp:#F0862F} .led.l-break{--lamp:#AEB6BD}
+
+/* the light wall's status bar: the section readings as rectangular keys along the
+   bottom of the window, dark until the engine hears that thing */
+.wallbar{display:flex;gap:6px;padding:8px 0 0}
+.stat{flex:0 0 auto;min-width:64px;text-align:center;padding:7px 12px;border-radius:2px;
+  font:600 9.5px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;
+  color:#6E767D;background:#101317;border:1px solid #000;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.6);
+  transition:background .09s linear,color .09s linear}
+.stat.on{color:#0D0F11;background:var(--lamp,#33E1A0);
+  box-shadow:0 0 9px var(--lamp,#33E1A0),inset 0 1px 0 rgba(255,255,255,.25)}
+.s-beat{--lamp:#C3E635} .s-bar{--lamp:#2FA8DE} .s-rise{--lamp:#FFB020}
+.s-drop{--lamp:#F0862F} .s-break{--lamp:#AEB6BD}
+@media(prefers-reduced-motion:reduce){.stat{transition:none}}
+
+/* the room selector is part of the running link while Sync is on; it unlocks
+   when the light stops */
+select:disabled{opacity:.45;cursor:default}
 </style>
 </head>
 <body>
@@ -664,7 +682,14 @@ a.brand:hover{color:var(--read)}
       <div class="screen wallscreen">
         <div id="wall"></div>
       </div>
-
+      <div class="wallbar"
+        data-hint="Sections|What the engine hears, as it hears it: the beat, the top of the bar, and the section it thinks the music is in - rise, drop, break. The effects fire off these.">
+        <span class="stat s-beat" id="ledBeat">Beat</span>
+        <span class="stat s-bar" id="ledBar">Bar</span>
+        <span class="stat s-rise" id="ledRise">Rise</span>
+        <span class="stat s-drop" id="ledDrop">Drop</span>
+        <span class="stat s-break" id="ledBreak">Break</span>
+      </div>
     </div>
   </section>
 
@@ -674,19 +699,8 @@ a.brand:hover{color:var(--read)}
   <section class="panel">
     <div class="screen lcd wide" id="scr-spec"><div id="spec"></div><i class="nosig">No signal</i></div>
     <div class="deck">
-      <div class="dcol">
-        <div class="cell"
-          data-hint="Tempo|Read from the audio. Every effect fires on this grid, so if this is wrong the lights are wrong with it.">
-          <div class="screen lcd" id="scr-bpm"><div class="big"><span id="bpm">&mdash;</span><span class="unit">BPM</span></div><i class="nosig">No beat</i></div>
-        </div>
-        <div class="cell"
-          data-hint="Bar|Which beat of the bar the engine is on, and how many beats it has counted since it started.">
-          <div class="screen lcd" id="scr-bar"><div class="big"><span id="barBeat">&mdash;</span><span class="unit">of 4</span></div><i class="nosig">No grid</i></div>
-        </div>
-      </div>
-
       <div class="meters"
-        data-hint="Level|Peak per channel, straight off the audio. The needles show what is arriving; the ladders beside them hold a peak a moment longer, so a short one is still visible.">
+        data-hint="Level|Peak per channel, straight off the audio. The needles show what is arriving; the ladders between them hold a peak a moment longer, so a short one is still visible.">
         <div class="mtr">
           <div class="vuwrap" id="vu-l"></div>
         </div>
@@ -697,7 +711,15 @@ a.brand:hover{color:var(--read)}
         </div>
       </div>
 
-      <div class="dcol">
+      <div class="lcdrow">
+        <div class="cell"
+          data-hint="Tempo|Read from the audio. Every effect fires on this grid, so if this is wrong the lights are wrong with it.">
+          <div class="screen lcd" id="scr-bpm"><div class="big"><span id="bpm">&mdash;</span><span class="unit">BPM</span></div><i class="nosig">No beat</i></div>
+        </div>
+        <div class="cell"
+          data-hint="Bar|Which beat of the bar the engine is on, and how many beats it has counted since it started.">
+          <div class="screen lcd" id="scr-bar"><div class="big"><span id="barBeat">&mdash;</span><span class="unit">of 4</span></div><i class="nosig">No grid</i></div>
+        </div>
         <div class="cell"
           data-hint="Engine|Frames rendered since the daemon started, and the rate it is managing now. Thirty a second is the target.">
           <div class="screen lcd"><div class="big"><span id="renders">0</span></div></div>
@@ -781,7 +803,7 @@ a.brand:hover{color:var(--read)}
 
   <!-- ── CALIBRATION — full width, the slider earns it ─────────────── -->
   <section class="module">
-    <div class="rail"><h2 class="legend">Latency calibration</h2><button class="q" data-hint="Latency calibration|Sound reaches the lights later than it reaches your ears. Play the click on the machine that captures the audio, and raise the delay until the flash lands on it. The lamps show what the engine is hearing: beat and bar from the tempo grid, then the sections it reacts to.">?</button></div>
+    <div class="rail"><h2 class="legend">Latency calibration</h2><button class="q" data-hint="Latency calibration|Sound reaches the lights later than it reaches your ears. Play the click on the machine that captures the audio, and raise the delay until the flash lands on it. The section keys under the light wall show what the engine is hearing.">?</button></div>
         <div class="plate dark">
           <div class="row">
             <button class="key k-out" id="metroBtn" aria-pressed="false">
@@ -789,13 +811,6 @@ a.brand:hover{color:var(--read)}
             <span class="oled" id="oledBpm">---.- BPM</span>
             <span class="oled" id="oledBeat">-/4</span>
             <span class="grow"></span>
-            <div class="leds">
-              <span class="led l-beat" id="ledBeat"><i></i>Beat</span>
-              <span class="led l-bar" id="ledBar"><i></i>Bar</span>
-              <span class="led l-rise" id="ledRise"><i></i>Rise</span>
-              <span class="led l-drop" id="ledDrop"><i></i>Drop</span>
-              <span class="led l-break" id="ledBreak"><i></i>Break</span>
-            </div>
           </div>
           <div class="row">
             <label for="latency">Delay</label>
@@ -1098,7 +1113,7 @@ async function poll(){
   $('bpm').textContent = s.bpm ? s.bpm.toFixed(1) : '—';
   $('renders').textContent = s.renders;
   $('lit').textContent = s.lit;
-  if (!outTouched) setKey('outBtn', s.output === 'hue');
+  if (!outTouched) reflectOutput(s.output === 'hue');
   $('barBeat').textContent = s.beat_in_bar || '—';
 
   // A screen with nothing on it looks broken; say what is true instead.
@@ -1554,6 +1569,9 @@ let curOutput = 'none';
 function reflectOutput(on){
   curOutput = on ? 'hue' : 'none';
   setKey('outBtn', on);
+  // While the light is running, the room is part of the running link: changing it
+  // mid-stream would silently do nothing, so the selector locks until Sync stops.
+  $('area').disabled = on;
 }
 
 /* A key that failed says so on itself for a moment and then goes back to what it was.
