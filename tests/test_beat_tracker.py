@@ -147,16 +147,18 @@ def test_coasting_through_gap() -> None:
 
 def test_coast_hard_stop() -> None:
     """I4: coasting ends after _COAST_BARS bars of silence."""
+    import beat_tracker as bt
+
     seconds = 20.0
     pcm_music = steady(136, seconds)
-    silence = np.zeros(int(75.0 * 48000), dtype=np.int16)
+    silence = np.zeros(int(150.0 * 48000), dtype=np.int16)
     beats, _, _ = tu.run_tracker(np.concatenate([pcm_music, silence]))
     assert beats, "no beats at all"
     last = max(b.timestamp_us for b in beats)
     bar_us = 4 * 60 * SEC / 136
     # The ACF history is 8 s long, so the tracker legitimately stays locked for
     # up to that long after the music stops; the coast window starts there.
-    deadline = (seconds + 8.0) * SEC + (16 + 2) * bar_us
+    deadline = (seconds + 8.0) * SEC + (bt._COAST_BARS + 2) * bar_us
     assert last < deadline, f"still emitting {last / SEC:.1f}s (deadline {deadline / SEC:.1f}s)"
 
 

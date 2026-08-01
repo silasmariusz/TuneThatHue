@@ -183,7 +183,16 @@ def score_track(path: Path, run: dict, limit_s: float | None) -> dict:
     truth = truth_for(path)
     truth_bpm = (truth or {}).get("bpm") or filename_bpm(path)
     if truth_bpm:
-        bpms = [e["bpm"] for e in run["events"] if e.get("accepted") and e.get("bpm")]
+        # Median over FULL-strength accepts: weak refinements only refresh the
+        # phase of a living grid and would skew the estimate toward whatever
+        # kickless sections the track has.
+        bpms = [
+            e["bpm"]
+            for e in run["events"]
+            if e.get("accepted") and e.get("bpm") and e.get("conf", 0) >= 3.8
+        ]
+        if not bpms:
+            bpms = [e["bpm"] for e in run["events"] if e.get("accepted") and e.get("bpm")]
         bpm_est = sorted(bpms)[len(bpms) // 2] if bpms else run["final_bpm"]
         row["truth_bpm"] = truth_bpm
         row["bpm_est"] = round(bpm_est, 2)

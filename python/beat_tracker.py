@@ -76,8 +76,10 @@ _BAR_HYSTERESIS = 3
 # over the long history) otherwise wobble between adjacent positions.
 _BAR_MARGIN = 0.15
 # After losing lock the last grid keeps emitting (pure extrapolation) for this
-# many bars, so a breakdown dims the music without killing the pulse.
-_COAST_BARS = 16
+# many bars, so a breakdown dims the music without killing the pulse. DJ-set
+# breakdowns and acapella sections run 60-90 s, and across them the set tempo
+# does not move - riding through is right, going dark is not.
+_COAST_BARS = 64
 # A re-based grid resumes emission no closer than this (in periods) to the last
 # emitted beat, so the near-twin of an already-fired beat cannot fire again.
 _RESUME_GUARD = 0.5
@@ -99,7 +101,7 @@ _CONFIDENCE_DECAY = 0.85
 # music (delay taps, double-time hats) and snapped back to the base tempo. The
 # tolerance is tight on purpose: a dotted-eighth delay hits 4/3 dead on, while
 # a genuine track change (124 -> 90 is 3.2% off 3/4) must never be captured.
-_FAMILY_SNAP_RATIOS = (4 / 3, 3 / 2, 2.0, 3.0)
+_FAMILY_SNAP_RATIOS = (5 / 4, 4 / 3, 3 / 2, 2.0, 3.0)
 _FAMILY_SNAP_TOL = 0.02
 
 
@@ -316,21 +318,32 @@ class BeatTracker:
         # (integer lags split the peak of a fractional true period).
         period = self._pick_metrical_candidate(period, acf, n, min_lag, max_lag)
 
+        grid_alive = self._lock_state or self._frames_done <= self._coast_until
         if strength < _LOCK_THRESHOLD:
-            # Nothing convincing - decay confidence but keep extrapolating the
-            # old grid for a while, so a quiet bar does not kill the pulse.
-            self._confidence *= _CONFIDENCE_DECAY
-            if self._confidence < _LOCK_EXIT:
-                self._lock_state = False
-            self._notify("est", accepted=False, reason="weak", conf=strength)
-            return
+            # A borderline estimate that CONFIRMS the living grid's tempo is
+            # still useful: accept it as a refinement (the phase snap caps how
+            # far it can pull), so soft-kick sections keep the phase fresh
+            # instead of coasting blind until the kick returns.
+            weak_refine = (
+                grid_alive
+                and self._period is not None
+                and strength >= _LOCK_EXIT
+                and abs(period - self._period) / self._period <= _REFINE_MAX_DRIFT
+            )
+            if not weak_refine:
+                # Nothing convincing - decay confidence but keep extrapolating
+                # the old grid for a while, so a quiet bar does not kill the pulse.
+                self._confidence *= _CONFIDENCE_DECAY
+                if self._confidence < _LOCK_EXIT:
+                    self._lock_state = False
+                self._notify("est", accepted=False, reason="weak", conf=strength)
+                return
 
         # Only re-latch when clearly better, or when the tempo barely moved
         # (that case is a refinement of the same grid, not a new one). The guard
         # also covers a COASTING grid: a kickless melodic section must not
         # replace a living grid with its own pattern tempo at borderline
         # confidence - the coast exists precisely to ride out such sections.
-        grid_alive = self._lock_state or self._frames_done <= self._coast_until
         if self._period is not None and grid_alive and self._confidence > 0:
             drift = abs(period - self._period) / self._period
             if drift > 0.04 and strength < max(self._confidence, _LOCK_EXIT) * _RELATCH_MARGIN:
@@ -377,10 +390,18 @@ class BeatTracker:
             self._bar_candidate = None
             self._bar_candidate_count = 0
         self._confidence = strength
-        self._lock_state = True
-        self._tempo_history.append(self._period)
+        strong = strength >= _LOCK_THRESHOLD
+        # Full lock needs the entry threshold; a weak refinement only sustains
+        # an existing lock (hysteresis), it cannot create one.
+        self._lock_state = strong or (self._lock_state and strength >= _LOCK_EXIT)
         self._update_phase(prev_period)
-        self._coast_until = self._frames_done + _COAST_BARS * 4 * self._period
+        if strong:
+            # Only full-strength accepts define the established tempo and keep
+            # the grid alive. A weak refinement refreshes the phase but must
+            # not feed the anchor or extend the coast - otherwise a wrong grid
+            # in a kickless section sustains itself on its own weak echoes.
+            self._tempo_history.append(self._period)
+            self._coast_until = self._frames_done + _COAST_BARS * 4 * self._period
         self._notify(
             "est",
             accepted=True,
