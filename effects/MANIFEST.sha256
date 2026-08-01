@@ -1,7 +1,7 @@
 # TuneThatHue effects manifest - written by tools/sync_effects.py
-# synced: 2026-08-01T00:33:52.841459+00:00  (push)
-# provider: D:\Code\music-assistant-hue-mod\server @ e65306d51f0acc15ea6f4009a8244455f28a25c8
-41d241d9d8c6d0bd9178db14da1d89d400bb306bb8c21cef21f2c61982e97cd1  hue_fx/analyzer.py
+# synced: 2026-08-01T01:02:25.142387+00:00  (push)
+# provider: D:\Code\music-assistant-hue-mod\server @ a9c3a838430693ecd785ff9c0fe62072dd99b163
+cfae3b6fd2e10acbd26e280547fb514938a1ab553215ba9ac4de28e1ec5ba6a4  hue_fx/analyzer.py
 6ba9889fb61af9f5254bb80e082786bd6e1c8fb3c257c7ea668cee5384c485a7  hue_fx/structure.py
 d0122c9d69216fe632125aa772553ac2033fe1ee73a14604e61656b34174f597  hue_fx/strobe_overlay.py
 23ff050d9aa49bd5f547327b354493c4970ef5b2a0d739e75e9109a5bf97f6de  hue_fx/palettes.py

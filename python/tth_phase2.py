@@ -165,6 +165,13 @@ class VbanAudio(asyncio.DatagramProtocol):
         self.on_chunk = on_chunk
         self.stats = stats
         self.transport = None
+        # One sender at a time. Two simultaneous VBAN senders interleave into a
+        # single chunk stream, the extractor rebuilds on every format flip and
+        # the beat tracker resets with it - the lights read as dead while both
+        # play. First to speak keeps the port; the other is ignored until the
+        # holder has been quiet for TAKEOVER_GAP_S.
+        self._sender: tuple | None = None
+        self._sender_seen = 0.0
 
     def connection_made(self, transport) -> None:
         self.transport = transport
@@ -176,6 +183,16 @@ class VbanAudio(asyncio.DatagramProtocol):
             return
         if len(data) <= VBAN_HDR.size or data[:4] != b"VBAN":
             return
+        sender = (addr[0], data[VBAN_HDR.size - 20 : VBAN_HDR.size - 4])
+        now = time.monotonic()
+        if self._sender is not None and sender != self._sender:
+            if now - self._sender_seen < TAKEOVER_GAP_S:
+                return
+            print(f"[vban] sender {sender[0]} took over the port")
+        elif self._sender is None:
+            print(f"[vban] sender {sender[0]} is now feeding audio")
+        self._sender = sender
+        self._sender_seen = now
         magic, fmt_sr, fmt_nbs, fmt_nbc, fmt_bit, _name, _nu = VBAN_HDR.unpack_from(data)
         if fmt_sr >> 5 != 0:  # not the audio sub-protocol
             return
@@ -530,13 +547,16 @@ class Phase2Daemon:
         """
         The moment to render for.
 
-        Normally our own clock plus the light-latency lead. While a Sendspin server is
-        attached its frames are stamped in ITS clock, so we have to ask the library to
-        convert - rendering local time against server timestamps puts every effect at
-        the wrong instant.
+        Normally our own clock plus the light-latency lead. While the Sendspin input
+        is DRIVING, its frames are stamped in the server's clock, so we ask the
+        library to convert. The driving source decides - not mere attachment: a
+        Music Assistant server stays connected around the clock, and rendering the
+        local inputs (VBAN, Squeezebox, DLNA - all stamped in OUR clock) against
+        server time put every timestamp in the wrong epoch, which read as
+        permanent silence to the engine.
         """
         target = self.now_us() + self.render_ahead_us
-        if self.sendspin is not None:
+        if self.sendspin is not None and self._source == "sendspin":
             server = self.sendspin.server_time_us(target)
             if server is not None:
                 return server
