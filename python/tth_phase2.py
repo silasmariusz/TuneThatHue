@@ -101,11 +101,13 @@ from hue_fx.analyzer import HueAudioAnalyzer, PulseSettings
 from hue_fx.constants import (
     CONF_BRIGHTNESS,
     CONF_COLOR_MODE,
+    CONF_NO_BEAT,
     CONF_PALETTE,
     CONF_PALETTE_ROTATE,
     CONF_PALETTE_ROTATE_BEATS,
     CONF_PALETTE_ROTATE_LIST,
     CONF_PALETTE_ROTATE_SMOOTH,
+    DEFAULT_NO_BEAT,
     DEFAULT_PALETTE_ROTATE_BEATS,
     DEFAULT_PALETTE_ROTATE_SMOOTH,
     SPECTRUM_BINS,
@@ -219,6 +221,7 @@ class Phase2Daemon:
             palette=str(self.cfg.get_value(CONF_PALETTE) or ""),
             per_light={},
             pulse=PulseSettings.from_config(self.cfg),
+            no_beat=str(self.cfg.get_value(CONF_NO_BEAT) or DEFAULT_NO_BEAT),
         )
 
         self.extractor: VisualizerFeatureExtractor | None = None
@@ -309,6 +312,7 @@ class Phase2Daemon:
             palette=str(get(CONF_PALETTE) or ""),
             per_light={},
             pulse=PulseSettings.from_config(self.cfg),
+            no_beat=str(get(CONF_NO_BEAT) or DEFAULT_NO_BEAT),
         )
         self.apply_config()
         self.lights = [
@@ -339,6 +343,7 @@ class Phase2Daemon:
             strobe_channel_ids={int(c) for c in (get("strobe_lights") or [])},
             strobe=StrobeSettings.from_config(self.cfg),
             pulse=PulseSettings.from_config(self.cfg),
+            no_beat=str(get(CONF_NO_BEAT) or DEFAULT_NO_BEAT),
         )
         rotate_smooth = get(CONF_PALETTE_ROTATE_SMOOTH)
         self.analyzer.set_rotation(

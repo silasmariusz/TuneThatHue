@@ -27,6 +27,8 @@ _SECTIONS = ("effects", "strobe", "pulse", "bridge", "sendspin", "snapcast", "sl
 # Both are accepted so existing config files keep working.
 _ALIASES = {
     "mode": "color_mode",
+    # [effects] no_beat -> the provider's CONF_NO_BEAT key.
+    "no_beat": "no_beat_mode",
     # [sendspin] latency_ms is the provider's "Light latency (ms)". Without the
     # section in _SECTIONS above, the alias never fired and the knob did nothing.
     "sendspin_latency_ms": "hue_latency_ms",

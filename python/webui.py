@@ -112,6 +112,7 @@ _SETTING_MAP: dict[str, tuple[str, str]] = {
     "palette_rotate_beats": ("effects.rotation", "beats"),
     "palette_rotate_smooth": ("effects.rotation", "smooth"),
     "color_boost": ("effects", "color_boost"),
+    "no_beat_mode": ("effects", "no_beat"),
     "color_mode": ("effects", "mode"),
     "brightness": ("effects", "brightness"),
     "palette": ("effects", "palette"),
