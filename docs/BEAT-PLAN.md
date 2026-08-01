@@ -189,6 +189,30 @@ Found while testing live: two simultaneous VBAN senders at different sample rate
 `_ensure_extractor` rebuild (and reset the tracker) on every alternation - the daemon needs
 source arbitration (lock to one sender until it goes quiet). Filed as the next robustness item.
 
+### Round 3 (2026-08-01) — DJ sets: stop going dark in breakdowns
+
+Field report: the sets in `E:\mp3\sprawdzic_wazne` still lost the beat. `tools/set_report.py`
+(new) shows where: emission gaps of 20-60 s wherever a breakdown outlived the 16-bar coast -
+11 gaps in the first 300 s across the folder. Changes: coast raised to 64 bars; borderline
+estimates that CONFIRM the living grid's tempo (within 8 %) are accepted as refinements from
+strength 3.0 (phase stays fresh through soft sections) while only full-strength accepts feed
+the tempo anchor and extend the coast (a wrong kickless-section grid cannot sustain itself on
+its own weak echoes - that asymmetry was found the hard way: the first version poisoned the
+anchor and let Phases' 165 section return); 5/4 joined the family-snap ratios (Yotto's rolling
+riff parked the tracker at 4/5 tempo).
+
+20-minute windows over all 27 sets: **total dark time 378 s across ~9 h** (was: hundreds of
+seconds in the first five minutes alone), with the two largest remaining gaps (130 s in
+Berghain pt3, 93 s in STEREOSENSE 02.05) sitting in genuinely beatless interludes where
+stopping after two minutes of coasting is the intended behaviour. Set tempo timelines read
+like the real sets (ISOS ramps 130.7 -> 136 -> 134). Regression: B_2023 18/18, trance 25/26,
+synthetics 15/15, 33 tests green. Live on the dev NAS (0.9.5): the previously worst section
+(Nu'kee 3:00-5:30, a 60 s dark hole) now streams beats continuously at 130 BPM.
+
+Skill-registry search (background agent): no installable skill covers real-time beat
+tracking; the meaningful upgrade path remains I7 (sliding-window DBN, MA's pure-numpy
+postprocessor).
+
 Still open (deliberate): octave-prior picks half tempo at 150/185 BPM on clicks (xfail'd,
 tracked as I6); trance-corpus lock coverage 65 % counts `locked` only — emission continues
 through coasting, so perceived coverage is higher; on real music the "1" still moves
