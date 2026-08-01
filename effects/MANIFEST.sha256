@@ -1,15 +1,15 @@
 # TuneThatHue effects manifest - written by tools/sync_effects.py
-# synced: 2026-08-01T01:15:24.696175+00:00  (push)
-# provider: D:\Code\music-assistant-hue-mod\server @ d12e8d643d50132a28b24beef1f7b9a95356ab8b
-aeb04699caa90d27987254d879c75244894265092c29ae63f50dae5da6a745b7  hue_fx/analyzer.py
-ddca0a95c8f80e31825c6627960d3943e824ef9cb64efb5abf039d151e4cda03  hue_fx/structure.py
+# synced: 2026-08-01T01:24:34.021436+00:00  (push)
+# provider: D:\Code\music-assistant-hue-mod\server @ 0c4950e6e7077d61cd23ccf9976577f41eca65b5
+d1ebff2618c8fd52a3639d3e4721604b395a53520f6e09b78c577869f274c3be  hue_fx/analyzer.py
+43937ddb5d733edd81ef2b00db97de19e900ba2d98fcd631f4d0d01bec11485c  hue_fx/structure.py
 d0122c9d69216fe632125aa772553ac2033fe1ee73a14604e61656b34174f597  hue_fx/strobe_overlay.py
 23ff050d9aa49bd5f547327b354493c4970ef5b2a0d739e75e9109a5bf97f6de  hue_fx/palettes.py
 0b969ebf1a0a1750f087feec39919ac9f680a47ceb75539e7be4ee280d4a0df6  hue_fx/palettes.json
 7a2a7322ad134786554616d74504e938b4aef944af1a13eab575227a1d5aba92  hue_fx/constants.py
 6a170a7d26ea803f11d310944acf986c1bd45544fe3455f640ce5760dd8db4a6  ma_provider/__init__.py
 7b36bf92ac6b1b2313594281d45e3063fc7d945a158a2923891120166cbed46e  ma_provider/provider.py
-db52acc9df82271d367f0d3078f562b9b3b08e7e1c1bfb31228261f9d96a0b7a  ma_provider/bridge.py
+be2804f4bd672e9bf1d2581da7b1cfc6dc0d09339d74c7dc7a6372224f8cf399  ma_provider/bridge.py
 f8dfe35d529c703104d0befb6dedfebb7c471016e4c7200670e6fb1eecb2a112  ma_provider/preview.py
 ae049f72c545c2bccb8736826768fa88afc1338d7a031ff2f4f55a1797f029f5  ma_provider/calibration.py
 c6f2c3b6b8759f0b3174212a4d78c747a6e96ad474d1f534872773f506453dcc  ma_provider/strings.json
