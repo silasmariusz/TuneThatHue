@@ -207,7 +207,7 @@ main{max-width:1180px;margin:0 auto;padding:16px 14px 8px;
 .cell .screen{display:grid;place-items:center;height:100%}
 @media(max-width:700px){
   .lcdrow{grid-template-columns:1fr 1fr;gap:10px}
-  .meters{height:120px}
+  .meters{grid-template-rows:120px}
 }
 
 /* ── nothing coming in ────────────────────────────────────────────────────
@@ -287,8 +287,10 @@ main>.panel+.panel{margin-top:0}
 .plate.dark .row>label:first-child{color:var(--print-light)}
 .plate.dark label.fieldname{color:var(--print-light)}
 
-.meters{display:grid;grid-template-columns:1fr auto auto 1fr;gap:8px;
-  align-items:stretch;height:150px}
+/* The row height is pinned, not inherited: the SVG has proportions of its own, and an
+   auto grid row happily grows to fit them, taking the whole panel with it. */
+.meters{display:grid;grid-template-columns:1fr auto auto 1fr;grid-template-rows:150px;
+  gap:8px;align-items:stretch}
 .ledcol{height:100%}
 .mirror{transform:scaleX(-1)}
 
@@ -296,9 +298,10 @@ main>.panel+.panel{margin-top:0}
    The SVG keeps its own proportions and the letterbox is the same black as the
    face, so a wider window simply shows more glass. */
 .mtr{display:grid;height:100%;min-width:0}
-.vuwrap{height:100%;width:100%;border-radius:3px;padding:0;background:#000;border:1px solid #000;
+.vuwrap{position:relative;height:100%;width:100%;border-radius:3px;padding:0;background:#000;
+  border:1px solid #000;
   box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.45);overflow:hidden}
-.vuwrap svg{display:block;width:100%;height:100%}
+.vuwrap svg{position:absolute;inset:0;width:100%;height:100%}
 .mtr-cap{font-family:var(--f-cond);font-size:9px;letter-spacing:.2em;color:var(--ink-soft)}
 
 /* LED column: Traktor's meter. Small segments, quiet until they are not. */
