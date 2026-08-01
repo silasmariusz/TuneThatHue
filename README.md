@@ -13,7 +13,7 @@ machine you already own, and fire.
 
 [![Watch TuneThatHue run](docs/img/video.jpg)](https://www.youtube.com/watch?v=w_EbUPbOirw)
 
-![The light wall — what the bridge is actually being sent, live](docs/img/wall.webp)
+<img width="1033" height="1155" alt="image" src="https://github.com/user-attachments/assets/57f47152-2391-471f-94a5-41310eb9d2a0" />
 
 ## What it does
 
@@ -96,7 +96,7 @@ Windows service, a launchd agent, a systemd user unit, a QNAP package with a wat
 The panel is then on **`http://127.0.0.1:8080`** (`http://<nas>/TuneThatHue/` on a NAS),
 and `tunethathue status` works from a terminal.
 
-![Settings, generated from the Music Assistant provider's own sources](docs/img/settings.webp)
+<img width="1031" height="1163" alt="image" src="https://github.com/user-attachments/assets/451a6932-02b8-4808-bbb6-bc37ecee1d7e" />
 
 ### Raspberry Pi and Linux, step by step
 
@@ -195,7 +195,7 @@ That makes it useful in both directions: **it is a workbench for building and de
 VFX effects for [Music Assistant](https://github.com/music-assistant/server)**. Restart
 takes a second, the lights are in the room, and the file copies straight back.
 
-![Advanced settings and latency calibration](docs/img/panel.webp)
+<img width="1032" height="1214" alt="image" src="https://github.com/user-attachments/assets/5a14ec2e-e71e-4e39-b213-f296a7045e4a" />
 
 ## Timing
 
