@@ -165,7 +165,7 @@ signature; nothing may ever be drawn over it.
 - Protocol chips are placeholders with stable ids (`#proto-snapcast`, `#proto-dlna`,
   `#proto-squeezebox`): drop a 14×14 monochrome SVG inside the chip's `.proto-slot`
   when the icons are ready; the empty recessed square disappears automatically.
-- The copyright block keeps the devspark / forum.qnap.net.pl / myqnap.org lines and the
+- The copyright block keeps the author / forum.qnap.net.pl / myqnap.org lines and the
   non-affiliation notice. Legal text: 11.5 px, `#5C646C`.
 
 ## 9. Do / Don't

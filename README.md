@@ -214,7 +214,10 @@ click.
 
 ## Credits and licence
 
-Apache-2.0. See [`NOTICE`](NOTICE) and
+Freeware: [`LICENSE`](LICENSE) (TuneThatHue Freeware Licence 1.0, from 0.9.11 on; 0.9.10
+and earlier were published under Apache-2.0 and stay under it). The effects engine in
+`effects/` is Music Assistant's code under Apache-2.0, and `qnap/build_ffmpeg.sh` is
+under the GPL ([`COPYING`](COPYING)). See [`NOTICE`](NOTICE) and
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). The package carries an LGPL build of
 FFmpeg for decoding.
 
@@ -223,6 +226,6 @@ by Signify / Philips Hue, Native Instruments, Winamp, foobar2000 or AIMP.
 
 ---
 
-TuneThatHue © 2025–2026 Silas Mariusz Grzybacz · [devspark.pl](https://devspark.pl)
+TuneThatHue © 2025–2026 Silas, Mariusz Grzybacz · Freeware
 published: [forum.qnap.net.pl](https://forum.qnap.net.pl/download/tunethathue.1113/) ·
 qnap app repo: [myqnap.org](https://www.myqnap.org)

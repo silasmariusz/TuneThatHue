@@ -155,7 +155,7 @@ class SendspinDevice:
             client_id=self._client_id(),
             client_name=self.name,
             roles=[Roles.VISUALIZER, Roles.COLOR],
-            device_info=DeviceInfo(manufacturer="devspark.pl", product_name="TuneThatHue"),
+            device_info=DeviceInfo(manufacturer="Silas, Mariusz Grzybacz", product_name="TuneThatHue"),
             visualizer_support=ClientHelloVisualizerSupport(
                 buffer_capacity=BUFFER_CAPACITY,
                 rate_max=VISUALIZER_RATE_HZ,

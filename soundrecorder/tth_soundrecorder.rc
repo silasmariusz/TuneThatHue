@@ -33,9 +33,9 @@ BEGIN
     PUSHBUTTON      "Cancel",            IDCANCEL, 224, 182,  44, 14
 
     CONTROL         "", -1, "Static", SS_ETCHEDHORZ, 10, 204, 260, 1
-    LTEXT           "TuneThatHue  (c) 2025-2026  Silas Mariusz Grzybacz",
+    LTEXT           "TuneThatHue  (c) 2025-2026  Silas, Mariusz Grzybacz",
                     IDC_CREDITS1, 10, 210, 260, 10
-    LTEXT           "devspark.pl  -  published: forum.qnap.net.pl",
+    LTEXT           "Freeware  -  published: forum.qnap.net.pl",
                     -1, 10, 222, 260, 10
     LTEXT           "QNAP app repo: myqnap.org",
                     IDC_CREDITS2, 10, 234, 260, 10
@@ -56,11 +56,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName",      "Silas Mariusz Grzybacz - devspark.pl"
+            VALUE "CompanyName",      "Silas, Mariusz Grzybacz"
             VALUE "FileDescription",  "TuneThatHue SoundRecorder - audio capture for TuneThatHue"
             VALUE "FileVersion",      "1.0.0.0"
             VALUE "InternalName",     "TuneThatHue-SoundRecorder"
-            VALUE "LegalCopyright",   "(c) 2025-2026 Silas Mariusz Grzybacz. forum.qnap.net.pl / myqnap.org"
+            VALUE "LegalCopyright",   "(c) 2025-2026 Silas, Mariusz Grzybacz. forum.qnap.net.pl / myqnap.org"
             VALUE "OriginalFilename", "TuneThatHue-SoundRecorder.exe"
             VALUE "ProductName",      "TuneThatHue"
             VALUE "ProductVersion",   "1.0.0.0"

@@ -10,7 +10,7 @@
 ##
 ##   www.qnaputilities.com  forum.qnap.net.pl
 ##
-##   LICENSE: Apache-2.0
+##   LICENSE: Freeware
 ##
 ##   ┌─────────┬───────────────────────────────┐
 ##   │ File    │ qnap/shared/tunethathue.sh    │

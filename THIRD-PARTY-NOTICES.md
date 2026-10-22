@@ -1,8 +1,8 @@
 # Third-party notices & attribution
 
-TuneThatHue is Apache-2.0 licensed and stands on the shoulders of other
-Apache-2.0 projects. This file records what is reused and from where, as the
-Apache License requires. Nothing here is a modified derivative unless stated —
+TuneThatHue is freeware (LICENSE, from 0.9.11 on; earlier releases were
+Apache-2.0) and uses the components below, each under its own licence. This file
+records what is reused and from where, as those licences require. Nothing here is a modified derivative unless stated —
 the reused effects engine is a **verbatim, byte-for-byte copy** kept in sync
 with upstream by `tools/sync_effects.py` (which records the source commit and a
 SHA-256 manifest in `effects/MANIFEST.sha256`).
@@ -17,7 +17,7 @@ A verbatim copy of the `hue_entertainment` provider's DSP/effects modules from
 
 Copyright (c) The Open Home Foundation and Music Assistant contributors.
 Source: https://github.com/music-assistant/server
-License: Apache-2.0.
+License: Apache-2.0 (the full text is in `effects/LICENSE`).
 
 These files are **unmodified**; improvements are made upstream in Music Assistant
 and pulled here with `tools/sync_effects.py`. This 1:1 copy is deliberate — it
@@ -56,7 +56,7 @@ Windows front-ends are cross-compiled with **llvm-mingw**
 
 ---
 
-The full Apache License 2.0 text is in `LICENSE`. Trademarks (Music Assistant,
+The full Apache License 2.0 text is in `effects/LICENSE`. Trademarks (Music Assistant,
 Sendspin, Philips Hue, QNAP) belong to their respective owners; TuneThatHue is an
 independent, unaffiliated project.
 

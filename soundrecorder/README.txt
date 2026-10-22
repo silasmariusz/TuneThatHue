@@ -4,7 +4,7 @@ TuneThatHue SoundRecorder
 Captures what this PC is playing and sends it to the TuneThatHue daemon, which
 turns it into light effects on Philips Hue.
 
-(c) 2025-2026 Silas Mariusz Grzybacz - devspark.pl
+(c) 2025-2026 Silas, Mariusz Grzybacz
 published: forum.qnap.net.pl   qnap app repo: myqnap.org
 
 

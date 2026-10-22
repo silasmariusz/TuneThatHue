@@ -1,7 +1,7 @@
 /*
  * foo_tunethathue.cpp - TuneThatHue DSP component for foobar2000.
  *
- * TuneThatHue (c) 2025-2026 Silas Mariusz Grzybacz - devspark.pl
+ * TuneThatHue (c) 2025-2026 Silas, Mariusz Grzybacz
  * published: forum.qnap.net.pl   qnap app repo: myqnap.org
  *
  * Tees the audio foobar2000 is playing to the TuneThatHue daemon as VBAN/UDP
@@ -70,7 +70,7 @@ DECLARE_COMPONENT_VERSION("TuneThatHue",
                           "TuneThatHue - sync Philips Hue lights to what foobar2000 is playing.\n"
                           "Sends the audio to the TuneThatHue daemon (VBAN/UDP); playback is not "
                           "altered.\n\n"
-                          "(c) 2025-2026 Silas Mariusz Grzybacz - devspark.pl\n"
+                          "(c) 2025-2026 Silas, Mariusz Grzybacz\n"
                           "published: forum.qnap.net.pl   qnap app repo: myqnap.org");
 VALIDATE_COMPONENT_FILENAME("foo_tunethathue.dll");
 

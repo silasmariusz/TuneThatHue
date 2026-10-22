@@ -59,3 +59,30 @@ killed daemon, and a real cron run did it within 80 seconds; a start under umask
 `config/` 0700 and `hue-box.toml` 0600; a reinstall over itself keeps the settings; an
 uninstall leaves no file, link, icon, cron line or proxy line behind, and on the QTS unit
 `/etc/app_proxy.conf` and the crontab equal their copies from before the first install.
+
+## D2 - TuneThatHue is freeware, its author is "Silas, Mariusz Grzybacz", and devspark.pl is gone (2026-10-22, 0.9.11)
+
+The owner's standing rule of 2026-10-08, applied to TuneThatHue: every package is freeware,
+the author is written "Silas, Mariusz Grzybacz", and DevSpark or devspark.pl appears nowhere.
+
+1. **Licence.** `LICENSE` is the TuneThatHue Freeware Licence 1.0, the same terms as the
+   other packages' freeware licences, with a section saying that releases up to and
+   including 0.9.10 were published under the Apache License 2.0 and stay under it. The
+   package's `QPKG_LICENSE` is `Freeware`.
+2. **What keeps another licence.** `effects/` is Music Assistant's code (the Open Home
+   Foundation and Music Assistant contributors), copied byte for byte, so it stays under
+   the Apache License 2.0; its text moved from the root `LICENSE` to `effects/LICENSE`.
+   `qnap/build_ffmpeg.sh` builds FFmpeg (LGPL 2.1 or later), whose licence counts the
+   scripts that control its compilation as part of its source, so `COPYING` puts that one
+   script under the GPL 2.0 or later, as the other packages do with their build scripts.
+   The libraries in the runtime keep their own licences (`THIRD-PARTY-NOTICES.md`).
+3. **Author.** "Silas, Mariusz Grzybacz" in `QPKG_AUTHOR`, `NOTICE`, the README, the web
+   page's footer, the DLNA description (`manufacturer`; `manufacturerURL` is the GitHub
+   repository), the Sendspin device info Music Assistant shows, the Windows plug-ins'
+   resources and about texts, and the Inno Setup publisher (the installers' `AppId`s do not
+   depend on it, so an installed copy still upgrades in place).
+4. **The one devspark.pl left: the macOS launch agent's label** (`pl.devspark.tunethathue`,
+   in `install/tunethathue_ctl.py` and `install/macos/install.sh`). It names an agent that
+   is already installed on Macs. A new label would leave the old agent running beside the
+   new one, both binding the same ports, and moving an agent across labels needs a Mac to
+   test it on. It stays until such a move is built and tested.

@@ -16,7 +16,7 @@
 
 #define AppName     "TuneThatHue"
 #define AppVersion  "0.9.2"
-#define Publisher   "Silas Mariusz Grzybacz"
+#define Publisher   "Silas, Mariusz Grzybacz"
 #define AppUrl      "https://github.com/silasmariusz/TuneThatHue"
 #define Root        ".."
 

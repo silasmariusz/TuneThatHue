@@ -1,7 +1,7 @@
 /*
  * tth_capture.c - TuneThatHue system-audio capture, system-tray app.
  *
- * TuneThatHue (c) 2025-2026 Silas Mariusz Grzybacz - devspark.pl
+ * TuneThatHue (c) 2025-2026 Silas, Mariusz Grzybacz
  * published: forum.qnap.net.pl   qnap app repo: myqnap.org
  *
  * Captures EVERYTHING Windows is playing (WASAPI loopback on the default

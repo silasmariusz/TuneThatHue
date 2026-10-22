@@ -21,7 +21,7 @@ qnap/
 ├── icons/              TuneThatHue.gif, _80.gif, _gray.gif (PNG data), made by make_icons.py
 └── shared/
     ├── tunethathue.sh                  the QTS service script (start, stop, restart, status, watchdog)
-    ├── app/                            the TuneThatHue code (assembled, git-ignored)
+    ├── app/                            the TuneThatHue code and its licence files (assembled, git-ignored)
     └── runtime/python-x86_64/          portable CPython + dependencies (assembled, git-ignored)
         runtime/ffmpeg-x86_64/ffmpeg    the audio-only FFmpeg (assembled, git-ignored)
 ```
@@ -39,6 +39,7 @@ cd qnap
 # 1) the app code
 rm -rf shared/app && mkdir -p shared/app
 cp -a ../effects ../python ../pystub ../resources ../config shared/app/
+cp -a ../LICENSE ../COPYING ../NOTICE ../THIRD-PARTY-NOTICES.md shared/app/
 find shared/app -name __pycache__ -prune -exec rm -rf {} +
 
 # 2) the runtime, if shared/runtime/ is not there yet

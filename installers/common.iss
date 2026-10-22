@@ -2,9 +2,9 @@
 ; Included by tth-soundrecorder.iss / tth-winamp.iss / tth-foobar.iss.
 
 #define TTHVersion      "1.0.0"
-#define TTHPublisher    "Silas Mariusz Grzybacz - devspark.pl"
-#define TTHCopyright    "(c) 2025-2026 Silas Mariusz Grzybacz"
-#define TTHUrl          "https://devspark.pl"
+#define TTHPublisher    "Silas, Mariusz Grzybacz"
+#define TTHCopyright    "(c) 2025-2026 Silas, Mariusz Grzybacz"
+#define TTHUrl          "https://github.com/silasmariusz/TuneThatHue"
 #define TTHSupportUrl   "https://forum.qnap.net.pl"
 #define TTHUpdatesUrl   "https://myqnap.org"
 #define TTHIcon         "..\resources\tth.ico"

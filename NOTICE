@@ -1,10 +1,11 @@
 TuneThatHue
-Copyright (c) 2025-2026 Silas Mariusz Grzybacz (devspark.pl)
+Copyright (c) 2025-2026 Silas, Mariusz Grzybacz.
 
-This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+TuneThatHue is freeware under the TuneThatHue Freeware Licence 1.0 (LICENSE). Releases up
+to and including 0.9.10 were published under the Apache License 2.0 and stay under it.
 
-It includes and builds upon Apache-2.0 licensed work from the Open Home
-Foundation / Music Assistant project. See THIRD-PARTY-NOTICES.md for the full
-attribution. Music Assistant, Sendspin and Philips Hue are trademarks of their
-respective owners; TuneThatHue is an independent project and is not affiliated
+It includes Apache-2.0 licensed work from the Open Home Foundation / Music Assistant
+project: effects/, under effects/LICENSE. See THIRD-PARTY-NOTICES.md for every
+component and its licence. Music Assistant, Sendspin and Philips Hue are trademarks of
+their respective owners; TuneThatHue is an independent project and is not affiliated
 with, endorsed by, or sponsored by any of them.

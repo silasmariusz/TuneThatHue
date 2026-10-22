@@ -15,7 +15,7 @@ FROM python:3.14-slim-bookworm
 LABEL org.opencontainers.image.title="TuneThatHue" \
       org.opencontainers.image.description="DJ-style VFX daemon for Philips Hue" \
       org.opencontainers.image.source="https://github.com/silasmariusz/TuneThatHue" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.licenses="LicenseRef-TuneThatHue-Freeware-1.0"
 
 # ffmpeg is the decoder. Debian's is LGPL-built and carries every codec these protocols
 # can deliver, so there is no reason to bundle our own here.

@@ -1,7 +1,7 @@
 /*
  * tth_soundrecorder.cpp - TuneThatHue SoundRecorder (Windows system-tray app).
  *
- * TuneThatHue (c) 2025-2026 Silas Mariusz Grzybacz - devspark.pl
+ * TuneThatHue (c) 2025-2026 Silas, Mariusz Grzybacz
  * published: forum.qnap.net.pl   qnap app repo: myqnap.org
  *
  * Captures Windows audio and tees it to the TuneThatHue daemon as VBAN/UDP

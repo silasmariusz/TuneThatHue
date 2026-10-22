@@ -3,6 +3,18 @@
 Releases of every platform are on the [releases page](https://github.com/silasmariusz/TuneThatHue/releases).
 This file lists the QNAP package's changes from 0.9.10 on.
 
+## 0.9.11 (2026-10-22)
+
+- TuneThatHue is freeware under the TuneThatHue Freeware Licence 1.0 (`LICENSE`). Releases
+  up to and including 0.9.10 were published under the Apache License 2.0 and stay under it.
+  The effects engine in `effects/` stays Music Assistant's Apache-2.0 code
+  (`effects/LICENSE`); `qnap/build_ffmpeg.sh` is under the GPL (`COPYING`).
+- The author is written "Silas, Mariusz Grzybacz" everywhere: the package, the web page's
+  footer, the DLNA renderer and Music Assistant player details, and the Windows plug-ins
+  and installers.
+- Nothing names devspark.pl any more, except the macOS launch agent's label (D2).
+- The QNAP package works as in 0.9.10.
+
 ## 0.9.10 (QNAP package, 2026-10-22)
 
 - App Center's Open shows the panel after the app is switched on. Up to 0.9.9 the panel

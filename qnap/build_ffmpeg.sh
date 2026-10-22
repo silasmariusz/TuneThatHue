@@ -1,9 +1,30 @@
 #!/bin/bash
+##
+##   ███████ ██   ██ ▄█████▄ ▄██████ ███████ ██   ██ ▄█████▄ ███████ ██   ██ ██   ██ ▄██████
+##     ▐█▌   ██   ██ ██   ██ ██▄▄▄▄    ▐█▌   ██▄▄▄██ ██▄▄▄██   ▐█▌   ██▄▄▄██ ██   ██ ██▄▄▄▄
+##     ▐█▌   ██   ██ ██   ██ ██▀▀▀▀    ▐█▌   ██▀▀▀██ ██▀▀▀██   ▐█▌   ██▀▀▀██ ██   ██ ██▀▀▀▀
+##     ▐█▌   ▀█████▀ ██   ██ ▀██████   ▐█▌   ██   ██ ██   ██   ▐█▌   ██   ██ ▀█████▀ ▀██████
+##
+##   Copyright © 2008-2027, Silas Mariusz <silas@qnap.com.antispam>
+##                          QNAP Club Polska
+##
+##   www.qnaputilities.com  forum.qnap.net.pl
+##
+##   LICENSE: GPL-2.0-or-later
+##
+##   ┌─────────┬───────────────────────────────┐
+##   │ File    │ qnap/build_ffmpeg.sh          │
+##   ├─────────┼───────────────────────────────┤
+##   │ Package │ TuneThatHue, QPKG TuneThatHue │
+##   ├─────────┼───────────────────────────────┤
+##   │ Runs on │ the build machine (Linux)     │
+##   └─────────┴───────────────────────────────┘
+##
 # Build a small, audio-only, LGPL ffmpeg for TuneThatHue.
 #
 # Audio-only because we decode and throw the samples at an analyzer: no video, no
 # filters beyond resampling, no network (we feed it through a pipe). LGPL because the
-# project is Apache-2.0 and a GPL binary would drag the whole package into GPL - none of
+# project is freeware and a GPL binary would drag the whole package into GPL - none of
 # the audio decoders we need are GPL-only, so there is nothing to gain by enabling it.
 set -e
 ARCH="${1:-x86_64}"
@@ -16,12 +37,14 @@ cd "$SRC"
 [ -f ffmpeg-$VER.tar.xz ] || curl -sL -o ffmpeg-$VER.tar.xz "https://ffmpeg.org/releases/ffmpeg-$VER.tar.xz"
 [ -d ffmpeg-$VER ] || tar xf ffmpeg-$VER.tar.xz
 BUILD="$SRC/build-$ARCH"
-rm -rf "$BUILD"; mkdir -p "$BUILD"; cd "$BUILD"
+rm -rf "$BUILD"
+mkdir -p "$BUILD"
+cd "$BUILD"
 
 CROSS=""
 case "$ARCH" in
   aarch64) CROSS="--enable-cross-compile --cross-prefix=aarch64-linux-gnu- --arch=aarch64 --target-os=linux" ;;
-  armv7)   CROSS="--enable-cross-compile --cross-prefix=arm-linux-gnueabihf- --arch=arm --target-os=linux" ;;
+  armv7) CROSS="--enable-cross-compile --cross-prefix=arm-linux-gnueabihf- --arch=arm --target-os=linux" ;;
 esac
 
 "$SRC/ffmpeg-$VER/configure" \

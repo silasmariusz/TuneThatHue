@@ -2,7 +2,7 @@
  * dsp_tunethathue.c - Winamp DSP plugin that tees decoded PCM to the
  * TuneThatHue daemon as VBAN/UDP audio packets.
  *
- * TuneThatHue (c) 2025-2026 Silas Mariusz Grzybacz - devspark.pl
+ * TuneThatHue (c) 2025-2026 Silas, Mariusz Grzybacz
  * published: forum.qnap.net.pl   qnap app repo: myqnap.org
  *
  * Sound keeps playing normally through Winamp's own output; this plugin only

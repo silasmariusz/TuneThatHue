@@ -5,7 +5,7 @@ Sends what foobar2000 is playing to the TuneThatHue daemon, which turns it into
 light effects on Philips Hue. Playback is not altered - the component only
 copies the audio to the network.
 
-(c) 2025-2026 Silas Mariusz Grzybacz - devspark.pl
+(c) 2025-2026 Silas, Mariusz Grzybacz
 published: forum.qnap.net.pl   qnap app repo: myqnap.org
 
 Requires 64-bit foobar2000 2.x.

@@ -209,8 +209,8 @@ class DlnaRenderer:
   <device>
     <deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType>
     <friendlyName>{self.name}</friendlyName>
-    <manufacturer>devspark.pl</manufacturer>
-    <manufacturerURL>https://devspark.pl</manufacturerURL>
+    <manufacturer>Silas, Mariusz Grzybacz</manufacturer>
+    <manufacturerURL>https://github.com/silasmariusz/TuneThatHue</manufacturerURL>
     <modelDescription>Hue lighting renderer</modelDescription>
     <modelName>TuneThatHue</modelName>
     <modelNumber>1</modelNumber>
