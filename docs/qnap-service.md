@@ -98,6 +98,17 @@ moved over the crontab. Under QTS's umask 0000 that left root's crontab writable
 user (0666). `pkg_post_install` and every crontab edit of the script set it back to the
 firmware's 0644 (`chmod go-w`).
 
+## Updates
+
+The package is in two feeds on qnaputilities.com, `repo.xml` (App Center's repository) and
+`sdlv.xml`, both made from `pub.qnaputilities.com/tunethathue/download/`. QTS records which
+feed installed a package as `store` in qpkg.conf; the value is the MD5 of the feed's URL
+(`71440c3a…` for `https://www.qnaputilities.com/repo.xml`, `9d20878e…` for `sdlv.xml`). An
+update from a feed (`qpkg_cli -a TuneThatHue -x <store>`, what App Center does) is refused
+while the installed package belongs to another store ("The internal name of TuneThatHue has
+been registered by TuneThatHue"). `qpkg_cli -m <file>` installs over any of them and keeps the
+`store` value and the settings.
+
 ## Upgrades from 0.9.9 and older
 
 `pkg_post_install` deletes what the old versions left: `app.new/`, `app.prev/` and
