@@ -1,16 +1,66 @@
 ######################################################################
-# TuneThatHue QDK package routines (install/remove hooks).
-# See the QDK docs for the full list of SYS_*/CMD_* definitions and hooks.
+# TuneThatHue QDK package routines (install and remove hooks).
+# QDK's qinstall.sh sources this file; SYS_QPKG_DIR is the install folder.
 ######################################################################
 
 ######################################################################
-# Warn (non-fatal) if our loopback WebUI port is already in use. The daemon
-# serves itself on 127.0.0.1:QPKG_WEB_PORT behind the QTS panel proxy; a taken
-# port would make the /TuneThatHue route fail once the service starts.
+# Warn (non-fatal) if the web page's port is already in use. The daemon
+# serves its page on QPKG_WEB_PORT behind the QTS panel proxy; a taken
+# port makes the /TuneThatHue/ route fail once the service starts.
 ######################################################################
 pkg_pre_install(){
     _tth_port="58091"
-    if /bin/netstat -tlnp 2>/dev/null | /bin/grep -q ":${_tth_port} "; then
+    if /bin/netstat -tln 2>/dev/null | /bin/grep -q ":${_tth_port} "; then
         /sbin/write_log "[TuneThatHue] WARNING: TCP ${_tth_port} already in use; the WebUI may fail to bind. Free it or change QPKG_WEB_PORT in qpkg.cfg." 1
     fi
 }
+
+######################################################################
+# After the files are in place, before QTS runs start.
+######################################################################
+pkg_post_install(){
+    # 0.9.9 and older shipped two copies left over from a build (app.new/,
+    # app.prev/) and ran the daemon through etc/tunethathue/daemon.sh;
+    # tunethathue.sh does that itself now.
+    /bin/rm -rf "${SYS_QPKG_DIR:?}/app.new" "${SYS_QPKG_DIR:?}/app.prev"
+    /bin/rm -f "${SYS_QPKG_DIR:?}/etc/tunethathue/daemon.sh"
+    /bin/rmdir "${SYS_QPKG_DIR:?}/etc/tunethathue" "${SYS_QPKG_DIR:?}/etc" 2>/dev/null
+    # their watchdog line called daemon.sh; start writes the new one when the package is switched on.
+    # Their stop also left root's crontab writable by every user (a temporary file made under QTS's
+    # umask 0000 and moved over it): back to the firmware's 0644.
+    /bin/chmod go-w /etc/config/crontab 2>/dev/null
+    if /bin/grep -qF "# TuneThatHue-watchdog" /etc/config/crontab 2>/dev/null; then
+        /bin/sed -i "/# TuneThatHue-watchdog/d" /etc/config/crontab
+        /usr/bin/crontab /etc/config/crontab 2>/dev/null
+    fi
+    # QTS installs with umask 0000: config/ holds the paired bridge's keys, var/ the log. Closed here
+    # too, for a package that stays switched off and never runs start.
+    for _tth_d in config var var/run var/log; do
+        [ -d "${SYS_QPKG_DIR:?}/${_tth_d}" ] && /bin/chmod 0700 "${SYS_QPKG_DIR:?}/${_tth_d}"
+    done
+    for _tth_f in "${SYS_QPKG_DIR:?}"/config/* "${SYS_QPKG_DIR:?}"/var/log/*; do
+        [ -f "$_tth_f" ] && /bin/chmod 0600 "$_tth_f"
+    done
+    return 0
+}
+
+######################################################################
+# At uninstall, after QTS ran "tunethathue.sh stop" and deleted the
+# package folder: whatever stop could not take away (a stop that never
+# ran, or one that failed), with literal paths. QTS removes the icons
+# and its own ProxyPass line itself.
+######################################################################
+PKG_POST_REMOVE='{
+    /bin/rm -f /var/run/tunethathue.run
+    if /bin/grep -qF "# TuneThatHue-watchdog" /etc/config/crontab 2>/dev/null; then
+        /bin/sed -i "/# TuneThatHue-watchdog/d" /etc/config/crontab
+        /usr/bin/crontab /etc/config/crontab 2>/dev/null
+    fi
+    if /bin/grep -qF "# >>> TuneThatHue (managed by tunethathue.sh) >>>" /etc/app_proxy.conf 2>/dev/null; then
+        /bin/sed -i "/^# >>> TuneThatHue (managed by tunethathue.sh) >>>/,/^# <<< TuneThatHue <<</d" /etc/app_proxy.conf
+        if /usr/local/apache/bin/apache_proxy -t -f /etc/apache-sys-proxy.conf >/dev/null 2>&1; then
+            /usr/local/apache/bin/apache_proxy -k graceful -f /etc/apache-sys-proxy.conf >/dev/null 2>&1
+            /usr/local/apache/bin/apache_proxys -k graceful -f /etc/apache-sys-proxy-ssl.conf >/dev/null 2>&1
+        fi
+    fi
+}'

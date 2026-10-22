@@ -73,7 +73,7 @@ Both are reported in the panel in those words, so nobody has to guess.
 
 | | |
 | --- | --- |
-| **QNAP NAS** | QuTS hero 6.0 or QTS 6.0, any platform |
+| **QNAP NAS** | QuTS hero 6.0 or QTS 6.0, x86_64 models |
 | **Windows** | 10 or 11, installs as a service with a tray icon |
 | **macOS** | 12 or newer, launchd agent with a menu-bar icon |
 | **Linux** | Ubuntu 24.04, Debian, Raspberry Pi OS: systemd user service |
@@ -85,7 +85,7 @@ Everything is on the [releases page](https://github.com/silasmariusz/TuneThatHue
 
 | You have | Download | Then |
 | --- | --- | --- |
-| QNAP NAS | `TuneThatHue_x.y.z.qpkg` | App Center -> *Install Manually* |
+| QNAP NAS | `TuneThatHue_x.y.z.qpkg` | App Center -> *Install Manually*, or from App Center with the repository `https://www.qnaputilities.com/repo.xml` |
 | Windows 10/11 | `TuneThatHue-daemon-x.y.z-setup.exe` | run it |
 | Linux, Raspberry Pi | `TuneThatHue-x.y.z-unix.tar.gz` | unpack, run `install/linux/install.sh` |
 | macOS 12+ | `TuneThatHue-x.y.z-unix.tar.gz` | unpack, run `install/macos/install.sh` |
@@ -93,7 +93,8 @@ Everything is on the [releases page](https://github.com/silasmariusz/TuneThatHue
 
 On every platform it installs as a service that starts by itself and keeps running: a
 Windows service, a launchd agent, a systemd user unit, a QNAP package with a watchdog.
-The panel is then on **`http://127.0.0.1:8080`** (`http://<nas>/TuneThatHue/` on a NAS),
+The panel is then on **`http://127.0.0.1:8080`** (on a NAS: App Center's *Open*, which is
+`http://<nas>:<the NAS's web port>/TuneThatHue/`),
 and `tunethathue status` works from a terminal.
 
 <img width="1031" height="1163" alt="image" src="https://github.com/user-attachments/assets/451a6932-02b8-4808-bbb6-bc37ecee1d7e" />
@@ -205,7 +206,8 @@ click.
 
 ## Building it yourself
 
-- `.qpkg`: [`qnap/README-BUILD.md`](qnap/README-BUILD.md)
+- `.qpkg`: [`qnap/README-BUILD.md`](qnap/README-BUILD.md); how it runs on the NAS:
+  [`docs/qnap-service.md`](docs/qnap-service.md)
 - The bundled decoder: [`qnap/build_ffmpeg.sh`](qnap/build_ffmpeg.sh)
 - Windows senders and daemon installer: `build-windows.ps1`,
   `installers/prepare-windows.ps1`

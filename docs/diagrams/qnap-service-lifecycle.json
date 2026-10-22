@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "TuneThatHue on a QNAP NAS: service lifecycle",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "viewBox": [
+      960,
+      566
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "tunethathue.sh"
+    },
+    {
+      "id": "side",
+      "label": "Switched off, crash, removal"
+    }
+  ],
+  "states": [
+    {
+      "id": "installed",
+      "type": "start",
+      "label": "Installed",
+      "sublabel": "App Center, qpkg_cli",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "start",
+      "type": "active",
+      "label": "start",
+      "sublabel": "boot, switch-on, Start",
+      "lane": "main",
+      "col": 1,
+      "step": "02"
+    },
+    {
+      "id": "gate",
+      "type": "decision",
+      "label": "Enable = TRUE?",
+      "sublabel": "/etc/config/qpkg.conf",
+      "lane": "main",
+      "col": 2,
+      "step": "03"
+    },
+    {
+      "id": "running",
+      "type": "success",
+      "label": "Running",
+      "sublabel": "daemon, route, cron",
+      "lane": "main",
+      "col": 3,
+      "step": "04"
+    },
+    {
+      "id": "stopped",
+      "type": "waiting",
+      "label": "Stopped",
+      "sublabel": "all of it removed",
+      "lane": "main",
+      "col": 4,
+      "step": "05"
+    },
+    {
+      "id": "off",
+      "type": "neutral",
+      "label": "Refused",
+      "sublabel": "exit 1, nothing made",
+      "lane": "side",
+      "col": 0,
+      "tag": "switched off"
+    },
+    {
+      "id": "died",
+      "type": "failure",
+      "label": "Daemon died",
+      "sublabel": "marker still there",
+      "lane": "side",
+      "col": 1,
+      "tag": "watchdog"
+    },
+    {
+      "id": "removed",
+      "type": "neutral",
+      "label": "Uninstalled",
+      "sublabel": "rootfs left clean",
+      "lane": "side",
+      "col": 2,
+      "tag": "terminal"
+    }
+  ],
+  "transitions": [
+    {
+      "from": "installed",
+      "to": "start"
+    },
+    {
+      "from": "start",
+      "to": "gate"
+    },
+    {
+      "from": "gate",
+      "to": "running",
+      "label": "TRUE"
+    },
+    {
+      "from": "gate",
+      "to": "off",
+      "label": "not TRUE",
+      "variant": "dashed",
+      "route": "straight",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "from": "running",
+      "to": "stopped",
+      "label": "stop"
+    },
+    {
+      "from": "died",
+      "to": "running",
+      "label": "watchdog, 2 min",
+      "variant": "emphasis"
+    },
+    {
+      "from": "stopped",
+      "to": "removed",
+      "label": "uninstall",
+      "route": "straight",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "start makes",
+      "items": [
+        "the run marker /var/run/tunethathue.run",
+        "the route block in /etc/app_proxy.conf",
+        "the watchdog line in /etc/config/crontab"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "stop takes away",
+      "items": [
+        "the marker first, then the cron line and the route",
+        "only this folder's daemon (/proc/<pid>/exe)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "The watchdog starts nothing",
+      "items": [
+        "while QTS installs (Status not complete)",
+        "when Enable is not TRUE, and drops its line",
+        "without the marker"
+      ]
+    }
+  ]
+}
