@@ -206,6 +206,10 @@ click.
 
 ## Building it yourself
 
+- The source is this repository on GitHub. A public read-only copy,
+  [code.qnaputilities.com](https://code.qnaputilities.com/git/silasmariusz/TuneThatHue),
+  follows its branches and tags within half an hour; the downloads stay on the GitHub
+  releases page.
 - `.qpkg`: [`qnap/README-BUILD.md`](qnap/README-BUILD.md); how it runs on the NAS:
   [`docs/qnap-service.md`](docs/qnap-service.md)
 - The bundled decoder: [`qnap/build_ffmpeg.sh`](qnap/build_ffmpeg.sh)
